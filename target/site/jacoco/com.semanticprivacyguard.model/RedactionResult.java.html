@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RedactionResult.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Semantic Privacy Guard</a> &gt; <a href="index.source.html" class="el_package">com.semanticprivacyguard.model</a> &gt; <span class="el_source">RedactionResult.java</span></div><h1>RedactionResult.java</h1><pre class="source lang-java linenums">package com.semanticprivacyguard.model;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+
+/**
+ * Immutable result object returned by {@code SemanticPrivacyGuard.redact()}.
+ *
+ * &lt;p&gt;Contains the sanitised text, the full list of detections, a reverse-lookup
+ * map from replacement token back to the original value (for authorised
+ * de-tokenisation), and summary statistics.&lt;/p&gt;
+ *
+ * &lt;pre&gt;{@code
+ * RedactionResult result = spg.redact(rawText);
+ *
+ * String safe = result.getRedactedText();          // text safe to send to LLM
+ * int    n    = result.getMatchCount();            // number of PII items found
+ * String orig = result.getReverseMap()
+ *                     .get(&quot;[EMAIL_1]&quot;);            // &quot;alice@example.com&quot;
+ * }&lt;/pre&gt;
+ *
+ * @author Hemant Naik
+ * @since 1.0.0
+ */
+public final class RedactionResult {
+
+    private final String            originalText;
+    private final String            redactedText;
+    private final List&lt;PIIMatch&gt;    matches;
+
+    /**
+     * Reverse-lookup map: replacement token  →  original value.
+     * Example entry: {@code &quot;[EMAIL_1]&quot; → &quot;alice@example.com&quot;}.
+     * May be empty if the guard is configured not to build it.
+     */
+    private final Map&lt;String, String&gt; reverseMap;
+
+    /** Elapsed wall-clock time for the full detection + redaction pass, in ms. */
+    private final long processingTimeMs;
+
+    /**
+     * Constructs a {@code RedactionResult}.
+     *
+     * @param originalText    the raw input (never {@code null})
+     * @param redactedText    the sanitised output (never {@code null})
+     * @param matches         unmodifiable list of detections (never {@code null})
+     * @param reverseMap      token → original map (never {@code null})
+     * @param processingTimeMs wall-clock duration in milliseconds
+     */
+    public RedactionResult(String originalText,
+                           String redactedText,
+                           List&lt;PIIMatch&gt; matches,
+                           Map&lt;String, String&gt; reverseMap,
+<span class="fc" id="L56">                           long processingTimeMs) {</span>
+<span class="fc" id="L57">        this.originalText     = Objects.requireNonNull(originalText);</span>
+<span class="fc" id="L58">        this.redactedText     = Objects.requireNonNull(redactedText);</span>
+<span class="fc" id="L59">        this.matches          = Collections.unmodifiableList(</span>
+<span class="fc" id="L60">                                    Objects.requireNonNull(matches));</span>
+<span class="fc" id="L61">        this.reverseMap       = Collections.unmodifiableMap(</span>
+<span class="fc" id="L62">                                    Objects.requireNonNull(reverseMap));</span>
+<span class="fc" id="L63">        this.processingTimeMs = processingTimeMs;</span>
+<span class="fc" id="L64">    }</span>
+
+    // ── Accessors ─────────────────────────────────────────────────────────────
+
+    /** Returns the original, unmodified input text. */
+<span class="nc" id="L69">    public String getOriginalText()     { return originalText;     }</span>
+
+    /** Returns the sanitised text with PII replaced by tokens. */
+<span class="fc" id="L72">    public String getRedactedText()     { return redactedText;     }</span>
+
+    /** Returns an unmodifiable list of all PII matches, sorted by position. */
+<span class="nc" id="L75">    public List&lt;PIIMatch&gt; getMatches()  { return matches;          }</span>
+
+    /**
+     * Returns an unmodifiable reverse-lookup map.
+     * Keys are replacement tokens (e.g. {@code &quot;[EMAIL_1]&quot;});
+     * values are the original PII strings.
+     */
+<span class="fc" id="L82">    public Map&lt;String, String&gt; getReverseMap() { return reverseMap; }</span>
+
+    /** Returns the number of PII items detected. */
+<span class="fc" id="L85">    public int getMatchCount()          { return matches.size();   }</span>
+
+    /** Returns the wall-clock processing time in milliseconds. */
+<span class="fc" id="L88">    public long getProcessingTimeMs()   { return processingTimeMs; }</span>
+
+    /** Returns {@code true} if at least one PII item was detected. */
+<span class="pc bpc" id="L91" title="1 of 2 branches missed.">    public boolean containsPII()        { return !matches.isEmpty(); }</span>
+
+    /**
+     * Returns {@code true} if the text was unchanged (no PII detected).
+     * Equivalent to {@code !containsPII()}.
+     */
+<span class="fc" id="L97">    public boolean isClean()            { return matches.isEmpty(); }</span>
+
+    // ── Summary ───────────────────────────────────────────────────────────────
+
+    /**
+     * Returns a one-line human-readable summary of the redaction pass.
+     *
+     * &lt;pre&gt;
+     * RedactionResult[matches=3, types=[EMAIL, PHONE, SSN], timeMs=2]
+     * &lt;/pre&gt;
+     */
+    @Override
+    public String toString() {
+<span class="nc" id="L110">        long distinctTypes = matches.stream()</span>
+<span class="nc" id="L111">                                    .map(PIIMatch::getType)</span>
+<span class="nc" id="L112">                                    .distinct()</span>
+<span class="nc" id="L113">                                    .count();</span>
+<span class="nc" id="L114">        return String.format(</span>
+            &quot;RedactionResult[matches=%d, distinctTypes=%d, timeMs=%d]&quot;,
+<span class="nc" id="L116">            matches.size(), distinctTypes, processingTimeMs);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

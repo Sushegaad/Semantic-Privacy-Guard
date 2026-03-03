@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PIITokenizer.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Semantic Privacy Guard</a> &gt; <a href="index.source.html" class="el_package">com.semanticprivacyguard.tokenizer</a> &gt; <span class="el_source">PIITokenizer.java</span></div><h1>PIITokenizer.java</h1><pre class="source lang-java linenums">package com.semanticprivacyguard.tokenizer;
+
+import com.semanticprivacyguard.model.PIIMatch;
+import com.semanticprivacyguard.model.PIIType;
+
+import java.util.*;
+
+/**
+ * Replaces detected PII spans in text with structured replacement tokens.
+ *
+ * &lt;h2&gt;Token format&lt;/h2&gt;
+ *
+ * &lt;p&gt;Tokens take the form {@code [TYPE_N]} where {@code TYPE} is the
+ * {@link PIIType#getLabel()} and {@code N} is a 1-based counter scoped to
+ * each type within a single redaction call.  Examples:&lt;/p&gt;
+ * &lt;ul&gt;
+ *   &lt;li&gt;{@code [EMAIL_1]}, {@code [EMAIL_2]}&lt;/li&gt;
+ *   &lt;li&gt;{@code [PERSON_NAME_1]}&lt;/li&gt;
+ *   &lt;li&gt;{@code [SSN_1]}&lt;/li&gt;
+ * &lt;/ul&gt;
+ *
+ * &lt;p&gt;The token format is deliberately chosen so that an LLM receiving the
+ * redacted text can still understand the sentence structure, infer the type
+ * of missing information, and work with the anonymised context — without ever
+ * seeing the original values.&lt;/p&gt;
+ *
+ * &lt;h2&gt;De-tokenisation&lt;/h2&gt;
+ *
+ * &lt;p&gt;The {@link #redact} method returns a {@code Map&lt;String,String&gt;} that maps
+ * each replacement token back to the original value, enabling authorised
+ * downstream systems to reconstruct the original text if needed.&lt;/p&gt;
+ *
+ * &lt;h2&gt;Redaction modes&lt;/h2&gt;
+ *
+ * &lt;p&gt;Three built-in modes are supported, configurable at construction time:&lt;/p&gt;
+ * &lt;ul&gt;
+ *   &lt;li&gt;{@link RedactionMode#TOKEN} — structured {@code [TYPE_N]} tokens
+ *       (default; ideal for LLM pipelines).&lt;/li&gt;
+ *   &lt;li&gt;{@link RedactionMode#MASK} — replaces the value with a fixed-width
+ *       sequence of {@code █} characters.&lt;/li&gt;
+ *   &lt;li&gt;{@link RedactionMode#BLANK} — replaces the value with a single
+ *       {@code [REDACTED]} placeholder.&lt;/li&gt;
+ * &lt;/ul&gt;
+ *
+ * @author Hemant Naik
+ * @since 1.0.0
+ */
+public final class PIITokenizer {
+
+    /** Determines how detected PII is represented in the output. */
+<span class="fc" id="L51">    public enum RedactionMode {</span>
+        /** {@code [TYPE_N]} — preserves type info for downstream LLMs. */
+<span class="fc" id="L53">        TOKEN,</span>
+        /** {@code ████████} — fixed-width mask, length matches original. */
+<span class="fc" id="L55">        MASK,</span>
+        /** {@code [REDACTED]} — generic opaque placeholder. */
+<span class="fc" id="L57">        BLANK</span>
+    }
+
+    private static final char MASK_CHAR = '█';
+    private static final String BLANK_TOKEN = &quot;[REDACTED]&quot;;
+
+    private final RedactionMode mode;
+
+    /** Creates a tokenizer using {@link RedactionMode#TOKEN} (default). */
+    public PIITokenizer() {
+<span class="nc" id="L67">        this(RedactionMode.TOKEN);</span>
+<span class="nc" id="L68">    }</span>
+
+    /**
+     * Creates a tokenizer using the specified redaction mode.
+     *
+     * @param mode the redaction mode (never {@code null})
+     */
+<span class="fc" id="L75">    public PIITokenizer(RedactionMode mode) {</span>
+<span class="fc" id="L76">        this.mode = Objects.requireNonNull(mode, &quot;mode must not be null&quot;);</span>
+<span class="fc" id="L77">    }</span>
+
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Applies all matches to {@code text}, returning the redacted string and a
+     * reverse-lookup map.
+     *
+     * &lt;p&gt;The caller is responsible for ensuring that {@code matches} are
+     * non-overlapping and sorted by start index (as guaranteed by
+     * {@link com.semanticprivacyguard.detector.CompositeDetector}).&lt;/p&gt;
+     *
+     * @param text    the original text (never {@code null})
+     * @param matches non-overlapping, sorted list of PII matches
+     * @return a {@link RedactionOutput} containing the redacted text and the
+     *         token-to-original reverse map
+     */
+    public RedactionOutput redact(String text, List&lt;PIIMatch&gt; matches) {
+<span class="fc" id="L95">        Objects.requireNonNull(text, &quot;text must not be null&quot;);</span>
+<span class="pc bpc" id="L96" title="1 of 4 branches missed.">        if (matches == null || matches.isEmpty()) {</span>
+<span class="fc" id="L97">            return new RedactionOutput(text, Collections.emptyMap());</span>
+        }
+
+<span class="fc" id="L100">        StringBuilder     sb         = new StringBuilder(text.length());</span>
+<span class="fc" id="L101">        Map&lt;String,String&gt; reverseMap = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc" id="L102">        Map&lt;PIIType,Integer&gt; counters = new EnumMap&lt;&gt;(PIIType.class);</span>
+
+<span class="fc" id="L104">        int cursor = 0;</span>
+<span class="fc bfc" id="L105" title="All 2 branches covered.">        for (PIIMatch m : matches) {</span>
+            // Append text between last match end and this match start
+<span class="fc bfc" id="L107" title="All 2 branches covered.">            if (m.getStartIndex() &gt; cursor) {</span>
+<span class="fc" id="L108">                sb.append(text, cursor, m.getStartIndex());</span>
+            }
+
+<span class="fc" id="L111">            String token = buildToken(m, counters);</span>
+<span class="fc" id="L112">            sb.append(token);</span>
+<span class="fc" id="L113">            reverseMap.put(token, m.getValue());</span>
+<span class="fc" id="L114">            cursor = m.getEndIndex();</span>
+<span class="fc" id="L115">        }</span>
+
+        // Append any trailing text after the last match
+<span class="fc bfc" id="L118" title="All 2 branches covered.">        if (cursor &lt; text.length()) {</span>
+<span class="fc" id="L119">            sb.append(text, cursor, text.length());</span>
+        }
+
+<span class="fc" id="L122">        return new RedactionOutput(sb.toString(), reverseMap);</span>
+    }
+
+    // ── Private ───────────────────────────────────────────────────────────────
+
+    private String buildToken(PIIMatch match, Map&lt;PIIType, Integer&gt; counters) {
+<span class="fc bfc" id="L128" title="All 3 branches covered.">        return switch (mode) {</span>
+            case TOKEN -&gt; {
+<span class="fc" id="L130">                int n = counters.merge(match.getType(), 1, Integer::sum);</span>
+<span class="fc" id="L131">                yield &quot;[&quot; + match.getType().getLabel() + &quot;_&quot; + n + &quot;]&quot;;</span>
+            }
+<span class="fc" id="L133">            case MASK -&gt; MASK_CHAR</span>
+<span class="fc" id="L134">                    + String.valueOf(MASK_CHAR).repeat(</span>
+<span class="fc" id="L135">                        Math.max(0, match.getValue().length() - 1));</span>
+<span class="fc" id="L136">            case BLANK -&gt; BLANK_TOKEN;</span>
+        };
+    }
+
+    // ── Inner result type ─────────────────────────────────────────────────────
+
+    /**
+     * Holds the redacted text string and the token → original reverse map.
+     */
+<span class="fc" id="L145">    public record RedactionOutput(String redactedText,</span>
+                                   Map&lt;String, String&gt; reverseMap) {}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

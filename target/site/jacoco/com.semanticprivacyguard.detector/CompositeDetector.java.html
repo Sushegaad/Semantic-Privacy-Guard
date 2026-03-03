@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CompositeDetector.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Semantic Privacy Guard</a> &gt; <a href="index.source.html" class="el_package">com.semanticprivacyguard.detector</a> &gt; <span class="el_source">CompositeDetector.java</span></div><h1>CompositeDetector.java</h1><pre class="source lang-java linenums">package com.semanticprivacyguard.detector;
+
+import com.semanticprivacyguard.model.PIIMatch;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+/**
+ * Combines the outputs of multiple {@link PIIDetector} implementations and
+ * returns a de-duplicated, non-overlapping list of matches.
+ *
+ * &lt;h2&gt;De-duplication strategy&lt;/h2&gt;
+ *
+ * &lt;ol&gt;
+ *   &lt;li&gt;Sort all raw matches by start position; for the same start, prefer
+ *       the longer span (greedy-longest match).&lt;/li&gt;
+ *   &lt;li&gt;Walk the sorted list, discarding any match that starts before the
+ *       end of the last retained match (overlap removal).&lt;/li&gt;
+ *   &lt;li&gt;When a heuristic match and an ML match cover the same span, promote
+ *       the source to {@link PIIMatch.DetectionSource#HYBRID} and keep the
+ *       higher confidence score.&lt;/li&gt;
+ * &lt;/ol&gt;
+ *
+ * @author Hemant Naik
+ * @since 1.0.0
+ */
+public final class CompositeDetector implements PIIDetector {
+
+    private final List&lt;PIIDetector&gt; detectors;
+
+    /**
+     * Creates a composite detector that runs each supplied detector in order.
+     *
+     * @param detectors ordered list of detectors (must not be {@code null})
+     */
+<span class="fc" id="L37">    public CompositeDetector(List&lt;PIIDetector&gt; detectors) {</span>
+<span class="pc bpc" id="L38" title="2 of 4 branches missed.">        if (detectors == null || detectors.isEmpty()) {</span>
+<span class="nc" id="L39">            throw new IllegalArgumentException(&quot;At least one detector is required.&quot;);</span>
+        }
+<span class="fc" id="L41">        this.detectors = List.copyOf(detectors);</span>
+<span class="fc" id="L42">    }</span>
+
+    @Override
+<span class="nc" id="L45">    public String name() { return &quot;CompositeDetector&quot;; }</span>
+
+    // ─────────────────────────────────────────────────────────────────────────
+
+    @Override
+    public List&lt;PIIMatch&gt; detect(String text) {
+<span class="pc bpc" id="L51" title="2 of 4 branches missed.">        if (text == null || text.isBlank()) return List.of();</span>
+
+        // Collect raw matches from all detectors
+<span class="fc" id="L54">        List&lt;PIIMatch&gt; raw = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L55" title="All 2 branches covered.">        for (PIIDetector d : detectors) {</span>
+<span class="fc" id="L56">            raw.addAll(d.detect(text));</span>
+<span class="fc" id="L57">        }</span>
+
+<span class="fc bfc" id="L59" title="All 2 branches covered.">        if (raw.isEmpty()) return List.of();</span>
+
+        // Sort: by start index asc, then end index desc (longest first)
+<span class="fc" id="L62">        Collections.sort(raw);</span>
+
+        // De-duplicate overlapping matches
+<span class="fc" id="L65">        List&lt;PIIMatch&gt; deduped = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L66">        int lastEnd = -1;</span>
+
+<span class="fc bfc" id="L68" title="All 2 branches covered.">        for (PIIMatch m : raw) {</span>
+<span class="fc bfc" id="L69" title="All 2 branches covered.">            if (m.getStartIndex() &lt; lastEnd) {</span>
+                // This match overlaps the previous one.
+                // If it's a perfect span match, try to merge source info.
+<span class="pc bpc" id="L72" title="1 of 2 branches missed.">                if (!deduped.isEmpty()) {</span>
+<span class="fc" id="L73">                    PIIMatch prev = deduped.get(deduped.size() - 1);</span>
+<span class="pc bpc" id="L74" title="1 of 2 branches missed.">                    if (prev.getStartIndex() == m.getStartIndex()</span>
+<span class="nc bnc" id="L75" title="All 2 branches missed.">                            &amp;&amp; prev.getEndIndex() == m.getEndIndex()) {</span>
+                        // Same span — promote to HYBRID if different sources
+<span class="nc bnc" id="L77" title="All 2 branches missed.">                        if (prev.getSource() != m.getSource()</span>
+<span class="nc bnc" id="L78" title="All 2 branches missed.">                                &amp;&amp; prev.getSource() != PIIMatch.DetectionSource.HYBRID) {</span>
+<span class="nc" id="L79">                            deduped.set(deduped.size() - 1, merge(prev, m));</span>
+                        }
+                    }
+<span class="fc" id="L82">                }</span>
+                // Either way, skip this match to avoid overlap
+                continue;
+            }
+<span class="fc" id="L86">            deduped.add(m);</span>
+<span class="fc" id="L87">            lastEnd = m.getEndIndex();</span>
+<span class="fc" id="L88">        }</span>
+
+<span class="fc" id="L90">        return Collections.unmodifiableList(deduped);</span>
+    }
+
+    // ── Private ───────────────────────────────────────────────────────────────
+
+    /** Merges two same-span matches into a HYBRID match with the higher confidence. */
+    private PIIMatch merge(PIIMatch a, PIIMatch b) {
+<span class="nc" id="L97">        double conf  = Math.max(a.getConfidence(), b.getConfidence());</span>
+        // Prefer the more specific type (lower ordinal = higher severity)
+<span class="nc bnc" id="L99" title="All 2 branches missed.">        PIIMatch winner = a.getType().getSeverity() &gt;= b.getType().getSeverity() ? a : b;</span>
+<span class="nc" id="L100">        return new PIIMatch(</span>
+<span class="nc" id="L101">            winner.getType(),</span>
+<span class="nc" id="L102">            winner.getValue(),</span>
+<span class="nc" id="L103">            winner.getStartIndex(),</span>
+<span class="nc" id="L104">            winner.getEndIndex(),</span>
+            PIIMatch.DetectionSource.HYBRID,
+            conf
+        );
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

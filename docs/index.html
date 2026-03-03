@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Semantic Privacy Guard — Live Playground</title>
+  <style>
+    /* ── Reset & base ─────────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:       #0d1117;
+      --surface:  #161b22;
+      --border:   #30363d;
+      --accent:   #58a6ff;
+      --accent2:  #3fb950;
+      --warn:     #f85149;
+      --text:     #c9d1d9;
+      --muted:    #8b949e;
+      --tag-bg:   #1f2937;
+      --font:     'Segoe UI', system-ui, sans-serif;
+      --mono:     'JetBrains Mono', 'Fira Code', monospace;
+    }
+    html { font-size: 16px; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Header ──────────────────────────────────────────────────────────── */
+    header {
+      border-bottom: 1px solid var(--border);
+      padding: 1.25rem 2rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .logo { font-size: 1.4rem; font-weight: 700; letter-spacing: -0.5px; }
+    .logo span { color: var(--accent); }
+    .badges { display: flex; gap: .5rem; flex-wrap: wrap; margin-left: auto; }
+    .badge {
+      display: inline-flex; align-items: center; gap: .35rem;
+      background: var(--tag-bg); border: 1px solid var(--border);
+      border-radius: 4px; padding: .2rem .6rem;
+      font-size: .72rem; font-weight: 600; color: var(--muted);
+    }
+    .badge.green { color: var(--accent2); border-color: #238636; background:#0d2a0d; }
+    .badge.blue  { color: var(--accent);  border-color: #1f6feb; background:#0c1a2e; }
+
+    /* ── Hero ────────────────────────────────────────────────────────────── */
+    .hero {
+      text-align: center;
+      padding: 3rem 2rem 2rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .hero h1 { font-size: 2.2rem; font-weight: 800; margin-bottom: .5rem; }
+    .hero h1 em { color: var(--accent); font-style: normal; }
+    .hero p { color: var(--muted); max-width: 640px; margin: 0 auto .75rem; line-height: 1.6; }
+    .pill-row { display: flex; gap: .5rem; justify-content: center; flex-wrap: wrap; margin-top: 1rem; }
+    .pill {
+      background: var(--tag-bg); border: 1px solid var(--border);
+      border-radius: 20px; padding: .3rem .9rem;
+      font-size: .78rem; font-weight: 600; color: var(--muted);
+    }
+    .pill.active { background: #0c1a2e; border-color: var(--accent); color: var(--accent); }
+
+    /* ── Main layout ─────────────────────────────────────────────────────── */
+    main {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+    }
+    @media (max-width: 800px) {
+      main { grid-template-columns: 1fr; }
+    }
+    .pane {
+      padding: 1.5rem 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .pane:first-child { border-right: 1px solid var(--border); }
+    .pane-header {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: .5rem; flex-wrap: wrap;
+    }
+    .pane-title { font-size: .85rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+
+    /* ── Textarea ────────────────────────────────────────────────────────── */
+    textarea {
+      width: 100%;
+      min-height: 260px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: .88rem;
+      line-height: 1.6;
+      padding: 1rem;
+      resize: vertical;
+      outline: none;
+      transition: border-color .2s;
+    }
+    textarea:focus { border-color: var(--accent); }
+
+    /* ── Output ──────────────────────────────────────────────────────────── */
+    .output-box {
+      min-height: 260px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-family: var(--mono);
+      font-size: .88rem;
+      line-height: 1.6;
+      padding: 1rem;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    .output-box mark {
+      background: rgba(248, 81, 73, .18);
+      color: #f97583;
+      border-radius: 3px;
+      padding: 0 2px;
+      font-weight: 600;
+    }
+
+    /* ── Controls row ────────────────────────────────────────────────────── */
+    .controls {
+      display: flex; gap: .75rem; flex-wrap: wrap; align-items: center;
+    }
+    label { font-size: .82rem; color: var(--muted); font-weight: 600; }
+    select, button {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: .82rem;
+      padding: .4rem .75rem;
+      cursor: pointer;
+      outline: none;
+      transition: border-color .2s;
+    }
+    select:focus, button:focus { border-color: var(--accent); }
+    button.primary {
+      background: #1f6feb;
+      border-color: #1f6feb;
+      color: #fff;
+      font-weight: 600;
+      padding: .45rem 1rem;
+    }
+    button.primary:hover { background: #388bfd; }
+    button.clear {
+      color: var(--warn);
+      border-color: var(--warn);
+      background: transparent;
+    }
+    button.clear:hover { background: rgba(248,81,73,.1); }
+
+    /* ── Findings table ──────────────────────────────────────────────────── */
+    .findings {
+      font-size: .78rem;
+    }
+    .findings-header {
+      color: var(--muted);
+      font-weight: 700;
+      font-size: .72rem;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      margin-bottom: .5rem;
+    }
+    .finding-row {
+      display: flex; align-items: center; gap: .5rem;
+      padding: .35rem .5rem;
+      border-radius: 5px;
+      border: 1px solid transparent;
+      margin-bottom: .25rem;
+    }
+    .finding-row:hover { background: var(--tag-bg); border-color: var(--border); }
+    .type-badge {
+      padding: .15rem .55rem;
+      border-radius: 3px;
+      font-size: .68rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .finding-value {
+      font-family: var(--mono);
+      color: #f97583;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      flex: 1;
+    }
+    .finding-token {
+      font-family: var(--mono);
+      color: var(--accent);
+      white-space: nowrap;
+    }
+    .conf-bar {
+      height: 4px;
+      width: 48px;
+      background: var(--border);
+      border-radius: 2px;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .conf-fill { height: 100%; background: var(--accent2); }
+
+    /* ── Stats row ───────────────────────────────────────────────────────── */
+    .stats {
+      display: flex; gap: 1.5rem; flex-wrap: wrap;
+      font-size: .8rem; color: var(--muted);
+    }
+    .stat-val { color: var(--text); font-weight: 700; }
+
+    /* ── Reverse map ─────────────────────────────────────────────────────── */
+    .reverse-map {
+      font-size: .8rem;
+      background: var(--tag-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: .75rem 1rem;
+      display: none;
+    }
+    .reverse-map h4 { color: var(--muted); font-size: .72rem; text-transform: uppercase; letter-spacing: .08em; margin-bottom: .5rem; }
+    .rm-entry { display: flex; gap: 1rem; margin-bottom: .2rem; }
+    .rm-token { font-family: var(--mono); color: var(--accent); min-width: 130px; }
+    .rm-value { font-family: var(--mono); color: #f97583; }
+
+    /* ── Sample buttons ──────────────────────────────────────────────────── */
+    .samples { display: flex; gap: .5rem; flex-wrap: wrap; }
+    .sample-btn {
+      font-size: .72rem;
+      padding: .2rem .6rem;
+      border-radius: 4px;
+      background: var(--tag-bg);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      cursor: pointer;
+    }
+    .sample-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* ── Footer ──────────────────────────────────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 1rem 2rem;
+      text-align: center;
+      font-size: .75rem;
+      color: var(--muted);
+    }
+
+    /* ── Empty state ─────────────────────────────────────────────────────── */
+    .empty-state {
+      text-align: center;
+      color: var(--muted);
+      padding: 3rem 1rem;
+      font-size: .85rem;
+    }
+    .empty-state .icon { font-size: 2rem; margin-bottom: .5rem; }
+
+    /* ── Tooltip ─────────────────────────────────────────────────────────── */
+    [title] { cursor: help; }
+  </style>
+</head>
+<body>
+
+<!-- ── Header ────────────────────────────────────────────────────────────── -->
+<header>
+  <div class="logo">🛡 Semantic <span>Privacy</span> Guard</div>
+  <div class="badges">
+    <span class="badge green">● Build passing</span>
+    <span class="badge blue">Java 17+</span>
+    <span class="badge">Zero deps</span>
+    <span class="badge">Apache 2.0</span>
+    <a class="badge" href="https://github.com/hemant-naik/semantic-privacy-guard" target="_blank">
+      ⭐ GitHub
+    </a>
+  </div>
+</header>
+
+<!-- ── Hero ──────────────────────────────────────────────────────────────── -->
+<div class="hero">
+  <h1>AI Privacy <em>Firewall</em> for Java</h1>
+  <p>
+    Intercept LLM prompts, detect PII using a hybrid
+    <strong>Regex&nbsp;+&nbsp;Naive&nbsp;Bayes</strong> pipeline, and replace
+    sensitive data with structured tokens — before it leaves your network.
+  </p>
+  <div class="pill-row">
+    <span class="pill active">SSN</span>
+    <span class="pill active">Credit Card</span>
+    <span class="pill active">Email</span>
+    <span class="pill active">Phone</span>
+    <span class="pill active">IPv4 / IPv6</span>
+    <span class="pill active">API Keys</span>
+    <span class="pill active">Passwords</span>
+    <span class="pill active">Names (ML)</span>
+    <span class="pill active">Orgs (ML)</span>
+    <span class="pill active">IBAN</span>
+  </div>
+</div>
+
+<!-- ── Main ──────────────────────────────────────────────────────────────── -->
+<main>
+
+  <!-- Left pane: input -->
+  <div class="pane">
+    <div class="pane-header">
+      <span class="pane-title">Input Text</span>
+      <div class="samples">
+        <button class="sample-btn" onclick="loadSample('email')">Email sample</button>
+        <button class="sample-btn" onclick="loadSample('ssn')">SSN sample</button>
+        <button class="sample-btn" onclick="loadSample('ml')">ML disambiguation</button>
+        <button class="sample-btn" onclick="loadSample('mixed')">Full mix</button>
+      </div>
+    </div>
+
+    <textarea id="input"
+      placeholder="Paste any text here and click Redact…
+
+Example: Please email Alice at alice@example.com or call (555) 867-5309.
+Her SSN is 123-45-6789 and card 4532 0151 1283 0366."></textarea>
+
+    <div class="controls">
+      <label for="mode">Mode:</label>
+      <select id="mode">
+        <option value="token">TOKEN — [EMAIL_1]</option>
+        <option value="mask">MASK — ████████</option>
+        <option value="blank">BLANK — [REDACTED]</option>
+      </select>
+
+      <label for="threshold" title="ML Naive Bayes posterior probability cutoff">
+        ML threshold:
+      </label>
+      <select id="threshold">
+        <option value="0.50">0.50 (High recall)</option>
+        <option value="0.65" selected>0.65 (Balanced)</option>
+        <option value="0.75">0.75 (High precision)</option>
+        <option value="0.90">0.90 (Very strict)</option>
+      </select>
+
+      <button class="primary" onclick="runRedact()">🔍 Redact</button>
+      <button class="clear" onclick="clearAll()">✕ Clear</button>
+    </div>
+
+    <div class="stats" id="stats" style="display:none">
+      <span>Detections: <span class="stat-val" id="s-count">0</span></span>
+      <span>Types: <span class="stat-val" id="s-types">—</span></span>
+      <span>Time: <span class="stat-val" id="s-time">—</span></span>
+      <span>Layer: <span class="stat-val" id="s-layer">—</span></span>
+    </div>
+  </div>
+
+  <!-- Right pane: output -->
+  <div class="pane">
+    <div class="pane-header">
+      <span class="pane-title">Redacted Output</span>
+      <button onclick="copyOutput()" style="font-size:.75rem; padding:.25rem .6rem;">
+        📋 Copy
+      </button>
+    </div>
+
+    <div class="output-box" id="output">
+      <div class="empty-state">
+        <div class="icon">🔐</div>
+        <div>Redacted text will appear here</div>
+      </div>
+    </div>
+
+    <div class="findings-header" id="findings-header" style="display:none">
+      Detections
+    </div>
+    <div id="findings"></div>
+
+    <div class="reverse-map" id="reverse-map">
+      <h4>Reverse Map (de-tokenisation)</h4>
+      <div id="rm-entries"></div>
+    </div>
+  </div>
+</main>
+
+<!-- ── Footer ────────────────────────────────────────────────────────────── -->
+<footer>
+  Semantic Privacy Guard v1.0.0 · Apache 2.0 ·
+  <a href="https://github.com/hemant-naik/semantic-privacy-guard">GitHub</a> ·
+  <a href="https://github.com/hemant-naik/semantic-privacy-guard/blob/main/docs/regex-design.md">Regex Design</a> ·
+  <a href="https://github.com/hemant-naik/semantic-privacy-guard/blob/main/docs/benchmarks.md">Benchmarks</a> ·
+  <a href="https://github.com/hemant-naik/semantic-privacy-guard/blob/main/SECURITY.md">Security Policy</a>
+  <br><small style="margin-top:.4rem;display:block">
+    ⚠️ This playground runs entirely in your browser — no text is transmitted to any server.
+  </small>
+</footer>
+
+<script>
+// ────────────────────────────────────────────────────────────────────────────
+//  JavaScript port of the SPG Heuristic + simplified ML detection pipeline.
+//  This is a faithful translation of the Java logic for live demo purposes.
+// ────────────────────────────────────────────────────────────────────────────
+
+const SAMPLES = {
+  email: `Please send the Q4 report to alice.johnson@acme-corp.com by Friday.
+CC: bob.smith+reports@enterprise.org and the team lead.`,
+
+  ssn: `Patient intake form:
+  Full name: Jane Doe
+  Date of birth: dob: 03/15/1985
+  Social Security Number: 234-56-7890
+  Invalid reference: 900-12-3456 (ITIN, should not flag)
+  Also invalid: 000-00-0001 (reserved)`,
+
+  ml: `The ML disambiguation test:
+
+Sentence 1: "I ate an apple yesterday and watched an Apple keynote."
+Sentence 2: "Dear John, please contact Apple at (800) 555-1234."
+Sentence 3: "In the Bible, the Gospel of John has 21 chapters."
+Sentence 4: "Hello John, your appointment is confirmed for Monday."
+
+Notice how 'Apple' and 'John' are treated differently based on context.`,
+
+  mixed: `TO: alice.johnson@acme.com
+FROM: support@company.io
+RE: Account Security Alert
+
+Dear Alice Johnson,
+
+We detected a login from IP 203.0.113.42 on your account.
+
+Your profile on file:
+  SSN: 123-45-6789
+  Card: 4532 0151 1283 0366 (Visa)
+  Phone: (555) 867-5309
+  DOB: born on 03/15/1985
+
+If this wasn't you, contact Dr. Smith at dr.smith@hospital.org.
+
+API credentials in your config:
+  AWS_ACCESS_KEY=AKIAIOSFODNN7EXAMPLE
+  password=MyS3cretP@ssw0rd!
+
+Server logs show traffic from 192.168.1.100 and IPv6 2001:db8::1.
+
+Transfer ref: GB29NWBK60161331926819
+
+Best regards,
+Security Team`
+};
+
+// ── PII type metadata ────────────────────────────────────────────────────────
+const TYPE_META = {
+  SSN:          { label: 'SSN',        color: '#f85149', bg: '#2d1b1a', sev: 10 },
+  CREDIT_CARD:  { label: 'CARD',       color: '#f85149', bg: '#2d1b1a', sev: 10 },
+  API_KEY:      { label: 'API KEY',    color: '#f0883e', bg: '#2d1e14', sev: 9  },
+  PASSWORD:     { label: 'PASSWORD',   color: '#f0883e', bg: '#2d1e14', sev: 9  },
+  EMAIL:        { label: 'EMAIL',      color: '#58a6ff', bg: '#0c1a2e', sev: 6  },
+  PHONE:        { label: 'PHONE',      color: '#58a6ff', bg: '#0c1a2e', sev: 6  },
+  IP_ADDRESS:   { label: 'IP',         color: '#3fb950', bg: '#0d2a0d', sev: 4  },
+  PERSON_NAME:  { label: 'NAME',       color: '#d2a8ff', bg: '#1e1531', sev: 6  },
+  ORGANIZATION: { label: 'ORG',        color: '#d2a8ff', bg: '#1e1531', sev: 3  },
+  DATE_OF_BIRTH:{ label: 'DOB',        color: '#79c0ff', bg: '#0c1a2e', sev: 6  },
+  BANK_ACCOUNT: { label: 'BANK',       color: '#ffa657', bg: '#2d1e00', sev: 8  },
+  GENERIC_PII:  { label: 'PII',        color: '#8b949e', bg: '#1c2128', sev: 5  },
+};
+
+// ── Regex patterns (JS port of RegexPatterns.java) ──────────────────────────
+const PATTERNS = [
+  {
+    type: 'SSN',
+    // area 001-665/667-899, group 01-99, serial 0001-9999
+    re: /\b(?!000|666|9\d{2})\d{3}-(?!00)\d{2}-(?!0000)\d{4}\b/g,
+    conf: 1.0
+  },
+  {
+    type: 'EMAIL',
+    re: /\b[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}\b/g,
+    conf: 0.97
+  },
+  {
+    type: 'PHONE',
+    re: /(?:\+?1[-. ]?)?(?:\(?([2-9][0-9]{2})\)?[-. ]?)([2-9][0-9]{2})[-. ]?([0-9]{4})(?!\d)/g,
+    conf: 0.90
+  },
+  {
+    type: 'IP_ADDRESS',
+    re: /(?<![.\d])(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?)(?![.\d])/g,
+    conf: 0.95
+  },
+  {
+    type: 'API_KEY',
+    re: /\b(?:(?:AKIA|ABIA|ACCA)[0-9A-Z]{16}|ghp_[0-9a-zA-Z]{36}|sk-[a-zA-Z0-9]{20,}|[a-f0-9]{32,64})\b/gi,
+    conf: 0.93
+  },
+  {
+    type: 'PASSWORD',
+    re: /(?:password|passwd|pwd|secret|passphrase|pass)\s*[:=]\s*([^\s,;"'`]{4,})/gi,
+    conf: 0.88
+  },
+  {
+    type: 'DATE_OF_BIRTH',
+    re: /(?:dob|d\.o\.b\.|born(?:\s+on)?|date\s+of\s+birth)\s*[:=]?\s*(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+\d{1,2},?\s+\d{4})/gi,
+    conf: 0.92
+  },
+  {
+    type: 'BANK_ACCOUNT',
+    re: /\b[A-Z]{2}\d{2}[A-Z0-9]{4,30}\b/g,  // IBAN
+    conf: 0.90
+  },
+];
+
+// Credit card with Luhn (handled separately below)
+// CREDIT_CARD pattern
+const CC_RE = /\b(?:4[0-9]{12}(?:[0-9]{3,6})?|(?:5[1-5][0-9]{2}|222[1-9]|2[3-6][0-9]{2}|27[01][0-9]|2720)[0-9]{12}|3[47][0-9]{13}|6(?:011|5[0-9]{2})[0-9]{12,15}|(?:2131|1800|35\d{3})\d{11})\b|\b(?:\d{4}[- ]){3}\d{4}\b/g;
+
+// ── Luhn algorithm ───────────────────────────────────────────────────────────
+function luhn(digits) {
+  digits = digits.replace(/\D/g, '');
+  if (!digits || digits.length < 13) return false;
+  let sum = 0, alt = false;
+  for (let i = digits.length - 1; i >= 0; i--) {
+    let n = parseInt(digits[i]);
+    if (alt) { n *= 2; if (n > 9) n -= 9; }
+    sum += n;
+    alt = !alt;
+  }
+  return sum % 10 === 0;
+}
+
+// ── Shannon entropy ───────────────────────────────────────────────────────────
+function entropy(s) {
+  const freq = {};
+  for (const c of s) freq[c] = (freq[c] || 0) + 1;
+  let h = 0, n = s.length;
+  for (const f of Object.values(freq)) { const p = f/n; h -= p * Math.log2(p); }
+  return h;
+}
+
+// ── Simplified Naive Bayes context classifier ─────────────────────────────────
+// Keyword lookup tables derived from the Java TrainingData corpus
+const PII_CONTEXT_WORDS   = new Set(['contact','email','call','phone','dear','hello','hi',
+  'mr','mrs','ms','dr','prof','sir','manager','ceo','cto','patient','client','customer',
+  'employee','user','name','from','sent','author','signed','referred']);
+const BENIGN_CONTEXT_WORDS = new Set(['ate','drink','love','buy','sells','watched','read',
+  'novel','chapter','book','film','movie','fictional','biblical','verse','story','show']);
+
+function mlClassify(token, surroundingWords) {
+  if (!token || !/^[A-Z]/.test(token)) return { label: 'BENIGN', prob: 0.95 };
+  let piiScore = 0, benignScore = 0;
+  const lower = surroundingWords.map(w => w.toLowerCase());
+  for (const w of lower) {
+    if (PII_CONTEXT_WORDS.has(w))   piiScore++;
+    if (BENIGN_CONTEXT_WORDS.has(w)) benignScore++;
+  }
+  // Prior: title-case in absence of context leans slightly PII
+  piiScore += 0.3;
+  const total = piiScore + benignScore + 0.01;
+  const prob  = piiScore / total;
+  return { label: prob > 0.5 ? 'PII' : 'BENIGN', prob };
+}
+
+// ── Core detect function ──────────────────────────────────────────────────────
+function detect(text, threshold) {
+  const matches = [];
+  const used    = [];   // track covered char ranges to avoid overlaps
+
+  function overlaps(s, e) {
+    return used.some(([a,b]) => s < b && a < e);
+  }
+  function addMatch(type, value, start, end, conf, source) {
+    if (overlaps(start, end)) return;
+    used.push([start, end]);
+    matches.push({ type, value, start, end, conf, source });
+  }
+
+  // Credit card
+  for (const m of (text.match(CC_RE) || [])) {
+    const idx = text.indexOf(m);
+    if (luhn(m) && !overlaps(idx, idx + m.length)) {
+      addMatch('CREDIT_CARD', m, idx, idx + m.length, 1.0, 'HEURISTIC');
+    }
+  }
+
+  // All other regex patterns
+  for (const { type, re, conf } of PATTERNS) {
+    const rx = new RegExp(re.source, re.flags.replace('g','') + 'g');
+    let m;
+    while ((m = rx.exec(text)) !== null) {
+      // API key entropy filter
+      if (type === 'API_KEY' && m[0].length < 20 && entropy(m[0]) < 3.5) continue;
+      addMatch(type, m[0], m.index, m.index + m[0].length, conf, 'HEURISTIC');
+    }
+  }
+
+  // ML layer: scan title-cased tokens
+  const words = text.split(/\s+/);
+  let cursor = 0;
+  for (let i = 0; i < words.length; i++) {
+    const w = words[i];
+    const start = text.indexOf(w, cursor);
+    const end = start + w.length;
+    cursor = end;
+    if (!/^[A-Z][a-z]/.test(w)) continue;
+    if (w.length < 3) continue;
+    const ctx = words.slice(Math.max(0,i-3), i).concat(words.slice(i+1, i+4));
+    const { label, prob } = mlClassify(w, ctx);
+    if (label === 'PII' && prob >= threshold && !overlaps(start, end)) {
+      let piiType = 'PERSON_NAME';
+      const ctxStr = ctx.join(' ').toLowerCase();
+      if (/company|corp|inc|ltd|llc|firm|vendor/.test(ctxStr)) piiType = 'ORGANIZATION';
+      addMatch(piiType, w, start, end, prob, 'ML');
+    }
+  }
+
+  // Sort by position
+  matches.sort((a,b) => a.start - b.start);
+  return matches;
+}
+
+// ── Redact function ───────────────────────────────────────────────────────────
+function redactText(text, matches, mode) {
+  const counters = {};
+  const reverseMap = {};
+  let result = '';
+  let cursor = 0;
+
+  for (const m of matches) {
+    result += text.slice(cursor, m.start);
+    counters[m.type] = (counters[m.type] || 0) + 1;
+    const meta  = TYPE_META[m.type] || TYPE_META.GENERIC_PII;
+    let token;
+    if (mode === 'token') {
+      token = `[${meta.label}_${counters[m.type]}]`;
+    } else if (mode === 'mask') {
+      token = '█'.repeat(m.value.length);
+    } else {
+      token = '[REDACTED]';
+    }
+    reverseMap[token] = m.value;
+    result += token;
+    cursor = m.end;
+  }
+  result += text.slice(cursor);
+  return { result, reverseMap };
+}
+
+// ── UI functions ───────────────────────────────────────────────────────────────
+function runRedact() {
+  const text      = document.getElementById('input').value;
+  const mode      = document.getElementById('mode').value;
+  const threshold = parseFloat(document.getElementById('threshold').value);
+
+  if (!text.trim()) {
+    alert('Please enter some text first.');
+    return;
+  }
+
+  const t0      = performance.now();
+  const matches = detect(text, threshold);
+  const { result, reverseMap } = redactText(text, matches, mode);
+  const elapsed = (performance.now() - t0).toFixed(1);
+
+  // Update output pane
+  const outEl = document.getElementById('output');
+  if (mode === 'token') {
+    // Highlight tokens in output
+    let highlighted = escapeHtml(result)
+      .replace(/\[([A-Z_0-9]+)\]/g,
+        '<mark>[$1]</mark>');
+    outEl.innerHTML = highlighted || '<em style="color:var(--accent2)">✓ Clean — no PII detected</em>';
+  } else {
+    outEl.textContent = result || '✓ Clean — no PII detected';
+  }
+
+  // Stats
+  const statsEl = document.getElementById('stats');
+  statsEl.style.display = 'flex';
+  document.getElementById('s-count').textContent = matches.length;
+  const types = [...new Set(matches.map(m => (TYPE_META[m.type]||{}).label || m.type))].join(', ') || '—';
+  document.getElementById('s-types').textContent = types;
+  document.getElementById('s-time').textContent  = elapsed + ' ms';
+  const layers = [...new Set(matches.map(m => m.source))];
+  document.getElementById('s-layer').textContent = layers.length ? layers.join(' + ') : '—';
+
+  // Findings
+  const findEl  = document.getElementById('findings');
+  const fHeader = document.getElementById('findings-header');
+  fHeader.style.display = matches.length ? 'block' : 'none';
+  findEl.innerHTML = '';
+  const counters2 = {};
+  for (const m of matches) {
+    counters2[m.type] = (counters2[m.type] || 0) + 1;
+    const meta = TYPE_META[m.type] || TYPE_META.GENERIC_PII;
+    let token;
+    if (mode === 'token') {
+      token = `[${meta.label}_${counters2[m.type]}]`;
+    } else if (mode === 'mask') {
+      token = '████';
+    } else {
+      token = '[REDACTED]';
+    }
+    const row = document.createElement('div');
+    row.className = 'finding-row';
+    row.innerHTML = `
+      <span class="type-badge" style="color:${meta.color};background:${meta.bg}">${meta.label}</span>
+      <span class="finding-value" title="${escapeHtml(m.value)}">${escapeHtml(truncate(m.value, 30))}</span>
+      <span class="finding-token">${escapeHtml(token)}</span>
+      <div class="conf-bar" title="Confidence: ${(m.conf*100).toFixed(0)}%">
+        <div class="conf-fill" style="width:${m.conf*100}%"></div>
+      </div>
+    `;
+    findEl.appendChild(row);
+  }
+
+  // Reverse map
+  const rmEl = document.getElementById('reverse-map');
+  const rmEntries = document.getElementById('rm-entries');
+  const rmKeys = Object.keys(reverseMap);
+  if (rmKeys.length && mode === 'token') {
+    rmEl.style.display = 'block';
+    rmEntries.innerHTML = rmKeys.map(k =>
+      `<div class="rm-entry">
+        <span class="rm-token">${escapeHtml(k)}</span>
+        <span class="rm-value">${escapeHtml(truncate(reverseMap[k], 40))}</span>
+      </div>`
+    ).join('');
+  } else {
+    rmEl.style.display = 'none';
+  }
+}
+
+function clearAll() {
+  document.getElementById('input').value = '';
+  document.getElementById('output').innerHTML =
+    '<div class="empty-state"><div class="icon">🔐</div><div>Redacted text will appear here</div></div>';
+  document.getElementById('findings').innerHTML = '';
+  document.getElementById('findings-header').style.display = 'none';
+  document.getElementById('reverse-map').style.display = 'none';
+  document.getElementById('stats').style.display = 'none';
+}
+
+function loadSample(key) {
+  document.getElementById('input').value = SAMPLES[key] || '';
+  runRedact();
+}
+
+function copyOutput() {
+  const text = document.getElementById('output').innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = event.target;
+    btn.textContent = '✓ Copied!';
+    setTimeout(() => btn.textContent = '📋 Copy', 1500);
+  });
+}
+
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function truncate(s, n) {
+  return s.length <= n ? s : s.slice(0, n) + '…';
+}
+
+// Auto-redact on Enter (but allow newlines with Shift+Enter)
+document.getElementById('input').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && e.ctrlKey) { e.preventDefault(); runRedact(); }
+});
+</script>
+</body>
+</html>

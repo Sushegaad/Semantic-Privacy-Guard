@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>FeatureExtractor.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Semantic Privacy Guard</a> &gt; <a href="index.source.html" class="el_package">com.semanticprivacyguard.ml</a> &gt; <span class="el_source">FeatureExtractor.java</span></div><h1>FeatureExtractor.java</h1><pre class="source lang-java linenums">package com.semanticprivacyguard.ml;
+
+import com.semanticprivacyguard.util.TextUtils;
+
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Extracts a bag-of-words feature vector for a candidate token and its
+ * surrounding context window.
+ *
+ * &lt;h2&gt;Feature categories&lt;/h2&gt;
+ * &lt;ol&gt;
+ *   &lt;li&gt;&lt;b&gt;Context words&lt;/b&gt; — the {@code windowSize} words before and after
+ *       the candidate token, lowercased.&lt;/li&gt;
+ *   &lt;li&gt;&lt;b&gt;Structural features&lt;/b&gt; — binary flags (encoded as string tokens)
+ *       that capture surface properties of the candidate:
+ *       {@code HAS_DIGIT}, {@code ALL_CAPS}, {@code IS_TITLE_CASE},
+ *       {@code HAS_HYPHEN}, {@code HIGH_ENTROPY}.&lt;/li&gt;
+ *   &lt;li&gt;&lt;b&gt;Preceding keyword&lt;/b&gt; — the immediately preceding word lowercased,
+ *       prefixed with {@code &quot;PREV:&quot;} to distinguish it from context words.
+ *       This is the strongest single signal for names: words like
+ *       {@code &quot;dear&quot;}, {@code &quot;contact&quot;}, {@code &quot;mr&quot;}, etc.&lt;/li&gt;
+ *   &lt;li&gt;&lt;b&gt;Token length bucket&lt;/b&gt; — {@code &quot;LEN_SHORT&quot;} (&amp;lt; 4),
+ *       {@code &quot;LEN_MEDIUM&quot;} (4–8), {@code &quot;LEN_LONG&quot;} (&amp;gt; 8).&lt;/li&gt;
+ * &lt;/ol&gt;
+ *
+ * @author Hemant Naik
+ * @since 1.0.0
+ */
+public final class FeatureExtractor {
+
+    private static final int DEFAULT_WINDOW = 3;
+    private static final double HIGH_ENTROPY_THRESHOLD = 3.8;
+
+    private final int windowSize;
+
+    /** Creates an extractor with the default 3-word context window. */
+    public FeatureExtractor() {
+<span class="fc" id="L40">        this(DEFAULT_WINDOW);</span>
+<span class="fc" id="L41">    }</span>
+
+    /**
+     * Creates an extractor with a custom context window.
+     *
+     * @param windowSize number of context tokens on each side
+     */
+<span class="fc" id="L48">    public FeatureExtractor(int windowSize) {</span>
+<span class="pc bpc" id="L49" title="1 of 2 branches missed.">        if (windowSize &lt; 0) throw new IllegalArgumentException(&quot;windowSize must be &gt;= 0&quot;);</span>
+<span class="fc" id="L50">        this.windowSize = windowSize;</span>
+<span class="fc" id="L51">    }</span>
+
+    /**
+     * Extracts features for the token at {@code tokenIndex} in {@code spans}.
+     *
+     * @param text       full input text
+     * @param spans      token spans as produced by {@link TextUtils#tokenSpans}
+     * @param tokenIndex index of the candidate token
+     * @return non-empty feature list
+     */
+    public List&lt;String&gt; extract(String text, List&lt;int[]&gt; spans, int tokenIndex) {
+<span class="fc" id="L62">        List&lt;String&gt; features = new ArrayList&lt;&gt;();</span>
+
+<span class="fc" id="L64">        int[]  span  = spans.get(tokenIndex);</span>
+<span class="fc" id="L65">        String token = text.substring(span[0], span[1]);</span>
+
+        // 1. Context words
+<span class="fc" id="L68">        String ctx = TextUtils.contextWindow(text, spans, tokenIndex, windowSize);</span>
+<span class="pc bpc" id="L69" title="1 of 2 branches missed.">        if (!ctx.isEmpty()) {</span>
+<span class="fc bfc" id="L70" title="All 2 branches covered.">            for (String w : ctx.split(&quot;\\s+&quot;)) {</span>
+<span class="pc bpc" id="L71" title="1 of 2 branches missed.">                if (!w.isBlank()) features.add(w);</span>
+            }
+        }
+
+        // 2. Preceding keyword feature
+<span class="fc bfc" id="L76" title="All 2 branches covered.">        if (tokenIndex &gt; 0) {</span>
+<span class="fc" id="L77">            int[] prevSpan = spans.get(tokenIndex - 1);</span>
+<span class="fc" id="L78">            String prev = text.substring(prevSpan[0], prevSpan[1]).toLowerCase();</span>
+<span class="fc" id="L79">            features.add(&quot;PREV:&quot; + prev);</span>
+        }
+
+        // 3. Structural features
+<span class="pc bpc" id="L83" title="1 of 2 branches missed.">        if (token.chars().anyMatch(Character::isDigit))</span>
+<span class="nc" id="L84">            features.add(&quot;HAS_DIGIT&quot;);</span>
+<span class="pc bpc" id="L85" title="1 of 4 branches missed.">        if (token.equals(token.toUpperCase()) &amp;&amp; token.length() &gt; 1)</span>
+<span class="fc" id="L86">            features.add(&quot;ALL_CAPS&quot;);</span>
+<span class="pc bpc" id="L87" title="2 of 4 branches missed.">        if (Character.isUpperCase(token.charAt(0)) &amp;&amp; token.length() &gt; 1</span>
+<span class="fc bfc" id="L88" title="All 2 branches covered.">                &amp;&amp; token.substring(1).equals(token.substring(1).toLowerCase()))</span>
+<span class="fc" id="L89">            features.add(&quot;IS_TITLE_CASE&quot;);</span>
+<span class="pc bpc" id="L90" title="1 of 2 branches missed.">        if (token.contains(&quot;-&quot;))</span>
+<span class="nc" id="L91">            features.add(&quot;HAS_HYPHEN&quot;);</span>
+<span class="pc bpc" id="L92" title="1 of 2 branches missed.">        if (TextUtils.shannonEntropy(token) &gt;= HIGH_ENTROPY_THRESHOLD)</span>
+<span class="nc" id="L93">            features.add(&quot;HIGH_ENTROPY&quot;);</span>
+<span class="pc bpc" id="L94" title="1 of 2 branches missed.">        if (token.matches(&quot;.*[.@].*&quot;))</span>
+<span class="nc" id="L95">            features.add(&quot;HAS_SPECIAL_CHAR&quot;);</span>
+
+        // 4. Length bucket
+<span class="fc" id="L98">        int len = token.length();</span>
+<span class="fc bfc" id="L99" title="All 2 branches covered.">        if      (len &lt; 4)  features.add(&quot;LEN_SHORT&quot;);</span>
+<span class="pc bpc" id="L100" title="1 of 2 branches missed.">        else if (len &lt;= 8) features.add(&quot;LEN_MEDIUM&quot;);</span>
+<span class="nc" id="L101">        else               features.add(&quot;LEN_LONG&quot;);</span>
+
+        // 5. Character composition ratios (discretised)
+<span class="fc" id="L104">        long upper  = token.chars().filter(Character::isUpperCase).count();</span>
+<span class="fc" id="L105">        long digits = token.chars().filter(Character::isDigit).count();</span>
+<span class="fc bfc" id="L106" title="All 2 branches covered.">        if ((double) upper  / len &gt; 0.5) features.add(&quot;MOSTLY_UPPER&quot;);</span>
+<span class="pc bpc" id="L107" title="1 of 2 branches missed.">        if ((double) digits / len &gt; 0.5) features.add(&quot;MOSTLY_DIGITS&quot;);</span>
+
+<span class="fc" id="L109">        return features;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

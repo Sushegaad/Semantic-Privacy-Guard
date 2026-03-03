@@ -1,0 +1,49 @@
+@options
+@packages
+-encoding
+'UTF-8'
+-protected
+-source
+'17'
+-sourcepath
+'/Users/varsha/GitHub-Repository-Destination/Semantic-Privacy-Guard/Semantic-Privacy-Guard/src/main/java:/Users/varsha/GitHub-Repository-Destination/Semantic-Privacy-Guard/Semantic-Privacy-Guard/target/generated-sources/annotations'
+-author
+-bottom
+'Copyright &#169; 2026. All rights reserved.'
+-charset
+'UTF-8'
+-d
+'/Users/varsha/GitHub-Repository-Destination/Semantic-Privacy-Guard/Semantic-Privacy-Guard/target/apidocs'
+-docencoding
+'UTF-8'
+-Xdoclint:all,-missing
+-doctitle
+'Semantic Privacy Guard 1.0.0 API'
+-use
+-version
+-windowtitle
+'Semantic Privacy Guard 1.0.0 API'
+com.semanticprivacyguard.util
+com.semanticprivacyguard.config
+com.semanticprivacyguard.tokenizer
+com.semanticprivacyguard.detector
+com.semanticprivacyguard.ml
+com.semanticprivacyguard
+com.semanticprivacyguard.model
+/Users/varsha/GitHub-Repository-Destination/Semantic-Privacy-Guard/Semantic-Privacy-Guard/src/main/java = 1772564590421
+/Users/varsha/GitHub-Repository-Destination/Semantic-Privacy-Guard/Semantic-Privacy-Guard/target/generated-sources/annotations = 1772569139872
+/Users/varsha/GitHub-Repository-Destination/Semantic-Privacy-Guard/Semantic-Privacy-Guard/target/apidocs/constant-values.html = 1772569141665
+/Users/varsha/GitHub-Repository-Destination/Semantic-Privacy-Guard/Semantic-Privacy-Guard/target/apidocs/tag-search-index.js = 1772569141695
+/Users/varsha/GitHub-Repository-Destination/Semantic-Privacy-Guard/Semantic-Privacy-Guard/target/apidocs/overview-tree.html = 1772569141687
+/Users/varsha/GitHub-Repository-Destination/Semantic-Privacy-Guard/Semantic-Privacy-Guard/target/apidocs/module-search-index.js = 1772569141694
+/Users/varsha/GitHub-Repository-Destination/Semantic-Privacy-Guard/Semantic-Privacy-Guard/target/apidocs/index.html = 1772569141688
+/Users/varsha/GitHub-Repository-Destination/Semantic-Privacy-Guard/Semantic-Privacy-Guard/target/apidocs/package-search-index.js = 1772569141694
+/Users/varsha/GitHub-Repository-Destination/Semantic-Privacy-Guard/Semantic-Privacy-Guard/target/apidocs/index-all.html = 1772569141701
+/Users/varsha/GitHub-Repository-Destination/Semantic-Privacy-Guard/Semantic-Privacy-Guard/target/apidocs/allpackages-index.html = 1772569141694
+/Users/varsha/GitHub-Repository-Destination/Semantic-Privacy-Guard/Semantic-Privacy-Guard/target/apidocs/member-search-index.js = 1772569141695
+/Users/varsha/GitHub-Repository-Destination/Semantic-Privacy-Guard/Semantic-Privacy-Guard/target/apidocs/overview-summary.html = 1772569141702
+/Users/varsha/GitHub-Repository-Destination/Semantic-Privacy-Guard/Semantic-Privacy-Guard/target/apidocs/help-doc.html = 1772569141703
+/Users/varsha/GitHub-Repository-Destination/Semantic-Privacy-Guard/Semantic-Privacy-Guard/target/apidocs/element-list = 1772569141650
+/Users/varsha/GitHub-Repository-Destination/Semantic-Privacy-Guard/Semantic-Privacy-Guard/target/apidocs/search.html = 1772569141702
+/Users/varsha/GitHub-Repository-Destination/Semantic-Privacy-Guard/Semantic-Privacy-Guard/target/apidocs/allclasses-index.html = 1772569141693
+/Users/varsha/GitHub-Repository-Destination/Semantic-Privacy-Guard/Semantic-Privacy-Guard/target/apidocs/type-search-index.js = 1772569141694

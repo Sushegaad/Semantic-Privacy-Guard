@@ -1,0 +1,239 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MLDetector.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Semantic Privacy Guard</a> &gt; <a href="index.source.html" class="el_package">com.semanticprivacyguard.detector</a> &gt; <span class="el_source">MLDetector.java</span></div><h1>MLDetector.java</h1><pre class="source lang-java linenums">package com.semanticprivacyguard.detector;
+
+import com.semanticprivacyguard.ml.FeatureExtractor;
+import com.semanticprivacyguard.ml.NaiveBayesClassifier;
+import com.semanticprivacyguard.ml.TrainingData;
+import com.semanticprivacyguard.model.PIIMatch;
+import com.semanticprivacyguard.model.PIIMatch.DetectionSource;
+import com.semanticprivacyguard.model.PIIType;
+import com.semanticprivacyguard.util.TextUtils;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
+
+/**
+ * Layer 2 detector — context-aware classification using a Naive Bayes model.
+ *
+ * &lt;h2&gt;How it disambiguates&lt;/h2&gt;
+ *
+ * &lt;p&gt;The regex layer catches structurally obvious PII (credit cards, SSNs,
+ * emails).  But many tokens — especially proper nouns — are ambiguous:&lt;/p&gt;
+ * &lt;ul&gt;
+ *   &lt;li&gt;&lt;em&gt;&quot;Apple&quot;&lt;/em&gt; in &quot;I ate an &lt;b&gt;Apple&lt;/b&gt;&quot; → fruit, benign.&lt;/li&gt;
+ *   &lt;li&gt;&lt;em&gt;&quot;Apple&quot;&lt;/em&gt; in &quot;Contact &lt;b&gt;Apple&lt;/b&gt; at 555-0199&quot; → company PII.&lt;/li&gt;
+ *   &lt;li&gt;&lt;em&gt;&quot;John&quot;&lt;/em&gt; in &quot;the Gospel of &lt;b&gt;John&lt;/b&gt;&quot; → biblical reference.&lt;/li&gt;
+ *   &lt;li&gt;&lt;em&gt;&quot;John&quot;&lt;/em&gt; in &quot;Dear &lt;b&gt;John&lt;/b&gt;, your SSN is…&quot; → person's name.&lt;/li&gt;
+ * &lt;/ul&gt;
+ *
+ * &lt;p&gt;The ML detector scans every title-cased token (potential name or org) and
+ * every high-entropy token (potential key or secret), extracts a context
+ * feature vector via {@link FeatureExtractor}, and asks the Naive Bayes
+ * classifier whether the context is PII-like or benign.&lt;/p&gt;
+ *
+ * &lt;h2&gt;Confidence threshold&lt;/h2&gt;
+ *
+ * &lt;p&gt;A token is flagged only if the &quot;PII&quot; class posterior probability exceeds
+ * the configurable {@code confidenceThreshold} (default {@code 0.65}).
+ * Callers can tighten (more precise) or loosen (more recall-oriented) this
+ * threshold via the {@link com.semanticprivacyguard.config.SPGConfig} builder.&lt;/p&gt;
+ *
+ * @author Hemant Naik
+ * @since 1.0.0
+ */
+public final class MLDetector implements PIIDetector {
+
+    /** Default minimum posterior probability to flag a token as PII. */
+    public static final double DEFAULT_CONFIDENCE_THRESHOLD = 0.65;
+
+    /** Minimum token length (after stripping trailing punctuation) to consider. */
+    private static final int MIN_TOKEN_LENGTH = 3;
+
+    /** Minimum Shannon entropy to consider a token as a potential API key. */
+    private static final double KEY_ENTROPY_THRESHOLD = 3.5;
+
+    /**
+     * Known preceding keywords that signal the following token is likely a
+     * person name or organisation.  Only title-cased tokens whose immediately
+     * preceding word (the {@code PREV:} feature) is in this set are sent to the
+     * classifier.  This prevents false positives for sentence-starting words
+     * like &quot;Hello&quot;, &quot;Send&quot;, or short abbreviations like &quot;SSN:&quot;.
+     *
+     * &lt;p&gt;High-entropy and alphanumeric-identifier tokens bypass this gate and
+     * are always classified regardless of context.&lt;/p&gt;
+     */
+<span class="fc" id="L66">    private static final Set&lt;String&gt; PII_PREV_KEYWORDS = Set.of(</span>
+        // Social / honorific titles
+        &quot;mr&quot;, &quot;mrs&quot;, &quot;ms&quot;, &quot;miss&quot;, &quot;dr&quot;, &quot;prof&quot;, &quot;professor&quot;, &quot;sir&quot;, &quot;madam&quot;,
+        // Greetings
+        &quot;dear&quot;, &quot;hello&quot;, &quot;hi&quot;, &quot;hey&quot;,
+        // Contact / professional context verbs
+        &quot;contact&quot;, &quot;email&quot;, &quot;call&quot;, &quot;phone&quot;, &quot;reach&quot;, &quot;message&quot;,
+        // Role / title labels
+        &quot;manager&quot;, &quot;director&quot;, &quot;officer&quot;, &quot;president&quot;, &quot;vp&quot;, &quot;ceo&quot;, &quot;cto&quot;,
+        &quot;cfo&quot;, &quot;coo&quot;, &quot;founder&quot;, &quot;owner&quot;, &quot;partner&quot;, &quot;head&quot;,
+        // Document / communication metadata
+        &quot;signed&quot;, &quot;from&quot;, &quot;to&quot;, &quot;author&quot;, &quot;by&quot;, &quot;sender&quot;, &quot;recipient&quot;,
+        &quot;sent&quot;, &quot;written&quot;, &quot;submitted&quot;, &quot;approved&quot;,
+        // Healthcare
+        &quot;patient&quot;, &quot;client&quot;, &quot;customer&quot;, &quot;employee&quot;, &quot;user&quot;,
+        // Identity labels
+        &quot;name&quot;, &quot;fullname&quot;, &quot;firstname&quot;, &quot;lastname&quot;, &quot;surname&quot;,
+        // Organisation labels
+        &quot;company&quot;, &quot;corp&quot;, &quot;inc&quot;, &quot;ltd&quot;, &quot;llc&quot;, &quot;firm&quot;, &quot;vendor&quot;,
+        &quot;employer&quot;, &quot;provider&quot;, &quot;contractor&quot;, &quot;supplier&quot;
+    );
+
+    private final NaiveBayesClassifier classifier;
+    private final FeatureExtractor     featureExtractor;
+    private final double               confidenceThreshold;
+
+    /**
+     * Creates a detector using the built-in training corpus and default threshold.
+     */
+    public MLDetector() {
+<span class="fc" id="L96">        this(TrainingData.buildDefaultClassifier(),</span>
+             new FeatureExtractor(),
+             DEFAULT_CONFIDENCE_THRESHOLD);
+<span class="fc" id="L99">    }</span>
+
+    /**
+     * Creates a detector with a custom classifier and threshold.
+     *
+     * @param classifier          a pre-fitted Naive Bayes classifier
+     * @param featureExtractor    feature extraction strategy
+     * @param confidenceThreshold PII posterior probability cutoff in (0, 1]
+     */
+    public MLDetector(NaiveBayesClassifier classifier,
+                      FeatureExtractor featureExtractor,
+<span class="fc" id="L110">                      double confidenceThreshold) {</span>
+<span class="pc bpc" id="L111" title="1 of 2 branches missed.">        if (!classifier.isFitted()) throw new IllegalArgumentException(</span>
+            &quot;Classifier must be fitted before use — call finalizeFit().&quot;);
+<span class="fc" id="L113">        this.classifier          = classifier;</span>
+<span class="fc" id="L114">        this.featureExtractor    = featureExtractor;</span>
+<span class="fc" id="L115">        this.confidenceThreshold = confidenceThreshold;</span>
+<span class="fc" id="L116">    }</span>
+
+    @Override
+<span class="nc" id="L119">    public String name() { return &quot;MLDetector&quot;; }</span>
+
+    // ─────────────────────────────────────────────────────────────────────────
+
+    @Override
+    public List&lt;PIIMatch&gt; detect(String text) {
+<span class="fc bfc" id="L125" title="All 4 branches covered.">        if (text == null || text.isBlank()) return List.of();</span>
+
+<span class="fc" id="L127">        List&lt;int[]&gt;   spans   = TextUtils.tokenSpans(text);</span>
+<span class="fc" id="L128">        List&lt;PIIMatch&gt; results = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L129">        List&lt;String&gt;  classes  = classifier.getClasses();</span>
+<span class="fc" id="L130">        int           piiIndex = classes.indexOf(&quot;PII&quot;);</span>
+
+<span class="fc bfc" id="L132" title="All 2 branches covered.">        for (int i = 0; i &lt; spans.size(); i++) {</span>
+<span class="fc" id="L133">            int[]  span  = spans.get(i);</span>
+
+            // Strip trailing punctuation from the token span (e.g. &quot;Alice,&quot; → &quot;Alice&quot;)
+<span class="fc" id="L136">            int cleanEnd = span[1];</span>
+<span class="pc bpc" id="L137" title="1 of 4 branches missed.">            while (cleanEnd &gt; span[0] &amp;&amp; !Character.isLetterOrDigit(text.charAt(cleanEnd - 1))) {</span>
+<span class="fc" id="L138">                cleanEnd--;</span>
+            }
+<span class="pc bpc" id="L140" title="1 of 2 branches missed.">            if (cleanEnd &lt;= span[0]) continue;</span>
+<span class="fc" id="L141">            String token = text.substring(span[0], cleanEnd);</span>
+
+<span class="fc bfc" id="L143" title="All 2 branches covered.">            if (token.length() &lt; MIN_TOKEN_LENGTH) continue;</span>
+<span class="fc bfc" id="L144" title="All 2 branches covered.">            if (!isCandidateToken(token))           continue;</span>
+
+<span class="fc" id="L146">            List&lt;String&gt; features = featureExtractor.extract(text, spans, i);</span>
+
+            // Gate: title-cased tokens require a known PII context keyword as
+            // their immediate predecessor.  High-entropy and identifier tokens
+            // bypass this gate because their structural signals are sufficient.
+<span class="pc bpc" id="L151" title="1 of 2 branches missed.">            boolean isHighEntropy = TextUtils.shannonEntropy(token) &gt;= KEY_ENTROPY_THRESHOLD;</span>
+<span class="fc bfc" id="L152" title="All 2 branches covered.">            boolean isIdentifier  = token.length() &gt;= 4</span>
+<span class="pc bpc" id="L153" title="1 of 2 branches missed.">                    &amp;&amp; token.matches(&quot;[A-Z]{2,}[0-9]{2,}.*&quot;);</span>
+<span class="pc bpc" id="L154" title="2 of 6 branches missed.">            if (!isHighEntropy &amp;&amp; !isIdentifier &amp;&amp; !hasPIIKeywordSignal(features)) {</span>
+<span class="fc" id="L155">                continue;</span>
+            }
+
+<span class="fc" id="L158">            double[] proba   = classifier.predictProba(features);</span>
+<span class="pc bpc" id="L159" title="1 of 2 branches missed.">            double   piiProb = piiIndex &gt;= 0 ? proba[piiIndex] : 0.0;</span>
+
+<span class="pc bpc" id="L161" title="1 of 2 branches missed.">            if (piiProb &gt;= confidenceThreshold) {</span>
+<span class="fc" id="L162">                PIIType type = classifyType(token, features);</span>
+<span class="fc" id="L163">                results.add(new PIIMatch(</span>
+                    type,
+                    token,
+                    span[0], cleanEnd,
+                    DetectionSource.ML,
+                    piiProb));
+            }
+        }
+<span class="fc" id="L171">        return results;</span>
+    }
+
+    // ── Private helpers ───────────────────────────────────────────────────────
+
+    /**
+     * Determines whether a token is worth running through the classifier.
+     * Cheap filters to avoid classifying every stop word.
+     */
+    private boolean isCandidateToken(String token) {
+<span class="fc" id="L181">        char first = token.charAt(0);</span>
+
+        // Title-cased tokens (potential names / organisations)
+<span class="fc bfc" id="L184" title="All 2 branches covered.">        if (Character.isUpperCase(first)) return true;</span>
+
+        // High-entropy tokens (potential API keys / secrets)
+<span class="pc bpc" id="L187" title="1 of 2 branches missed.">        if (TextUtils.shannonEntropy(token) &gt;= KEY_ENTROPY_THRESHOLD) return true;</span>
+
+        // Alphanumeric tokens that look like identifiers (MRN123, EMP-456)
+<span class="fc bfc" id="L190" title="All 2 branches covered.">        if (token.length() &gt;= 4</span>
+<span class="pc bpc" id="L191" title="1 of 2 branches missed.">                &amp;&amp; token.matches(&quot;[A-Z]{2,}[0-9]{2,}.*&quot;)) return true;</span>
+
+<span class="fc" id="L193">        return false;</span>
+    }
+
+    /**
+     * Returns {@code true} if the feature list contains a {@code PREV:keyword}
+     * entry whose keyword is in {@link #PII_PREV_KEYWORDS}.
+     *
+     * &lt;p&gt;Title-cased tokens that have no known PII context keyword immediately
+     * before them are very likely benign sentence starters (&quot;Hello&quot;, &quot;The&quot;,
+     * &quot;Send&quot;) and should be skipped to avoid false positives.&lt;/p&gt;
+     */
+    private boolean hasPIIKeywordSignal(List&lt;String&gt; features) {
+<span class="fc bfc" id="L205" title="All 2 branches covered.">        for (String f : features) {</span>
+<span class="fc bfc" id="L206" title="All 2 branches covered.">            if (f.startsWith(&quot;PREV:&quot;)) {</span>
+<span class="fc" id="L207">                String prev = f.substring(5).toLowerCase(Locale.ROOT);</span>
+<span class="fc bfc" id="L208" title="All 2 branches covered.">                if (PII_PREV_KEYWORDS.contains(prev)) return true;</span>
+            }
+<span class="fc" id="L210">        }</span>
+<span class="fc" id="L211">        return false;</span>
+    }
+
+    /**
+     * Maps detected context features to a specific {@link PIIType}.
+     * Falls back to {@link PIIType#GENERIC_PII} when the exact type is unclear.
+     */
+    private PIIType classifyType(String token, List&lt;String&gt; features) {
+<span class="fc" id="L219">        String featureStr = String.join(&quot; &quot;, features).toLowerCase();</span>
+
+<span class="pc bpc" id="L221" title="1 of 2 branches missed.">        if (featureStr.contains(&quot;high_entropy&quot;)</span>
+<span class="pc bpc" id="L222" title="3 of 4 branches missed.">                || (featureStr.contains(&quot;mostly_upper&quot;) &amp;&amp; token.length() &gt;= 8)) {</span>
+<span class="nc" id="L223">            return PIIType.API_KEY;</span>
+        }
+<span class="pc bpc" id="L225" title="2 of 4 branches missed.">        if (featureStr.contains(&quot;patient&quot;) || featureStr.contains(&quot;mrn&quot;)) {</span>
+<span class="nc" id="L226">            return PIIType.MEDICAL_RECORD;</span>
+        }
+<span class="pc bpc" id="L228" title="2 of 4 branches missed.">        if (featureStr.contains(&quot;company&quot;) || featureStr.contains(&quot;corp&quot;)</span>
+<span class="pc bpc" id="L229" title="2 of 4 branches missed.">                || featureStr.contains(&quot;inc&quot;) || featureStr.contains(&quot;ltd&quot;)) {</span>
+<span class="nc" id="L230">            return PIIType.ORGANIZATION;</span>
+        }
+        // Default: title-cased token in PII context → person name
+<span class="pc bpc" id="L233" title="1 of 2 branches missed.">        if (Character.isUpperCase(token.charAt(0))) {</span>
+<span class="fc" id="L234">            return PIIType.PERSON_NAME;</span>
+        }
+<span class="nc" id="L236">        return PIIType.GENERIC_PII;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

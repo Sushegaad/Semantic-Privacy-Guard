@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PIIMatch.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Semantic Privacy Guard</a> &gt; <a href="index.source.html" class="el_package">com.semanticprivacyguard.model</a> &gt; <span class="el_source">PIIMatch.java</span></div><h1>PIIMatch.java</h1><pre class="source lang-java linenums">package com.semanticprivacyguard.model;
+
+import java.util.Objects;
+
+/**
+ * Represents a single detected occurrence of PII within the original text.
+ *
+ * &lt;p&gt;Instances are immutable and are created by detector implementations.
+ * A match records the exact character span {@code [startIndex, endIndex)},
+ * the raw matched value, the classified type, the detection source, and a
+ * confidence score in the range {@code [0.0, 1.0]}.&lt;/p&gt;
+ *
+ * &lt;pre&gt;{@code
+ * PIIMatch m = new PIIMatch(PIIType.EMAIL, &quot;alice@example.com&quot;,
+ *                           10, 27, DetectionSource.HEURISTIC, 1.0);
+ * System.out.println(m.getType());       // EMAIL
+ * System.out.println(m.getStartIndex()); // 10
+ * }&lt;/pre&gt;
+ *
+ * @author Hemant Naik
+ * @since 1.0.0
+ */
+public final class PIIMatch implements Comparable&lt;PIIMatch&gt; {
+
+    /** How a particular match was discovered. */
+<span class="fc" id="L26">    public enum DetectionSource {</span>
+        /** Pattern matched a hard-coded regular expression. */
+<span class="fc" id="L28">        HEURISTIC,</span>
+        /** Classified as PII by the Naive Bayes context model. */
+<span class="fc" id="L30">        ML,</span>
+        /** Matched both heuristic and ML paths. */
+<span class="fc" id="L32">        HYBRID</span>
+    }
+
+    private final PIIType         type;
+    private final String          value;
+    private final int             startIndex;
+    private final int             endIndex;
+    private final DetectionSource source;
+    private final double          confidence;
+
+    /**
+     * Constructs a new {@code PIIMatch}.
+     *
+     * @param type       the PII category (never {@code null})
+     * @param value      the raw matched string (never {@code null})
+     * @param startIndex inclusive start offset in the original text
+     * @param endIndex   exclusive end offset in the original text
+     * @param source     how the match was found (never {@code null})
+     * @param confidence detection confidence in {@code [0.0, 1.0]}
+     */
+    public PIIMatch(PIIType type, String value,
+                    int startIndex, int endIndex,
+<span class="fc" id="L54">                    DetectionSource source, double confidence) {</span>
+<span class="fc" id="L55">        Objects.requireNonNull(type,   &quot;type must not be null&quot;);</span>
+<span class="fc" id="L56">        Objects.requireNonNull(value,  &quot;value must not be null&quot;);</span>
+<span class="fc" id="L57">        Objects.requireNonNull(source, &quot;source must not be null&quot;);</span>
+<span class="pc bpc" id="L58" title="2 of 4 branches missed.">        if (startIndex &lt; 0 || endIndex &lt; startIndex) {</span>
+<span class="nc" id="L59">            throw new IllegalArgumentException(</span>
+                &quot;Invalid span: [&quot; + startIndex + &quot;, &quot; + endIndex + &quot;)&quot;);
+        }
+<span class="pc bpc" id="L62" title="2 of 4 branches missed.">        if (confidence &lt; 0.0 || confidence &gt; 1.0) {</span>
+<span class="nc" id="L63">            throw new IllegalArgumentException(</span>
+                &quot;confidence must be in [0.0, 1.0], got: &quot; + confidence);
+        }
+<span class="fc" id="L66">        this.type       = type;</span>
+<span class="fc" id="L67">        this.value      = value;</span>
+<span class="fc" id="L68">        this.startIndex = startIndex;</span>
+<span class="fc" id="L69">        this.endIndex   = endIndex;</span>
+<span class="fc" id="L70">        this.source     = source;</span>
+<span class="fc" id="L71">        this.confidence = confidence;</span>
+<span class="fc" id="L72">    }</span>
+
+    // ── Accessors ─────────────────────────────────────────────────────────────
+
+<span class="fc" id="L76">    public PIIType         getType()       { return type;       }</span>
+<span class="fc" id="L77">    public String          getValue()      { return value;      }</span>
+<span class="fc" id="L78">    public int             getStartIndex() { return startIndex; }</span>
+<span class="fc" id="L79">    public int             getEndIndex()   { return endIndex;   }</span>
+<span class="nc" id="L80">    public DetectionSource getSource()     { return source;     }</span>
+<span class="nc" id="L81">    public double          getConfidence() { return confidence; }</span>
+
+    /** Returns the length of the matched span. */
+<span class="nc" id="L84">    public int length() { return endIndex - startIndex; }</span>
+
+    /**
+     * Returns {@code true} if this match overlaps with {@code other}.
+     * Overlapping matches are de-duplicated by the composite detector.
+     */
+    public boolean overlaps(PIIMatch other) {
+<span class="nc bnc" id="L91" title="All 4 branches missed.">        return this.startIndex &lt; other.endIndex</span>
+            &amp;&amp; other.startIndex &lt; this.endIndex;
+    }
+
+    // ── Comparable / equals / hashCode ────────────────────────────────────────
+
+    /** Orders matches by their start position, then by end position descending
+     *  (longest match first for the same start). */
+    @Override
+    public int compareTo(PIIMatch other) {
+<span class="fc" id="L101">        int cmp = Integer.compare(this.startIndex, other.startIndex);</span>
+<span class="pc bpc" id="L102" title="1 of 2 branches missed.">        if (cmp != 0) return cmp;</span>
+<span class="nc" id="L103">        return Integer.compare(other.endIndex, this.endIndex); // longer first</span>
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+<span class="nc bnc" id="L108" title="All 2 branches missed.">        if (this == obj) return true;</span>
+<span class="nc bnc" id="L109" title="All 2 branches missed.">        if (!(obj instanceof PIIMatch o)) return false;</span>
+<span class="nc bnc" id="L110" title="All 6 branches missed.">        return startIndex == o.startIndex</span>
+            &amp;&amp; endIndex   == o.endIndex
+            &amp;&amp; type       == o.type
+<span class="nc bnc" id="L113" title="All 2 branches missed.">            &amp;&amp; value.equals(o.value);</span>
+    }
+
+    @Override
+    public int hashCode() {
+<span class="nc" id="L118">        return Objects.hash(type, value, startIndex, endIndex);</span>
+    }
+
+    @Override
+    public String toString() {
+<span class="nc" id="L123">        return String.format(&quot;PIIMatch{type=%s, value='%s', span=[%d,%d), source=%s, confidence=%.2f}&quot;,</span>
+<span class="nc" id="L124">                             type, value, startIndex, endIndex, source, confidence);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

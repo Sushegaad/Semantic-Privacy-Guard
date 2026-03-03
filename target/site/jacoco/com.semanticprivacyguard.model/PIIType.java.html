@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PIIType.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Semantic Privacy Guard</a> &gt; <a href="index.source.html" class="el_package">com.semanticprivacyguard.model</a> &gt; <span class="el_source">PIIType.java</span></div><h1>PIIType.java</h1><pre class="source lang-java linenums">package com.semanticprivacyguard.model;
+
+/**
+ * Enumeration of all PII (Personally Identifiable Information) types that
+ * Semantic Privacy Guard can detect and redact.
+ *
+ * &lt;p&gt;Each type carries a human-readable label used when generating tokens and
+ * reports. Types are ordered roughly from highest (most damaging if leaked) to
+ * lowest sensitivity so that callers can apply threshold-based filtering.&lt;/p&gt;
+ *
+ * @author Hemant Naik
+ * @since 1.0.0
+ */
+<span class="fc" id="L14">public enum PIIType {</span>
+
+    // ── Highest sensitivity ──────────────────────────────────────────────────
+
+    /** US Social Security Number (e.g. {@code 123-45-6789}). */
+<span class="fc" id="L19">    SSN(&quot;SSN&quot;, 10),</span>
+
+    /** Payment card number validated by the Luhn algorithm. */
+<span class="fc" id="L22">    CREDIT_CARD(&quot;CREDIT_CARD&quot;, 10),</span>
+
+    /** API key, OAuth token, JWT, or similar bearer credential. */
+<span class="fc" id="L25">    API_KEY(&quot;API_KEY&quot;, 9),</span>
+
+    /** Password or passphrase literal appearing in plaintext. */
+<span class="fc" id="L28">    PASSWORD(&quot;PASSWORD&quot;, 9),</span>
+
+    // ── High sensitivity ─────────────────────────────────────────────────────
+
+    /** Medical record number, diagnosis code, or HIPAA-protected identifier. */
+<span class="fc" id="L33">    MEDICAL_RECORD(&quot;MEDICAL_RECORD&quot;, 8),</span>
+
+    /** Bank account or routing number. */
+<span class="fc" id="L36">    BANK_ACCOUNT(&quot;BANK_ACCOUNT&quot;, 8),</span>
+
+    /** Passport, driver's licence, or national ID number. */
+<span class="fc" id="L39">    GOVERNMENT_ID(&quot;GOVERNMENT_ID&quot;, 8),</span>
+
+    // ── Medium sensitivity ────────────────────────────────────────────────────
+
+    /** Personal or corporate email address. */
+<span class="fc" id="L44">    EMAIL(&quot;EMAIL&quot;, 6),</span>
+
+    /** Phone number in any common format. */
+<span class="fc" id="L47">    PHONE(&quot;PHONE&quot;, 6),</span>
+
+    /** Full name detected via ML context classifier. */
+<span class="fc" id="L50">    PERSON_NAME(&quot;PERSON_NAME&quot;, 6),</span>
+
+    /** Date of birth. */
+<span class="fc" id="L53">    DATE_OF_BIRTH(&quot;DATE_OF_BIRTH&quot;, 6),</span>
+
+    // ── Lower sensitivity ─────────────────────────────────────────────────────
+
+    /** Physical street address. */
+<span class="fc" id="L58">    ADDRESS(&quot;ADDRESS&quot;, 4),</span>
+
+    /** IPv4 or IPv6 address. */
+<span class="fc" id="L61">    IP_ADDRESS(&quot;IP_ADDRESS&quot;, 4),</span>
+
+    /** Organisation or company name detected via ML. */
+<span class="fc" id="L64">    ORGANIZATION(&quot;ORGANIZATION&quot;, 3),</span>
+
+    /** GPS / geolocation coordinates. */
+<span class="fc" id="L67">    COORDINATES(&quot;COORDINATES&quot;, 3),</span>
+
+    // ── Catch-all ─────────────────────────────────────────────────────────────
+
+    /**
+     * Catch-all for generic sensitive tokens that do not fit a specific type
+     * but were flagged by the ML classifier with sufficient confidence.
+     */
+<span class="fc" id="L75">    GENERIC_PII(&quot;PII&quot;, 5);</span>
+
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /** Short uppercase label embedded in replacement tokens (e.g. {@code [EMAIL_1]}). */
+    private final String label;
+
+    /**
+     * Severity score on a 1–10 scale; higher means the type is treated with
+     * greater urgency when filtering by minimum severity threshold.
+     */
+    private final int severity;
+
+<span class="fc" id="L88">    PIIType(String label, int severity) {</span>
+<span class="fc" id="L89">        this.label    = label;</span>
+<span class="fc" id="L90">        this.severity = severity;</span>
+<span class="fc" id="L91">    }</span>
+
+    /** Returns the short label used inside replacement tokens. */
+    public String getLabel() {
+<span class="fc" id="L95">        return label;</span>
+    }
+
+    /** Returns the severity score (1–10). */
+    public int getSeverity() {
+<span class="fc" id="L100">        return severity;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

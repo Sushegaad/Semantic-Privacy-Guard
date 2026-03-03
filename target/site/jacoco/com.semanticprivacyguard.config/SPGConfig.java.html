@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SPGConfig.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Semantic Privacy Guard</a> &gt; <a href="index.source.html" class="el_package">com.semanticprivacyguard.config</a> &gt; <span class="el_source">SPGConfig.java</span></div><h1>SPGConfig.java</h1><pre class="source lang-java linenums">package com.semanticprivacyguard.config;
+
+import com.semanticprivacyguard.detector.MLDetector;
+import com.semanticprivacyguard.model.PIIType;
+import com.semanticprivacyguard.tokenizer.PIITokenizer.RedactionMode;
+
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.Objects;
+import java.util.Set;
+
+/**
+ * Immutable configuration for a {@code SemanticPrivacyGuard} instance.
+ *
+ * &lt;p&gt;Use the nested {@link Builder} to construct instances:&lt;/p&gt;
+ * &lt;pre&gt;{@code
+ * SPGConfig config = SPGConfig.builder()
+ *     .redactionMode(RedactionMode.TOKEN)
+ *     .mlConfidenceThreshold(0.70)
+ *     .enabledTypes(Set.of(PIIType.EMAIL, PIIType.SSN, PIIType.CREDIT_CARD))
+ *     .minimumSeverity(6)
+ *     .buildReverseMap(true)
+ *     .build();
+ * }&lt;/pre&gt;
+ *
+ * @author Hemant Naik
+ * @since 1.0.0
+ */
+public final class SPGConfig {
+
+    // ── Defaults ──────────────────────────────────────────────────────────────
+
+<span class="fc" id="L33">    public static final RedactionMode DEFAULT_REDACTION_MODE   = RedactionMode.TOKEN;</span>
+    public static final double        DEFAULT_ML_THRESHOLD     = MLDetector.DEFAULT_CONFIDENCE_THRESHOLD;
+    public static final int           DEFAULT_MIN_SEVERITY     = 1;
+    public static final boolean       DEFAULT_BUILD_REVERSE_MAP= true;
+    public static final boolean       DEFAULT_HEURISTIC_ENABLED= true;
+    public static final boolean       DEFAULT_ML_ENABLED       = true;
+
+    // ── Fields ────────────────────────────────────────────────────────────────
+
+    private final RedactionMode  redactionMode;
+    private final double         mlConfidenceThreshold;
+    private final Set&lt;PIIType&gt;   enabledTypes;          // empty = all types
+    private final int            minimumSeverity;
+    private final boolean        buildReverseMap;
+    private final boolean        heuristicEnabled;
+    private final boolean        mlEnabled;
+
+<span class="fc" id="L50">    private SPGConfig(Builder b) {</span>
+<span class="fc" id="L51">        this.redactionMode          = b.redactionMode;</span>
+<span class="fc" id="L52">        this.mlConfidenceThreshold  = b.mlConfidenceThreshold;</span>
+<span class="fc bfc" id="L53" title="All 2 branches covered.">        this.enabledTypes           = b.enabledTypes.isEmpty()</span>
+<span class="fc" id="L54">                                      ? Collections.emptySet()</span>
+<span class="fc" id="L55">                                      : Collections.unmodifiableSet(</span>
+<span class="fc" id="L56">                                            EnumSet.copyOf(b.enabledTypes));</span>
+<span class="fc" id="L57">        this.minimumSeverity        = b.minimumSeverity;</span>
+<span class="fc" id="L58">        this.buildReverseMap        = b.buildReverseMap;</span>
+<span class="fc" id="L59">        this.heuristicEnabled       = b.heuristicEnabled;</span>
+<span class="fc" id="L60">        this.mlEnabled              = b.mlEnabled;</span>
+<span class="fc" id="L61">    }</span>
+
+    // ── Accessors ─────────────────────────────────────────────────────────────
+
+<span class="fc" id="L65">    public RedactionMode getRedactionMode()         { return redactionMode;         }</span>
+<span class="fc" id="L66">    public double        getMlConfidenceThreshold() { return mlConfidenceThreshold; }</span>
+    /** Returns the set of enabled types; empty set means all types are enabled. */
+<span class="fc" id="L68">    public Set&lt;PIIType&gt;  getEnabledTypes()          { return enabledTypes;          }</span>
+<span class="fc" id="L69">    public int           getMinimumSeverity()       { return minimumSeverity;       }</span>
+<span class="fc" id="L70">    public boolean       isBuildReverseMap()        { return buildReverseMap;       }</span>
+<span class="fc" id="L71">    public boolean       isHeuristicEnabled()       { return heuristicEnabled;      }</span>
+<span class="fc" id="L72">    public boolean       isMlEnabled()              { return mlEnabled;             }</span>
+
+    // ── Factory ───────────────────────────────────────────────────────────────
+
+    /** Returns a builder pre-loaded with default values. */
+<span class="fc" id="L77">    public static Builder builder() { return new Builder(); }</span>
+
+    /** Returns a default configuration instance. */
+<span class="fc" id="L80">    public static SPGConfig defaults() { return builder().build(); }</span>
+
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Fluent builder for {@link SPGConfig}.
+     */
+    public static final class Builder {
+
+<span class="fc" id="L89">        private RedactionMode redactionMode         = DEFAULT_REDACTION_MODE;</span>
+<span class="fc" id="L90">        private double        mlConfidenceThreshold = DEFAULT_ML_THRESHOLD;</span>
+<span class="fc" id="L91">        private Set&lt;PIIType&gt;  enabledTypes          = EnumSet.noneOf(PIIType.class);</span>
+<span class="fc" id="L92">        private int           minimumSeverity       = DEFAULT_MIN_SEVERITY;</span>
+<span class="fc" id="L93">        private boolean       buildReverseMap       = DEFAULT_BUILD_REVERSE_MAP;</span>
+<span class="fc" id="L94">        private boolean       heuristicEnabled      = DEFAULT_HEURISTIC_ENABLED;</span>
+<span class="fc" id="L95">        private boolean       mlEnabled             = DEFAULT_ML_ENABLED;</span>
+
+<span class="fc" id="L97">        private Builder() {}</span>
+
+        /**
+         * Sets the output redaction mode.
+         *
+         * @param mode {@link RedactionMode#TOKEN} (default), {@code MASK},
+         *             or {@code BLANK}
+         */
+        public Builder redactionMode(RedactionMode mode) {
+<span class="fc" id="L106">            this.redactionMode = Objects.requireNonNull(mode);</span>
+<span class="fc" id="L107">            return this;</span>
+        }
+
+        /**
+         * Sets the Naive Bayes posterior probability threshold for the ML layer.
+         * Lower values increase recall; higher values increase precision.
+         * Default: {@value DEFAULT_ML_THRESHOLD}.
+         *
+         * @param threshold value in (0.0, 1.0]
+         */
+        public Builder mlConfidenceThreshold(double threshold) {
+<span class="nc bnc" id="L118" title="All 4 branches missed.">            if (threshold &lt;= 0.0 || threshold &gt; 1.0) throw new IllegalArgumentException(</span>
+                &quot;threshold must be in (0.0, 1.0]&quot;);
+<span class="nc" id="L120">            this.mlConfidenceThreshold = threshold;</span>
+<span class="nc" id="L121">            return this;</span>
+        }
+
+        /**
+         * Restricts detection to the specified PII types.
+         * Passing an empty set (or calling this method with no arguments)
+         * enables all types.
+         *
+         * @param types the subset of types to detect
+         */
+        public Builder enabledTypes(Set&lt;PIIType&gt; types) {
+<span class="pc bpc" id="L132" title="1 of 2 branches missed.">            this.enabledTypes = types == null ? EnumSet.noneOf(PIIType.class)</span>
+<span class="fc" id="L133">                                              : EnumSet.copyOf(types);</span>
+<span class="fc" id="L134">            return this;</span>
+        }
+
+        /**
+         * Sets the minimum severity score ({@code 1–10}) a match must have to
+         * be included in results. Useful for high-throughput paths that should
+         * only care about the most sensitive data (e.g. {@code &gt;= 8} for
+         * SSN/credit-card/API-key only).
+         *
+         * @param severity minimum severity; default is {@value DEFAULT_MIN_SEVERITY}
+         */
+        public Builder minimumSeverity(int severity) {
+<span class="pc bpc" id="L146" title="2 of 4 branches missed.">            if (severity &lt; 1 || severity &gt; 10) throw new IllegalArgumentException(</span>
+                &quot;severity must be between 1 and 10&quot;);
+<span class="fc" id="L148">            this.minimumSeverity = severity;</span>
+<span class="fc" id="L149">            return this;</span>
+        }
+
+        /**
+         * Controls whether the reverse token-to-original map is populated.
+         * Disable if you never need to de-tokenise for a minor performance gain.
+         *
+         * @param build {@code true} to populate the map (default)
+         */
+        public Builder buildReverseMap(boolean build) {
+<span class="fc" id="L159">            this.buildReverseMap = build;</span>
+<span class="fc" id="L160">            return this;</span>
+        }
+
+        /**
+         * Enables or disables the heuristic (regex) detection layer.
+         * Disabling is useful for benchmarking or if you only want ML results.
+         */
+        public Builder heuristicEnabled(boolean enabled) {
+<span class="nc" id="L168">            this.heuristicEnabled = enabled;</span>
+<span class="nc" id="L169">            return this;</span>
+        }
+
+        /**
+         * Enables or disables the ML (Naive Bayes) detection layer.
+         * Disabling is useful for ultra-low-latency paths where only obvious
+         * structural PII needs to be caught.
+         */
+        public Builder mlEnabled(boolean enabled) {
+<span class="nc" id="L178">            this.mlEnabled = enabled;</span>
+<span class="nc" id="L179">            return this;</span>
+        }
+
+        /** Builds and returns an immutable {@link SPGConfig}. */
+        public SPGConfig build() {
+<span class="pc bpc" id="L184" title="3 of 4 branches missed.">            if (!heuristicEnabled &amp;&amp; !mlEnabled) {</span>
+<span class="nc" id="L185">                throw new IllegalStateException(</span>
+                    &quot;At least one of heuristicEnabled or mlEnabled must be true.&quot;);
+            }
+<span class="fc" id="L188">            return new SPGConfig(this);</span>
+        }
+    }
+
+    @Override
+    public String toString() {
+<span class="nc" id="L194">        return String.format(</span>
+            &quot;SPGConfig{mode=%s, mlThreshold=%.2f, enabledTypes=%s, &quot;
+          + &quot;minSeverity=%d, reverseMap=%b, heuristic=%b, ml=%b}&quot;,
+<span class="nc" id="L197">            redactionMode, mlConfidenceThreshold,</span>
+<span class="nc bnc" id="L198" title="All 2 branches missed.">            enabledTypes.isEmpty() ? &quot;ALL&quot; : enabledTypes,</span>
+<span class="nc" id="L199">            minimumSeverity, buildReverseMap,</span>
+<span class="nc" id="L200">            heuristicEnabled, mlEnabled);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TextUtils.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Semantic Privacy Guard</a> &gt; <a href="index.source.html" class="el_package">com.semanticprivacyguard.util</a> &gt; <span class="el_source">TextUtils.java</span></div><h1>TextUtils.java</h1><pre class="source lang-java linenums">package com.semanticprivacyguard.util;
+
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Stateless text utility methods shared across the SPG pipeline.
+ *
+ * @author Hemant Naik
+ * @since 1.0.0
+ */
+public final class TextUtils {
+
+    private TextUtils() { /* utility class */ }
+
+    // ── Luhn Algorithm ────────────────────────────────────────────────────────
+
+    /**
+     * Validates a payment card number using the Luhn (mod-10) algorithm.
+     *
+     * @param digits the card number with all non-digit characters removed
+     * @return {@code true} if the number passes the Luhn check
+     */
+    public static boolean luhnCheck(String digits) {
+<span class="pc bpc" id="L25" title="2 of 4 branches missed.">        if (digits == null || digits.isEmpty()) return false;</span>
+<span class="fc" id="L26">        int sum     = 0;</span>
+<span class="fc" id="L27">        boolean alt = false;</span>
+<span class="fc bfc" id="L28" title="All 2 branches covered.">        for (int i = digits.length() - 1; i &gt;= 0; i--) {</span>
+<span class="fc" id="L29">            char c = digits.charAt(i);</span>
+<span class="pc bpc" id="L30" title="2 of 4 branches missed.">            if (c &lt; '0' || c &gt; '9') return false;</span>
+<span class="fc" id="L31">            int n = c - '0';</span>
+<span class="fc bfc" id="L32" title="All 2 branches covered.">            if (alt) {</span>
+<span class="fc" id="L33">                n *= 2;</span>
+<span class="fc bfc" id="L34" title="All 2 branches covered.">                if (n &gt; 9) n -= 9;</span>
+            }
+<span class="fc" id="L36">            sum += n;</span>
+<span class="fc bfc" id="L37" title="All 2 branches covered.">            alt  = !alt;</span>
+        }
+<span class="fc bfc" id="L39" title="All 2 branches covered.">        return (sum % 10) == 0;</span>
+    }
+
+    // ── Tokenization helpers ──────────────────────────────────────────────────
+
+    /**
+     * Splits {@code text} into whitespace-delimited tokens while preserving
+     * the original character offsets of each token.
+     *
+     * @param text the input string
+     * @return list of {@code int[]{startInclusive, endExclusive}} spans
+     */
+    public static List&lt;int[]&gt; tokenSpans(String text) {
+<span class="fc" id="L52">        List&lt;int[]&gt; spans = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L53">        int i = 0;</span>
+<span class="fc" id="L54">        int len = text.length();</span>
+<span class="fc bfc" id="L55" title="All 2 branches covered.">        while (i &lt; len) {</span>
+            // skip whitespace
+<span class="pc bpc" id="L57" title="1 of 4 branches missed.">            while (i &lt; len &amp;&amp; Character.isWhitespace(text.charAt(i))) i++;</span>
+<span class="pc bpc" id="L58" title="1 of 2 branches missed.">            if (i &gt;= len) break;</span>
+<span class="fc" id="L59">            int start = i;</span>
+            // consume non-whitespace
+<span class="fc bfc" id="L61" title="All 4 branches covered.">            while (i &lt; len &amp;&amp; !Character.isWhitespace(text.charAt(i))) i++;</span>
+<span class="fc" id="L62">            spans.add(new int[]{start, i});</span>
+<span class="fc" id="L63">        }</span>
+<span class="fc" id="L64">        return spans;</span>
+    }
+
+    /**
+     * Returns up to {@code windowSize} words on each side of the word at
+     * {@code tokenIndex} in the list of token spans, as a single concatenated
+     * lowercase string (useful as a feature vector for the ML layer).
+     *
+     * @param text       the full text
+     * @param spans      pre-computed token spans from {@link #tokenSpans}
+     * @param tokenIndex index of the token whose context window is wanted
+     * @param windowSize number of tokens to include on each side
+     * @return context string, never {@code null}
+     */
+    public static String contextWindow(String text, List&lt;int[]&gt; spans,
+                                       int tokenIndex, int windowSize) {
+<span class="fc" id="L80">        StringBuilder sb = new StringBuilder();</span>
+<span class="fc" id="L81">        int lo = Math.max(0, tokenIndex - windowSize);</span>
+<span class="fc" id="L82">        int hi = Math.min(spans.size() - 1, tokenIndex + windowSize);</span>
+<span class="fc bfc" id="L83" title="All 2 branches covered.">        for (int j = lo; j &lt;= hi; j++) {</span>
+<span class="fc bfc" id="L84" title="All 2 branches covered.">            if (j == tokenIndex) continue; // skip the token itself</span>
+<span class="fc" id="L85">            int[] span = spans.get(j);</span>
+<span class="fc" id="L86">            sb.append(text, span[0], span[1]).append(' ');</span>
+        }
+<span class="fc" id="L88">        return sb.toString().toLowerCase().trim();</span>
+    }
+
+    // ── String helpers ────────────────────────────────────────────────────────
+
+    /**
+     * Strips all non-digit characters from {@code s} and returns the result.
+     * Useful for normalising phone and card numbers before validation.
+     */
+    public static String digitsOnly(String s) {
+<span class="pc bpc" id="L98" title="1 of 2 branches missed.">        if (s == null) return &quot;&quot;;</span>
+<span class="fc" id="L99">        return s.replaceAll(&quot;\\D&quot;, &quot;&quot;);</span>
+    }
+
+    /**
+     * Returns {@code true} if {@code s} consists entirely of characters in
+     * the set {@code [a-zA-Z0-9]}.
+     */
+    public static boolean isAlphanumeric(String s) {
+<span class="nc bnc" id="L107" title="All 4 branches missed.">        if (s == null || s.isEmpty()) return false;</span>
+<span class="nc bnc" id="L108" title="All 2 branches missed.">        for (int i = 0; i &lt; s.length(); i++) {</span>
+<span class="nc" id="L109">            char c = s.charAt(i);</span>
+<span class="nc bnc" id="L110" title="All 2 branches missed.">            if (!Character.isLetterOrDigit(c)) return false;</span>
+        }
+<span class="nc" id="L112">        return true;</span>
+    }
+
+    /**
+     * Truncates {@code s} to at most {@code maxLen} characters, appending
+     * {@code &quot;…&quot;} if truncation occurred.
+     */
+    public static String truncate(String s, int maxLen) {
+<span class="nc bnc" id="L120" title="All 4 branches missed.">        if (s == null || s.length() &lt;= maxLen) return s;</span>
+<span class="nc" id="L121">        return s.substring(0, maxLen) + &quot;\u2026&quot;;</span>
+    }
+
+    /**
+     * Counts the number of uppercase letters in {@code s}.
+     * Used as a feature for API key classification.
+     */
+    public static int countUppercase(String s) {
+<span class="nc" id="L129">        int count = 0;</span>
+<span class="nc bnc" id="L130" title="All 2 branches missed.">        for (int i = 0; i &lt; s.length(); i++) {</span>
+<span class="nc bnc" id="L131" title="All 2 branches missed.">            if (Character.isUpperCase(s.charAt(i))) count++;</span>
+        }
+<span class="nc" id="L133">        return count;</span>
+    }
+
+    /**
+     * Returns the Shannon entropy (bits per character) of {@code s}.
+     * High entropy strings are more likely to be random keys/tokens.
+     *
+     * @param s input string
+     * @return entropy in bits, or {@code 0.0} for empty input
+     */
+    public static double shannonEntropy(String s) {
+<span class="pc bpc" id="L144" title="2 of 4 branches missed.">        if (s == null || s.isEmpty()) return 0.0;</span>
+<span class="fc" id="L145">        int[] freq = new int[256];</span>
+<span class="fc bfc" id="L146" title="All 2 branches covered.">        for (int i = 0; i &lt; s.length(); i++) {</span>
+<span class="fc" id="L147">            char c = s.charAt(i);</span>
+<span class="pc bpc" id="L148" title="1 of 2 branches missed.">            if (c &lt; 256) freq[c]++;</span>
+        }
+<span class="fc" id="L150">        double entropy = 0.0;</span>
+<span class="fc" id="L151">        double len = s.length();</span>
+<span class="fc bfc" id="L152" title="All 2 branches covered.">        for (int f : freq) {</span>
+<span class="fc bfc" id="L153" title="All 2 branches covered.">            if (f &gt; 0) {</span>
+<span class="fc" id="L154">                double p = f / len;</span>
+<span class="fc" id="L155">                entropy -= p * (Math.log(p) / Math.log(2));</span>
+            }
+        }
+<span class="fc" id="L158">        return entropy;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

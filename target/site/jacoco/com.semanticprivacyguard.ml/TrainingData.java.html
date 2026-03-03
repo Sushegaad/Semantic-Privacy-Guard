@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TrainingData.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Semantic Privacy Guard</a> &gt; <a href="index.source.html" class="el_package">com.semanticprivacyguard.ml</a> &gt; <span class="el_source">TrainingData.java</span></div><h1>TrainingData.java</h1><pre class="source lang-java linenums">package com.semanticprivacyguard.ml;
+
+import java.util.List;
+
+/**
+ * Built-in labelled training corpus for the context-classification model.
+ *
+ * &lt;p&gt;Each entry is a pair of {@code (label, features)} where features are the
+ * bag-of-words tokens that {@link FeatureExtractor} would produce for a given
+ * context.  The corpus covers:&lt;/p&gt;
+ * &lt;ul&gt;
+ *   &lt;li&gt;{@code &quot;PII&quot;} — contexts where a token is a genuine person name,
+ *       organisation, or generic PII.&lt;/li&gt;
+ *   &lt;li&gt;{@code &quot;BENIGN&quot;} — contexts where the same surface form is harmless
+ *       (e.g. &quot;Apple&quot; as a fruit, &quot;John&quot; as a biblical reference).&lt;/li&gt;
+ * &lt;/ul&gt;
+ *
+ * &lt;p&gt;&lt;b&gt;Extending the corpus:&lt;/b&gt; Add entries via
+ * {@link NaiveBayesClassifier#train(String, List)} before calling
+ * {@code finalizeFit()}.  The built-in data is sufficient for demonstration
+ * and moderate production use; for high-volume or domain-specific deployments,
+ * supplement with labelled data from your own environment.&lt;/p&gt;
+ *
+ * @author Hemant Naik
+ * @since 1.0.0
+ */
+public final class TrainingData {
+
+    private TrainingData() { /* utility class */ }
+
+    /** Returns a pre-fitted {@link NaiveBayesClassifier} trained on built-in data. */
+    public static NaiveBayesClassifier buildDefaultClassifier() {
+<span class="fc" id="L33">        NaiveBayesClassifier clf = new NaiveBayesClassifier();</span>
+
+        // ── PII contexts ──────────────────────────────────────────────────────
+
+        // Names preceded by social/professional titles
+<span class="fc" id="L38">        pii(clf, &quot;IS_TITLE_CASE&quot;, &quot;PREV:mr&quot;,       &quot;dear&quot;,  &quot;LEN_MEDIUM&quot;);</span>
+<span class="fc" id="L39">        pii(clf, &quot;IS_TITLE_CASE&quot;, &quot;PREV:mrs&quot;,      &quot;dear&quot;,  &quot;LEN_MEDIUM&quot;);</span>
+<span class="fc" id="L40">        pii(clf, &quot;IS_TITLE_CASE&quot;, &quot;PREV:ms&quot;,       &quot;dear&quot;,  &quot;LEN_MEDIUM&quot;);</span>
+<span class="fc" id="L41">        pii(clf, &quot;IS_TITLE_CASE&quot;, &quot;PREV:dr&quot;,       &quot;dear&quot;,  &quot;LEN_MEDIUM&quot;);</span>
+<span class="fc" id="L42">        pii(clf, &quot;IS_TITLE_CASE&quot;, &quot;PREV:prof&quot;,     &quot;dear&quot;,  &quot;LEN_MEDIUM&quot;);</span>
+<span class="fc" id="L43">        pii(clf, &quot;IS_TITLE_CASE&quot;, &quot;PREV:sir&quot;,      &quot;dear&quot;,  &quot;LEN_MEDIUM&quot;);</span>
+<span class="fc" id="L44">        pii(clf, &quot;IS_TITLE_CASE&quot;, &quot;PREV:hello&quot;,    &quot;LEN_MEDIUM&quot;);</span>
+<span class="fc" id="L45">        pii(clf, &quot;IS_TITLE_CASE&quot;, &quot;PREV:hi&quot;,       &quot;LEN_MEDIUM&quot;);</span>
+<span class="fc" id="L46">        pii(clf, &quot;IS_TITLE_CASE&quot;, &quot;PREV:dear&quot;,     &quot;LEN_MEDIUM&quot;);</span>
+
+        // Short personal names (≤ 3 chars: Bob, Amy, Kim, Tim, etc.) in PII contexts.
+        // Without these, LEN_SHORT is exclusively a BENIGN signal (sentence-starters)
+        // and short names after &quot;dear&quot;/&quot;contact&quot;/etc. are mis-classified as BENIGN.
+<span class="fc" id="L51">        pii(clf, &quot;IS_TITLE_CASE&quot;, &quot;PREV:dear&quot;,    &quot;dear&quot;,    &quot;LEN_SHORT&quot;);</span>
+<span class="fc" id="L52">        pii(clf, &quot;IS_TITLE_CASE&quot;, &quot;PREV:hello&quot;,              &quot;LEN_SHORT&quot;);</span>
+<span class="fc" id="L53">        pii(clf, &quot;IS_TITLE_CASE&quot;, &quot;PREV:hi&quot;,                 &quot;LEN_SHORT&quot;);</span>
+<span class="fc" id="L54">        pii(clf, &quot;IS_TITLE_CASE&quot;, &quot;PREV:contact&quot;, &quot;contact&quot;, &quot;LEN_SHORT&quot;);</span>
+<span class="fc" id="L55">        pii(clf, &quot;IS_TITLE_CASE&quot;, &quot;PREV:from&quot;,    &quot;from&quot;,    &quot;LEN_SHORT&quot;);</span>
+<span class="fc" id="L56">        pii(clf, &quot;IS_TITLE_CASE&quot;, &quot;PREV:call&quot;,    &quot;call&quot;,    &quot;LEN_SHORT&quot;);</span>
+
+        // Names in contact / professional contexts
+<span class="fc" id="L59">        pii(clf, &quot;IS_TITLE_CASE&quot;, &quot;contact&quot;,   &quot;PREV:contact&quot;,  &quot;LEN_MEDIUM&quot;);</span>
+<span class="fc" id="L60">        pii(clf, &quot;IS_TITLE_CASE&quot;, &quot;email&quot;,     &quot;PREV:email&quot;,    &quot;LEN_MEDIUM&quot;);</span>
+<span class="fc" id="L61">        pii(clf, &quot;IS_TITLE_CASE&quot;, &quot;call&quot;,      &quot;PREV:call&quot;,     &quot;LEN_MEDIUM&quot;);</span>
+<span class="fc" id="L62">        pii(clf, &quot;IS_TITLE_CASE&quot;, &quot;phone&quot;,     &quot;PREV:phone&quot;,    &quot;LEN_MEDIUM&quot;);</span>
+<span class="fc" id="L63">        pii(clf, &quot;IS_TITLE_CASE&quot;, &quot;manager&quot;,   &quot;PREV:manager&quot;,  &quot;LEN_MEDIUM&quot;);</span>
+<span class="fc" id="L64">        pii(clf, &quot;IS_TITLE_CASE&quot;, &quot;ceo&quot;,       &quot;PREV:ceo&quot;,      &quot;LEN_MEDIUM&quot;);</span>
+<span class="fc" id="L65">        pii(clf, &quot;IS_TITLE_CASE&quot;, &quot;cto&quot;,       &quot;PREV:cto&quot;,      &quot;LEN_MEDIUM&quot;);</span>
+<span class="fc" id="L66">        pii(clf, &quot;IS_TITLE_CASE&quot;, &quot;president&quot;, &quot;PREV:president&quot;,&quot;LEN_MEDIUM&quot;);</span>
+<span class="fc" id="L67">        pii(clf, &quot;IS_TITLE_CASE&quot;, &quot;signed&quot;,    &quot;PREV:signed&quot;,   &quot;LEN_MEDIUM&quot;);</span>
+<span class="fc" id="L68">        pii(clf, &quot;IS_TITLE_CASE&quot;, &quot;from&quot;,      &quot;PREV:from&quot;,     &quot;LEN_MEDIUM&quot;);</span>
+<span class="fc" id="L69">        pii(clf, &quot;IS_TITLE_CASE&quot;, &quot;sent&quot;,      &quot;PREV:sent&quot;,     &quot;LEN_MEDIUM&quot;);</span>
+<span class="fc" id="L70">        pii(clf, &quot;IS_TITLE_CASE&quot;, &quot;author&quot;,    &quot;PREV:author&quot;,   &quot;LEN_MEDIUM&quot;);</span>
+<span class="fc" id="L71">        pii(clf, &quot;IS_TITLE_CASE&quot;, &quot;patient&quot;,   &quot;PREV:patient&quot;,  &quot;LEN_MEDIUM&quot;);</span>
+<span class="fc" id="L72">        pii(clf, &quot;IS_TITLE_CASE&quot;, &quot;client&quot;,    &quot;PREV:client&quot;,   &quot;LEN_MEDIUM&quot;);</span>
+<span class="fc" id="L73">        pii(clf, &quot;IS_TITLE_CASE&quot;, &quot;customer&quot;,  &quot;PREV:customer&quot;, &quot;LEN_MEDIUM&quot;);</span>
+<span class="fc" id="L74">        pii(clf, &quot;IS_TITLE_CASE&quot;, &quot;employee&quot;,  &quot;PREV:employee&quot;, &quot;LEN_MEDIUM&quot;);</span>
+<span class="fc" id="L75">        pii(clf, &quot;IS_TITLE_CASE&quot;, &quot;user&quot;,      &quot;PREV:user&quot;,     &quot;LEN_MEDIUM&quot;);</span>
+<span class="fc" id="L76">        pii(clf, &quot;IS_TITLE_CASE&quot;, &quot;name&quot;,      &quot;PREV:name&quot;,     &quot;LEN_MEDIUM&quot;);</span>
+<span class="fc" id="L77">        pii(clf, &quot;IS_TITLE_CASE&quot;, &quot;fullname&quot;,  &quot;PREV:fullname&quot;, &quot;LEN_MEDIUM&quot;);</span>
+
+        // Organisations in business context
+<span class="fc" id="L80">        pii(clf, &quot;IS_TITLE_CASE&quot;, &quot;company&quot;,   &quot;PREV:company&quot;,  &quot;LEN_MEDIUM&quot;);</span>
+<span class="fc" id="L81">        pii(clf, &quot;IS_TITLE_CASE&quot;, &quot;corp&quot;,      &quot;PREV:corp&quot;,     &quot;LEN_MEDIUM&quot;);</span>
+<span class="fc" id="L82">        pii(clf, &quot;IS_TITLE_CASE&quot;, &quot;inc&quot;,       &quot;PREV:inc&quot;,      &quot;LEN_MEDIUM&quot;);</span>
+<span class="fc" id="L83">        pii(clf, &quot;IS_TITLE_CASE&quot;, &quot;ltd&quot;,       &quot;PREV:ltd&quot;,      &quot;LEN_MEDIUM&quot;);</span>
+<span class="fc" id="L84">        pii(clf, &quot;IS_TITLE_CASE&quot;, &quot;llc&quot;,       &quot;PREV:llc&quot;,      &quot;LEN_MEDIUM&quot;);</span>
+<span class="fc" id="L85">        pii(clf, &quot;IS_TITLE_CASE&quot;, &quot;firm&quot;,      &quot;PREV:firm&quot;,     &quot;LEN_MEDIUM&quot;);</span>
+<span class="fc" id="L86">        pii(clf, &quot;IS_TITLE_CASE&quot;, &quot;vendor&quot;,    &quot;PREV:vendor&quot;,   &quot;LEN_MEDIUM&quot;);</span>
+
+        // All-caps identifiers (employee IDs, medical record numbers)
+<span class="fc" id="L89">        pii(clf, &quot;ALL_CAPS&quot;, &quot;HAS_DIGIT&quot;,  &quot;id&quot;,     &quot;PREV:id&quot;,     &quot;LEN_MEDIUM&quot;);</span>
+<span class="fc" id="L90">        pii(clf, &quot;ALL_CAPS&quot;, &quot;HAS_DIGIT&quot;,  &quot;mrn&quot;,    &quot;PREV:mrn&quot;,    &quot;LEN_MEDIUM&quot;);</span>
+<span class="fc" id="L91">        pii(clf, &quot;ALL_CAPS&quot;, &quot;HAS_DIGIT&quot;,  &quot;record&quot;, &quot;PREV:record&quot;, &quot;LEN_MEDIUM&quot;);</span>
+<span class="fc" id="L92">        pii(clf, &quot;ALL_CAPS&quot;, &quot;HAS_DIGIT&quot;,  &quot;ref&quot;,    &quot;PREV:ref&quot;,    &quot;LEN_MEDIUM&quot;);</span>
+
+        // High-entropy strings (tokens, keys)
+<span class="fc" id="L95">        pii(clf, &quot;HIGH_ENTROPY&quot;, &quot;HAS_DIGIT&quot;, &quot;ALL_CAPS&quot;, &quot;LEN_LONG&quot;,   &quot;key&quot;);</span>
+<span class="fc" id="L96">        pii(clf, &quot;HIGH_ENTROPY&quot;, &quot;HAS_DIGIT&quot;,             &quot;LEN_LONG&quot;,   &quot;token&quot;);</span>
+<span class="fc" id="L97">        pii(clf, &quot;HIGH_ENTROPY&quot;, &quot;HAS_DIGIT&quot;,             &quot;LEN_LONG&quot;,   &quot;secret&quot;);</span>
+<span class="fc" id="L98">        pii(clf, &quot;HIGH_ENTROPY&quot;, &quot;MOSTLY_UPPER&quot;,          &quot;LEN_LONG&quot;,   &quot;api&quot;);</span>
+
+        // ── BENIGN contexts ───────────────────────────────────────────────────
+
+        // Organisation names used in non-identifying sentences
+<span class="fc" id="L103">        benign(clf, &quot;IS_TITLE_CASE&quot;, &quot;ate&quot;,   &quot;fruit&quot;,    &quot;PREV:ate&quot;,   &quot;LEN_MEDIUM&quot;);</span>
+<span class="fc" id="L104">        benign(clf, &quot;IS_TITLE_CASE&quot;, &quot;drink&quot;, &quot;juice&quot;,    &quot;PREV:drink&quot;, &quot;LEN_MEDIUM&quot;);</span>
+<span class="fc" id="L105">        benign(clf, &quot;IS_TITLE_CASE&quot;, &quot;like&quot;,  &quot;food&quot;,     &quot;PREV:like&quot;,  &quot;LEN_MEDIUM&quot;);</span>
+<span class="fc" id="L106">        benign(clf, &quot;IS_TITLE_CASE&quot;, &quot;love&quot;,  &quot;product&quot;,  &quot;PREV:love&quot;,  &quot;LEN_MEDIUM&quot;);</span>
+<span class="fc" id="L107">        benign(clf, &quot;IS_TITLE_CASE&quot;, &quot;buy&quot;,   &quot;store&quot;,    &quot;PREV:buy&quot;,   &quot;LEN_MEDIUM&quot;);</span>
+<span class="fc" id="L108">        benign(clf, &quot;IS_TITLE_CASE&quot;, &quot;sells&quot;, &quot;market&quot;,   &quot;PREV:sells&quot;, &quot;LEN_MEDIUM&quot;);</span>
+
+        // Duplicate food/consumption context entries WITHOUT a PREV: feature so that
+        // &quot;ate&quot; and &quot;fruit&quot; themselves become strong standalone BENIGN signals.
+        // This ensures the direct classifier call with [&quot;IS_TITLE_CASE&quot;,&quot;ate&quot;,&quot;fruit&quot;,&quot;LEN_MEDIUM&quot;]
+        // (no PREV:ate) is correctly labelled BENIGN despite the PII class-prior advantage.
+<span class="fc" id="L114">        benign(clf, &quot;IS_TITLE_CASE&quot;, &quot;ate&quot;,    &quot;fruit&quot;,    &quot;LEN_MEDIUM&quot;);</span>
+<span class="fc" id="L115">        benign(clf, &quot;IS_TITLE_CASE&quot;, &quot;ate&quot;,    &quot;snack&quot;,    &quot;LEN_MEDIUM&quot;);</span>
+<span class="fc" id="L116">        benign(clf, &quot;IS_TITLE_CASE&quot;, &quot;ate&quot;,    &quot;food&quot;,     &quot;LEN_MEDIUM&quot;);</span>
+<span class="fc" id="L117">        benign(clf, &quot;IS_TITLE_CASE&quot;, &quot;fresh&quot;,  &quot;fruit&quot;,    &quot;LEN_MEDIUM&quot;);</span>
+<span class="fc" id="L118">        benign(clf, &quot;IS_TITLE_CASE&quot;, &quot;sweet&quot;,  &quot;fruit&quot;,    &quot;LEN_MEDIUM&quot;);</span>
+<span class="fc" id="L119">        benign(clf, &quot;IS_TITLE_CASE&quot;, &quot;ripe&quot;,   &quot;fruit&quot;,    &quot;LEN_MEDIUM&quot;);</span>
+
+        // Common first names used in literary / historical / non-identifying context
+<span class="fc" id="L122">        benign(clf, &quot;IS_TITLE_CASE&quot;, &quot;biblical&quot;, &quot;verse&quot;,    &quot;PREV:verse&quot;,    &quot;LEN_MEDIUM&quot;);</span>
+<span class="fc" id="L123">        benign(clf, &quot;IS_TITLE_CASE&quot;, &quot;book&quot;,     &quot;novel&quot;,    &quot;PREV:novel&quot;,    &quot;LEN_MEDIUM&quot;);</span>
+<span class="fc" id="L124">        benign(clf, &quot;IS_TITLE_CASE&quot;, &quot;chapter&quot;,  &quot;story&quot;,    &quot;PREV:chapter&quot;,  &quot;LEN_MEDIUM&quot;);</span>
+<span class="fc" id="L125">        benign(clf, &quot;IS_TITLE_CASE&quot;, &quot;character&quot;,&quot;fictional&quot;,&quot;PREV:character&quot;, &quot;LEN_MEDIUM&quot;);</span>
+<span class="fc" id="L126">        benign(clf, &quot;IS_TITLE_CASE&quot;, &quot;movie&quot;,    &quot;film&quot;,     &quot;PREV:film&quot;,     &quot;LEN_MEDIUM&quot;);</span>
+<span class="fc" id="L127">        benign(clf, &quot;IS_TITLE_CASE&quot;, &quot;series&quot;,   &quot;show&quot;,     &quot;PREV:show&quot;,     &quot;LEN_MEDIUM&quot;);</span>
+<span class="fc" id="L128">        benign(clf, &quot;IS_TITLE_CASE&quot;, &quot;game&quot;,     &quot;play&quot;,     &quot;PREV:play&quot;,     &quot;LEN_MEDIUM&quot;);</span>
+
+        // Generic common words that are title-cased only at sentence start
+<span class="fc" id="L131">        benign(clf, &quot;IS_TITLE_CASE&quot;, &quot;the&quot;,  &quot;is&quot;,   &quot;was&quot;,  &quot;PREV:the&quot;,  &quot;LEN_SHORT&quot;);</span>
+<span class="fc" id="L132">        benign(clf, &quot;IS_TITLE_CASE&quot;, &quot;a&quot;,    &quot;an&quot;,   &quot;was&quot;,  &quot;PREV:a&quot;,    &quot;LEN_SHORT&quot;);</span>
+<span class="fc" id="L133">        benign(clf, &quot;IS_TITLE_CASE&quot;, &quot;this&quot;, &quot;that&quot;, &quot;was&quot;,  &quot;PREV:this&quot;, &quot;LEN_SHORT&quot;);</span>
+
+        // Low-entropy short words — not API keys
+<span class="fc" id="L136">        benign(clf, &quot;LEN_SHORT&quot;, &quot;word&quot;,  &quot;simple&quot;, &quot;text&quot;,  &quot;LEN_SHORT&quot;);</span>
+<span class="fc" id="L137">        benign(clf, &quot;LEN_SHORT&quot;, &quot;short&quot;, &quot;token&quot;,  &quot;label&quot;, &quot;LEN_SHORT&quot;);</span>
+
+<span class="fc" id="L139">        clf.finalizeFit();</span>
+<span class="fc" id="L140">        return clf;</span>
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    private static void pii(NaiveBayesClassifier clf, String... features) {
+<span class="fc" id="L146">        clf.train(&quot;PII&quot;, List.of(features));</span>
+<span class="fc" id="L147">    }</span>
+
+    private static void benign(NaiveBayesClassifier clf, String... features) {
+<span class="fc" id="L150">        clf.train(&quot;BENIGN&quot;, List.of(features));</span>
+<span class="fc" id="L151">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

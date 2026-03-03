@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  OWASP Dependency-Check CVE Suppressions
+  ========================================
+  Add suppressions here for known false positives or accepted risks.
+
+  Format:
+    <suppress>
+      <notes>Reason for suppression and date reviewed</notes>
+      <cve>CVE-YYYY-NNNNN</cve>
+    </suppress>
+
+  SPG has zero runtime dependencies; all dependencies here are test-scope.
+  Review this file quarterly or when a new CVE is flagged.
+-->
+<suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
+
+  <!-- Example (remove when adding real suppressions):
+  <suppress>
+    <notes>
+      CVE-XXXX-XXXXX affects JUnit in a test-only path that is not reachable
+      from production code. Reviewed 2026-03-01.
+    </notes>
+    <cve>CVE-XXXX-XXXXX</cve>
+  </suppress>
+  -->
+
+</suppressions>

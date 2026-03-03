@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>HeuristicDetector.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Semantic Privacy Guard</a> &gt; <a href="index.source.html" class="el_package">com.semanticprivacyguard.detector</a> &gt; <span class="el_source">HeuristicDetector.java</span></div><h1>HeuristicDetector.java</h1><pre class="source lang-java linenums">package com.semanticprivacyguard.detector;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import com.semanticprivacyguard.model.PIIMatch;
+import com.semanticprivacyguard.model.PIIMatch.DetectionSource;
+import com.semanticprivacyguard.model.PIIType;
+import com.semanticprivacyguard.util.RegexPatterns;
+import com.semanticprivacyguard.util.TextUtils;
+
+/**
+ * Layer 1 detector — pattern-based heuristics using the compiled regexes in
+ * {@link RegexPatterns}.
+ *
+ * &lt;p&gt;The detector is entirely stateless and therefore inherently thread-safe.
+ * Detection order mirrors sensitivity: highest-impact types (SSN, credit card)
+ * are checked first so they can be removed before the ML layer re-scans for
+ * subtler signals.&lt;/p&gt;
+ *
+ * &lt;h2&gt;Post-match validation&lt;/h2&gt;
+ * &lt;ul&gt;
+ *   &lt;li&gt;Credit cards are subject to Luhn checksum validation.&lt;/li&gt;
+ *   &lt;li&gt;Phone numbers require exactly 10 significant digits.&lt;/li&gt;
+ *   &lt;li&gt;API keys below a Shannon entropy threshold are discarded.&lt;/li&gt;
+ * &lt;/ul&gt;
+ *
+ * @author Hemant Naik
+ * @since 1.0.0
+ */
+public final class HeuristicDetector implements PIIDetector {
+
+    /** Minimum Shannon entropy for a hex/base64 string to be flagged as an API key. */
+    private static final double API_KEY_MIN_ENTROPY = 3.5;
+
+    /** PII types to include; if empty, all types are included. */
+    private final Set&lt;PIIType&gt; enabledTypes;
+
+    /** Creates a detector that checks all PII types. */
+<span class="fc" id="L43">    public HeuristicDetector() {</span>
+<span class="fc" id="L44">        this.enabledTypes = Set.of(); // empty = all enabled</span>
+<span class="fc" id="L45">    }</span>
+
+    /**
+     * Creates a detector that checks only the specified types.
+     *
+     * @param enabledTypes subset of types to check; must not be {@code null}
+     */
+<span class="fc" id="L52">    public HeuristicDetector(Set&lt;PIIType&gt; enabledTypes) {</span>
+<span class="fc" id="L53">        this.enabledTypes = Set.copyOf(enabledTypes);</span>
+<span class="fc" id="L54">    }</span>
+
+    @Override
+<span class="nc" id="L57">    public String name() { return &quot;HeuristicDetector&quot;; }</span>
+
+    // ─────────────────────────────────────────────────────────────────────────
+
+    @Override
+    public List&lt;PIIMatch&gt; detect(String text) {
+<span class="fc bfc" id="L63" title="All 4 branches covered.">        if (text == null || text.isBlank()) return List.of();</span>
+
+<span class="fc" id="L65">        List&lt;PIIMatch&gt; results = new ArrayList&lt;&gt;();</span>
+
+<span class="fc bfc" id="L67" title="All 2 branches covered.">        if (isEnabled(PIIType.SSN))          detectSSN(text, results);</span>
+<span class="fc bfc" id="L68" title="All 2 branches covered.">        if (isEnabled(PIIType.CREDIT_CARD))  detectCreditCard(text, results);</span>
+<span class="pc bpc" id="L69" title="1 of 2 branches missed.">        if (isEnabled(PIIType.EMAIL))        detectEmail(text, results);</span>
+<span class="fc bfc" id="L70" title="All 2 branches covered.">        if (isEnabled(PIIType.PHONE))        detectPhone(text, results);</span>
+<span class="fc bfc" id="L71" title="All 2 branches covered.">        if (isEnabled(PIIType.IP_ADDRESS))   detectIpAddresses(text, results);</span>
+<span class="fc bfc" id="L72" title="All 2 branches covered.">        if (isEnabled(PIIType.API_KEY))      detectApiKey(text, results);</span>
+<span class="fc bfc" id="L73" title="All 2 branches covered.">        if (isEnabled(PIIType.PASSWORD))     detectPassword(text, results);</span>
+<span class="fc bfc" id="L74" title="All 2 branches covered.">        if (isEnabled(PIIType.DATE_OF_BIRTH)) detectDob(text, results);</span>
+<span class="fc bfc" id="L75" title="All 2 branches covered.">        if (isEnabled(PIIType.COORDINATES)) detectCoordinates(text, results);</span>
+<span class="fc bfc" id="L76" title="All 2 branches covered.">        if (isEnabled(PIIType.BANK_ACCOUNT)) detectBankNumbers(text, results);</span>
+
+<span class="fc" id="L78">        return results;</span>
+    }
+
+    // ── Private detection helpers ─────────────────────────────────────────────
+
+    private void detectSSN(String text, List&lt;PIIMatch&gt; out) {
+<span class="fc" id="L84">        addAll(text, RegexPatterns.SSN, PIIType.SSN, 1.0, out);</span>
+<span class="fc" id="L85">    }</span>
+
+    private void detectCreditCard(String text, List&lt;PIIMatch&gt; out) {
+<span class="fc" id="L88">        Matcher m = RegexPatterns.CREDIT_CARD.matcher(text);</span>
+<span class="fc bfc" id="L89" title="All 2 branches covered.">        while (m.find()) {</span>
+<span class="fc" id="L90">            String raw    = m.group();</span>
+<span class="fc" id="L91">            String digits = TextUtils.digitsOnly(raw);</span>
+<span class="pc bpc" id="L92" title="2 of 4 branches missed.">            if (digits.length() &gt;= 13 &amp;&amp; digits.length() &lt;= 19</span>
+<span class="fc bfc" id="L93" title="All 2 branches covered.">                    &amp;&amp; TextUtils.luhnCheck(digits)) {</span>
+<span class="fc" id="L94">                out.add(match(PIIType.CREDIT_CARD, raw, m.start(), m.end(), 1.0));</span>
+            }
+        }
+<span class="fc" id="L97">    }</span>
+
+    private void detectEmail(String text, List&lt;PIIMatch&gt; out) {
+<span class="fc" id="L100">        addAll(text, RegexPatterns.EMAIL, PIIType.EMAIL, 0.97, out);</span>
+<span class="fc" id="L101">    }</span>
+
+    private void detectPhone(String text, List&lt;PIIMatch&gt; out) {
+<span class="fc" id="L104">        Matcher m = RegexPatterns.PHONE.matcher(text);</span>
+<span class="fc bfc" id="L105" title="All 2 branches covered.">        while (m.find()) {</span>
+<span class="fc" id="L106">            String raw    = m.group();</span>
+<span class="fc" id="L107">            String digits = TextUtils.digitsOnly(raw);</span>
+            // Must be exactly 10 NANP digits (or 11 if leading 1)
+<span class="fc bfc" id="L109" title="All 2 branches covered.">            if (digits.length() == 10</span>
+<span class="pc bpc" id="L110" title="2 of 4 branches missed.">                    || (digits.length() == 11 &amp;&amp; digits.charAt(0) == '1')) {</span>
+<span class="fc" id="L111">                out.add(match(PIIType.PHONE, raw, m.start(), m.end(), 0.90));</span>
+            }
+        }
+<span class="fc" id="L114">    }</span>
+
+    private void detectIpAddresses(String text, List&lt;PIIMatch&gt; out) {
+<span class="fc" id="L117">        addAll(text, RegexPatterns.IPV4, PIIType.IP_ADDRESS, 0.95, out);</span>
+<span class="fc" id="L118">        addAll(text, RegexPatterns.IPV6, PIIType.IP_ADDRESS, 0.90, out);</span>
+<span class="fc" id="L119">    }</span>
+
+    private void detectApiKey(String text, List&lt;PIIMatch&gt; out) {
+<span class="fc" id="L122">        Matcher m = RegexPatterns.API_KEY.matcher(text);</span>
+<span class="fc bfc" id="L123" title="All 2 branches covered.">        while (m.find()) {</span>
+<span class="fc" id="L124">            String raw = m.group();</span>
+            // Short generic hex segments with low entropy are likely version
+            // strings or colour codes — require minimum entropy
+<span class="pc bpc" id="L127" title="3 of 4 branches missed.">            if (raw.length() &lt; 20 &amp;&amp; TextUtils.shannonEntropy(raw) &lt; API_KEY_MIN_ENTROPY) {</span>
+<span class="nc" id="L128">                continue;</span>
+            }
+<span class="fc" id="L130">            out.add(match(PIIType.API_KEY, raw, m.start(), m.end(), 0.93));</span>
+        }
+<span class="fc" id="L132">    }</span>
+
+    private void detectPassword(String text, List&lt;PIIMatch&gt; out) {
+<span class="fc" id="L135">        Matcher m = RegexPatterns.PASSWORD.matcher(text);</span>
+<span class="fc bfc" id="L136" title="All 2 branches covered.">        while (m.find()) {</span>
+            // Capture the full match (keyword + value)
+<span class="fc" id="L138">            out.add(match(PIIType.PASSWORD, m.group(), m.start(), m.end(), 0.88));</span>
+        }
+<span class="fc" id="L140">    }</span>
+
+    private void detectDob(String text, List&lt;PIIMatch&gt; out) {
+<span class="fc" id="L143">        addAll(text, RegexPatterns.DATE_OF_BIRTH, PIIType.DATE_OF_BIRTH, 0.92, out);</span>
+<span class="fc" id="L144">    }</span>
+
+    private void detectCoordinates(String text, List&lt;PIIMatch&gt; out) {
+<span class="fc" id="L147">        addAll(text, RegexPatterns.COORDINATES, PIIType.COORDINATES, 0.88, out);</span>
+<span class="fc" id="L148">    }</span>
+
+    private void detectBankNumbers(String text, List&lt;PIIMatch&gt; out) {
+<span class="fc" id="L151">        addAll(text, RegexPatterns.BANK_ROUTING, PIIType.BANK_ACCOUNT, 0.92, out);</span>
+<span class="fc" id="L152">        addAll(text, RegexPatterns.IBAN,         PIIType.BANK_ACCOUNT, 0.90, out);</span>
+<span class="fc" id="L153">    }</span>
+
+    // ── Utilities ─────────────────────────────────────────────────────────────
+
+    private void addAll(String text, Pattern p, PIIType type,
+                        double confidence, List&lt;PIIMatch&gt; out) {
+<span class="fc" id="L159">        Matcher m = p.matcher(text);</span>
+<span class="fc bfc" id="L160" title="All 2 branches covered.">        while (m.find()) {</span>
+<span class="fc" id="L161">            out.add(match(type, m.group(), m.start(), m.end(), confidence));</span>
+        }
+<span class="fc" id="L163">    }</span>
+
+    private PIIMatch match(PIIType type, String value,
+                           int start, int end, double confidence) {
+<span class="fc" id="L167">        return new PIIMatch(type, value, start, end,</span>
+<span class="fc" id="L168">                            DetectionSource.HEURISTIC, confidence);</span>
+    }
+
+    private boolean isEnabled(PIIType type) {
+<span class="fc bfc" id="L172" title="All 4 branches covered.">        return enabledTypes.isEmpty() || enabledTypes.contains(type);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>
