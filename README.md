@@ -1,7 +1,7 @@
 # 🛡 Semantic Privacy Guard
 
-[![CI](https://github.com/hemant-naik/semantic-privacy-guard/actions/workflows/ci.yml/badge.svg)](https://github.com/hemant-naik/semantic-privacy-guard/actions/workflows/ci.yml)
-[![Coverage](https://img.shields.io/badge/coverage-%E2%89%A580%25-brightgreen)](https://github.com/hemant-naik/semantic-privacy-guard/actions)
+[![CI](https://github.com/Sushegaad/Semantic-Privacy-Guard/actions/workflows/ci.yml/badge.svg)](https://github.com/Sushegaad/Semantic-Privacy-Guard/actions/workflows/ci.yml)
+[![Coverage](https://img.shields.io/badge/coverage-%E2%89%A580%25-brightgreen)](https://github.com/Sushegaad/Semantic-Privacy-Guard/actions)
 [![Java](https://img.shields.io/badge/Java-17%2B-blue?logo=openjdk)](https://openjdk.org/)
 [![Zero deps](https://img.shields.io/badge/runtime%20deps-0-brightgreen)](#)
 [![Maven Central](https://img.shields.io/maven-central/v/com.semanticprivacyguard/semantic-privacy-guard?color=blue)](https://central.sonatype.com/)
@@ -16,7 +16,7 @@
 
 ## 🚀 Live Playground
 
-**[Try it in your browser →](https://hemant-naik.github.io/semantic-privacy-guard/)**
+**[Try it in your browser →](https://Sushegaad.github.io/Semantic-Privacy-Guard/)**
 
 Paste any text, choose a redaction mode, and see instant results — 100% client-side, nothing sent to any server.
 
@@ -24,7 +24,7 @@ Paste any text, choose a redaction mode, and see instant results — 100% client
 
 ## Why Semantic Privacy Guard?
 
-| Problem | SPG Solution |
+git clone https://github.com/Sushegaad/Semantic-Privacy-Guard.git
 |---|---|
 | Employees paste customer data into ChatGPT | Intercept prompts at the API gateway layer |
 | Cloud PII APIs cost $0.001/call at scale | SPG costs $0/call, runs fully offline |
@@ -228,7 +228,7 @@ Input text
 ## Building from Source
 
 ```bash
-git clone https://github.com/hemant-naik/semantic-privacy-guard.git
+git clone https://github.com/Sushegaad/Semantic-Privacy-Guard.git
 cd semantic-privacy-guard
 
 # Compile + test + coverage (must be >= 80%)
@@ -238,7 +238,7 @@ mvn verify
 mvn test -P benchmark
 
 # Build JAR
-mvn package -DskipTests
+mvnd package -DskipTests
 ```
 
 Requirements: JDK 17+ and Maven 3.8+.
@@ -279,3 +279,4 @@ All regex patterns are validated against catastrophic backtracking (ReDoS).
 Apache License 2.0 — see [LICENSE](LICENSE).
 
 Copyright 2026 Hemant Naik
+Copyright 2026 Sushegaad
