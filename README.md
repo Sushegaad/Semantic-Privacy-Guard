@@ -23,8 +23,6 @@ Paste any text, choose a redaction mode, and see instant results — 100% client
 ---
 
 ## Why Semantic Privacy Guard?
-
-git clone https://github.com/Sushegaad/Semantic-Privacy-Guard.git
 |---|---|
 | Employees paste customer data into ChatGPT | Intercept prompts at the API gateway layer |
 | Cloud PII APIs cost $0.001/call at scale | SPG costs $0/call, runs fully offline |
