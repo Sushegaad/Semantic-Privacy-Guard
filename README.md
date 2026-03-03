@@ -4,7 +4,6 @@
 [![Coverage](https://img.shields.io/badge/coverage-%E2%89%A580%25-brightgreen)](https://github.com/Sushegaad/Semantic-Privacy-Guard/actions)
 [![Java](https://img.shields.io/badge/Java-17%2B-blue?logo=openjdk)](https://openjdk.org/)
 [![Zero deps](https://img.shields.io/badge/runtime%20deps-0-brightgreen)](#)
-[![Maven Central](https://img.shields.io/maven-central/v/com.semanticprivacyguard/semantic-privacy-guard?color=blue)](https://central.sonatype.com/)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
 [![Security Policy](https://img.shields.io/badge/security-policy-orange)](SECURITY.md)
 
@@ -23,6 +22,8 @@ Paste any text, choose a redaction mode, and see instant results — 100% client
 ---
 
 ## Why Semantic Privacy Guard?
+
+| Problem | How SPG helps |
 |---|---|
 | Employees paste customer data into ChatGPT | Intercept prompts at the API gateway layer |
 | Cloud PII APIs cost $0.001/call at scale | SPG costs $0/call, runs fully offline |
@@ -32,14 +33,13 @@ Paste any text, choose a redaction mode, and see instant results — 100% client
 
 ### The Disambiguation Advantage
 
-A naive regex fires on every title-cased word. SPG's Naive Bayes context
-classifier distinguishes:
+A naive regex fires on every title-cased word. SPG's Naive Bayes context classifier distinguishes:
 
 ```
 "I ate an apple yesterday."          →  No match  (fruit)
-"Contact Apple at (800) 555-1234."   →  [ORGANIZATION_1]  (company PII)
+"Contact Apple at (800) 275-2273."   →  [ORG_1]   (company PII)
 "The Gospel of John has 21 chapters" →  No match  (literary reference)
-"Dear John, your SSN is 123-45-6789" →  [PERSON_NAME_1] + [SSN_1]
+"Dear John, your SSN is 123-45-6789" →  [NAME_1] + [SSN_1]
 ```
 
 ---
@@ -75,10 +75,10 @@ RedactionResult result = spg.redact(
 );
 
 System.out.println(result.getRedactedText());
-// -> "Email [PERSON_NAME_1] at [EMAIL_1] or call [PHONE_1]. SSN: [SSN_1]."
+// → "Email [NAME_1] at [EMAIL_1] or call [PHONE_1]. SSN: [SSN_1]."
 
-System.out.println(result.getMatchCount());       // -> 4
-System.out.println(result.getProcessingTimeMs()); // -> < 1 ms
+System.out.println(result.getMatchCount());       // → 4
+System.out.println(result.getProcessingTimeMs()); // → < 1 ms
 ```
 
 ---
@@ -88,10 +88,10 @@ System.out.println(result.getProcessingTimeMs()); // -> < 1 ms
 | Type | Example | Method | Severity |
 |---|---|---|---|
 | `SSN` | `123-45-6789` | Regex + exclusion rules | 10 |
-| `CREDIT_CARD` | `4532 0151 1283 0366` | Regex + Luhn | 10 |
-| `API_KEY` | `AKIAIOSFODNN7EXAMPLE` | Regex + entropy | 9 |
+| `CREDIT_CARD` | `4532 0151 1283 0366` | Regex + Luhn checksum | 10 |
+| `API_KEY` | `AKIAIOSFODNN7EXAMPLE` | Regex + entropy filter | 9 |
 | `PASSWORD` | `password=MyS3cr3t` | Regex (keyword-prefixed) | 9 |
-| `MEDICAL_RECORD` | `MRN123456` | ML | 8 |
+| `MEDICAL_RECORD` | `MRN123456` | Naive Bayes ML | 8 |
 | `BANK_ACCOUNT` | `GB29NWBK60161331926819` | Regex (IBAN) | 8 |
 | `EMAIL` | `alice@example.com` | Regex | 6 |
 | `PHONE` | `(555) 867-5309` | Regex (NANP validated) | 6 |
@@ -118,7 +118,7 @@ Full detection + replacement pass. Returns:
 
 - `getRedactedText()` — sanitised string
 - `getMatches()` — list of `PIIMatch` objects with type, value, span, confidence
-- `getReverseMap()` — `Map<String, String>` token to original value
+- `getReverseMap()` — `Map<String, String>` token → original value (for post-LLM de-tokenisation)
 - `getMatchCount()` — number of detections
 - `getProcessingTimeMs()` — wall-clock time
 
@@ -136,9 +136,9 @@ Detection without redaction — for audit and reporting pipelines.
 SPGConfig config = SPGConfig.builder()
     .redactionMode(RedactionMode.TOKEN)   // TOKEN | MASK | BLANK
     .mlConfidenceThreshold(0.70)          // 0.0–1.0; default 0.65
-    .enabledTypes(Set.of(PIIType.EMAIL,   // null/empty = all types
+    .enabledTypes(Set.of(PIIType.EMAIL,   // null / empty = all types
                          PIIType.SSN))
-    .minimumSeverity(6)                   // 1–10; filter low-impact types
+    .minimumSeverity(6)                   // 1–10; filter low-severity types
     .buildReverseMap(true)                // disable for slight perf gain
     .heuristicEnabled(true)
     .mlEnabled(true)
@@ -179,10 +179,9 @@ try (var exec = Executors.newVirtualThreadPerTaskExecutor()) {
 |---|---|---|
 | Naive regex (2 patterns) | 580,000 sentences/s | 60% of clean sentences |
 | SPG Heuristic-only | 390,000 sentences/s | 20% |
-| **SPG Full (H+ML)** | **206,000 sentences/s** | **0%** |
+| **SPG Full (H + ML)** | **206,000 sentences/s** | **0%** |
 
-See [docs/benchmarks.md](docs/benchmarks.md) for full methodology and the
-comparison table against cloud alternatives (AWS Comprehend, Google DLP, Presidio).
+See [docs/benchmarks.md](docs/benchmarks.md) for full methodology and the comparison table against cloud alternatives (AWS Comprehend, Google DLP, Presidio).
 
 ---
 
@@ -190,34 +189,34 @@ comparison table against cloud alternatives (AWS Comprehend, Google DLP, Presidi
 
 ```
 Input text
-    |
-    v
-+-------------------------------------------------+
-|  Layer 1: HeuristicDetector                     |
-|  Regex patterns + Luhn checksum + entropy filter|
-|  SSN, Email, Phone, CC, IPs, API Keys, Passwords|
-+-----------------------+-------------------------+
-                        |
-    v
-+-------------------------------------------------+
-|  Layer 2: MLDetector                            |
-|  Pure-Java Naive Bayes + FeatureExtractor       |
-|  Person names, Organisations (context-aware)    |
-+-----------------------+-------------------------+
-                        |
-    v
-+-------------------------------------------------+
-|  CompositeDetector                              |
-|  De-duplicate, resolve overlaps, HYBRID merging |
-+-----------------------+-------------------------+
-                        |
-    v
-+-------------------------------------------------+
-|  PIITokenizer                                   |
-|  TOKEN / MASK / BLANK + reverse map             |
-+-------------------------------------------------+
-                        |
-    v
+    │
+    ▼
+┌─────────────────────────────────────────────────┐
+│  Layer 1: HeuristicDetector                     │
+│  Regex patterns + Luhn checksum + entropy filter│
+│  SSN, Email, Phone, CC, IPs, API Keys, Passwords│
+└──────────────────────┬──────────────────────────┘
+                       │
+    ▼
+┌─────────────────────────────────────────────────┐
+│  Layer 2: MLDetector                            │
+│  Pure-Java Naive Bayes + FeatureExtractor       │
+│  Person names, Organisations (context-aware)    │
+└──────────────────────┬──────────────────────────┘
+                       │
+    ▼
+┌─────────────────────────────────────────────────┐
+│  CompositeDetector                              │
+│  De-duplicate, resolve overlaps, HYBRID merging │
+└──────────────────────┬──────────────────────────┘
+                       │
+    ▼
+┌─────────────────────────────────────────────────┐
+│  PIITokenizer                                   │
+│  TOKEN / MASK / BLANK + reverse map             │
+└─────────────────────────────────────────────────┘
+                       │
+    ▼
     RedactionResult
 ```
 
@@ -227,16 +226,16 @@ Input text
 
 ```bash
 git clone https://github.com/Sushegaad/Semantic-Privacy-Guard.git
-cd semantic-privacy-guard
+cd Semantic-Privacy-Guard
 
-# Compile + test + coverage (must be >= 80%)
+# Compile + test + coverage check (must be ≥ 80%)
 mvn verify
 
 # Run benchmarks
 mvn test -P benchmark
 
-# Build JAR
-mvnd package -DskipTests
+# Build JAR only
+mvn package -DskipTests
 ```
 
 Requirements: JDK 17+ and Maven 3.8+.
@@ -256,16 +255,15 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). All contributions welcome — especially
 
 ## Security
 
-See [SECURITY.md](SECURITY.md) for the CVE response process and responsible
-disclosure policy.
+See [SECURITY.md](SECURITY.md) for the CVE response process and responsible disclosure policy.
 
-SPG has zero runtime dependencies, eliminating supply-chain attack vectors.
-All regex patterns are validated against catastrophic backtracking (ReDoS).
+SPG has zero runtime dependencies, eliminating supply-chain attack vectors. All regex patterns are validated against catastrophic backtracking (ReDoS).
 
 ---
 
 ## Docs
 
+- [Live Playground](https://Sushegaad.github.io/Semantic-Privacy-Guard/) — try SPG in your browser
 - [Regex Design Decisions](docs/regex-design.md) — why SSN excludes `9xx`, Luhn validation, entropy filtering
 - [Benchmarks](docs/benchmarks.md) — throughput and accuracy vs alternatives
 - [Security Policy](SECURITY.md) — CVE process, disclosure timeline, scope
@@ -276,5 +274,4 @@ All regex patterns are validated against catastrophic backtracking (ReDoS).
 
 Apache License 2.0 — see [LICENSE](LICENSE).
 
-Copyright 2026 Hemant Naik
-Copyright 2026 Sushegaad
+Copyright 2026 Hemant Naik / Sushegaad

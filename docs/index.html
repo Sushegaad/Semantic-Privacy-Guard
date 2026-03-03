@@ -248,6 +248,48 @@
     }
     .sample-btn:hover { border-color: var(--accent); color: var(--accent); }
 
+    /* ── How it works ────────────────────────────────────────────────────── */
+    .how-it-works {
+      border-top: 1px solid var(--border);
+      padding: 2.5rem 2rem;
+      background: var(--surface);
+    }
+    .how-it-works h2 {
+      font-size: 1.1rem; font-weight: 700; margin-bottom: 1.5rem;
+      color: var(--text); text-align: center;
+    }
+    .pipeline {
+      display: flex; gap: 0; align-items: stretch;
+      flex-wrap: wrap; justify-content: center;
+      max-width: 960px; margin: 0 auto;
+    }
+    .pipe-step {
+      flex: 1; min-width: 180px; max-width: 220px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem 1.25rem;
+      position: relative;
+    }
+    .pipe-step + .pipe-step { margin-left: 1rem; }
+    .pipe-step + .pipe-step::before {
+      content: '→';
+      position: absolute; left: -0.75rem; top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted); font-size: .9rem;
+    }
+    @media (max-width: 800px) {
+      .pipe-step + .pipe-step { margin-left: 0; margin-top: .75rem; }
+      .pipe-step + .pipe-step::before { content: '↓'; left: 50%; top: -0.6rem; transform: translateX(-50%); }
+    }
+    .pipe-step .layer { font-size: .65rem; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin-bottom: .4rem; }
+    .pipe-step .name { font-size: .9rem; font-weight: 700; color: var(--text); margin-bottom: .3rem; }
+    .pipe-step .desc { font-size: .75rem; color: var(--muted); line-height: 1.4; }
+    .pipe-step.accent-blue { border-color: #1f6feb; }
+    .pipe-step.accent-green { border-color: #238636; }
+    .pipe-step.accent-purple { border-color: #6e40c9; }
+    .pipe-step.accent-orange { border-color: #9e6a03; }
+
     /* ── Footer ──────────────────────────────────────────────────────────── */
     footer {
       border-top: 1px solid var(--border);
@@ -280,7 +322,7 @@
     <span class="badge blue">Java 17+</span>
     <span class="badge">Zero deps</span>
     <span class="badge">Apache 2.0</span>
-    <a class="badge" href="https://github.com/hemant-naik/semantic-privacy-guard" target="_blank">
+    <a class="badge" href="https://github.com/Sushegaad/Semantic-Privacy-Guard" target="_blank">
       ⭐ GitHub
     </a>
   </div>
@@ -316,15 +358,16 @@
     <div class="pane-header">
       <span class="pane-title">Input Text</span>
       <div class="samples">
-        <button class="sample-btn" onclick="loadSample('email')">Email sample</button>
-        <button class="sample-btn" onclick="loadSample('ssn')">SSN sample</button>
+        <button class="sample-btn" onclick="loadSample('email')">Email</button>
+        <button class="sample-btn" onclick="loadSample('ssn')">SSN</button>
         <button class="sample-btn" onclick="loadSample('ml')">ML disambiguation</button>
         <button class="sample-btn" onclick="loadSample('mixed')">Full mix</button>
+        <button class="sample-btn" onclick="loadSample('apikey')">API keys</button>
       </div>
     </div>
 
     <textarea id="input"
-      placeholder="Paste any text here and click Redact…
+      placeholder="Paste any text here and press Ctrl+Enter or click Redact…
 
 Example: Please email Alice at alice@example.com or call (555) 867-5309.
 Her SSN is 123-45-6789 and card 4532 0151 1283 0366."></textarea>
@@ -387,43 +430,79 @@ Her SSN is 123-45-6789 and card 4532 0151 1283 0366."></textarea>
   </div>
 </main>
 
+<!-- ── How it works ───────────────────────────────────────────────────────── -->
+<div class="how-it-works">
+  <h2>How It Works</h2>
+  <div class="pipeline">
+    <div class="pipe-step accent-blue">
+      <div class="layer">Input</div>
+      <div class="name">Raw Text</div>
+      <div class="desc">Any string: LLM prompt, email body, support ticket, log line…</div>
+    </div>
+    <div class="pipe-step accent-blue">
+      <div class="layer">Layer 1</div>
+      <div class="name">HeuristicDetector</div>
+      <div class="desc">10 pre-compiled regexes. Luhn for cards, NANP for phones, entropy filter for API keys.</div>
+    </div>
+    <div class="pipe-step accent-green">
+      <div class="layer">Layer 2</div>
+      <div class="name">MLDetector</div>
+      <div class="desc">Multinomial Naive Bayes. Classifies title-cased tokens using bag-of-words context features.</div>
+    </div>
+    <div class="pipe-step accent-purple">
+      <div class="layer">Merge</div>
+      <div class="name">CompositeDetector</div>
+      <div class="desc">De-duplicates overlapping matches. Promotes same-span matches to HYBRID source.</div>
+    </div>
+    <div class="pipe-step accent-orange">
+      <div class="layer">Output</div>
+      <div class="name">PIITokenizer</div>
+      <div class="desc">TOKEN / MASK / BLANK modes. Reverse map for de-tokenisation after LLM response.</div>
+    </div>
+  </div>
+</div>
+
 <!-- ── Footer ────────────────────────────────────────────────────────────── -->
 <footer>
   Semantic Privacy Guard v1.0.0 · Apache 2.0 ·
-  <a href="https://github.com/hemant-naik/semantic-privacy-guard">GitHub</a> ·
-  <a href="https://github.com/hemant-naik/semantic-privacy-guard/blob/main/docs/regex-design.md">Regex Design</a> ·
-  <a href="https://github.com/hemant-naik/semantic-privacy-guard/blob/main/docs/benchmarks.md">Benchmarks</a> ·
-  <a href="https://github.com/hemant-naik/semantic-privacy-guard/blob/main/SECURITY.md">Security Policy</a>
+  <a href="https://github.com/Sushegaad/Semantic-Privacy-Guard" target="_blank">GitHub</a> ·
+  <a href="https://github.com/Sushegaad/Semantic-Privacy-Guard/blob/main/docs/regex-design.md" target="_blank">Regex Design</a> ·
+  <a href="https://github.com/Sushegaad/Semantic-Privacy-Guard/blob/main/docs/benchmarks.md" target="_blank">Benchmarks</a> ·
+  <a href="https://github.com/Sushegaad/Semantic-Privacy-Guard/blob/main/SECURITY.md" target="_blank">Security Policy</a>
   <br><small style="margin-top:.4rem;display:block">
-    ⚠️ This playground runs entirely in your browser — no text is transmitted to any server.
+    ⚠️ This playground runs entirely in your browser — no text is ever transmitted to any server.
   </small>
 </footer>
 
 <script>
 // ────────────────────────────────────────────────────────────────────────────
 //  JavaScript port of the SPG Heuristic + simplified ML detection pipeline.
-//  This is a faithful translation of the Java logic for live demo purposes.
+//  This is a faithful browser-side translation of the Java logic.
+//  Source: https://github.com/Sushegaad/Semantic-Privacy-Guard
 // ────────────────────────────────────────────────────────────────────────────
+
+const REPO = 'https://github.com/Sushegaad/Semantic-Privacy-Guard';
 
 const SAMPLES = {
   email: `Please send the Q4 report to alice.johnson@acme-corp.com by Friday.
-CC: bob.smith+reports@enterprise.org and the team lead.`,
+CC: bob.smith+reports@enterprise.org and the team lead at carol.white@startup.io.`,
 
   ssn: `Patient intake form:
   Full name: Jane Doe
   Date of birth: dob: 03/15/1985
   Social Security Number: 234-56-7890
-  Invalid reference: 900-12-3456 (ITIN, should not flag)
-  Also invalid: 000-00-0001 (reserved)`,
+  Invalid reference: 900-12-3456 (ITIN — should NOT flag)
+  Also invalid: 000-00-0001 (reserved — should NOT flag)`,
 
-  ml: `The ML disambiguation test:
+  ml: `ML disambiguation — same token, different context:
 
-Sentence 1: "I ate an apple yesterday and watched an Apple keynote."
-Sentence 2: "Dear John, please contact Apple at (800) 555-1234."
-Sentence 3: "In the Bible, the Gospel of John has 21 chapters."
-Sentence 4: "Hello John, your appointment is confirmed for Monday."
+1. "I ate an apple yesterday." → apple is a fruit, not PII
+2. "Contact Apple at (800) 275-2273 for support." → Apple is an organisation
+3. "The Gospel of John has 21 chapters." → John is a biblical reference
+4. "Dear John, your appointment is confirmed for Monday." → John is a person name
+5. "Hello Bob, please review the contract." → Bob is a person name
 
-Notice how 'Apple' and 'John' are treated differently based on context.`,
+Notice how the Naive Bayes layer uses surrounding context to disambiguate.`,
 
   mixed: `TO: alice.johnson@acme.com
 FROM: support@company.io
@@ -445,12 +524,21 @@ API credentials in your config:
   AWS_ACCESS_KEY=AKIAIOSFODNN7EXAMPLE
   password=MyS3cretP@ssw0rd!
 
-Server logs show traffic from 192.168.1.100 and IPv6 2001:db8::1.
+Server logs show traffic from 192.168.1.100 and 2001:db8::1.
 
 Transfer ref: GB29NWBK60161331926819
 
 Best regards,
-Security Team`
+Security Team`,
+
+  apikey: `Environment variables extracted from CI pipeline:
+
+GITHUB_TOKEN=ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZabcdef12
+OPENAI_API_KEY=sk-abcdefghijklmnopqrstuvwxyz123456
+AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE
+AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+DB_PASSWORD=password=S3cureDB!Pass#2024
+HEX_SECRET=a3f8e2b1c9d4f05e6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9`
 };
 
 // ── PII type metadata ────────────────────────────────────────────────────────
@@ -465,7 +553,7 @@ const TYPE_META = {
   PERSON_NAME:  { label: 'NAME',       color: '#d2a8ff', bg: '#1e1531', sev: 6  },
   ORGANIZATION: { label: 'ORG',        color: '#d2a8ff', bg: '#1e1531', sev: 3  },
   DATE_OF_BIRTH:{ label: 'DOB',        color: '#79c0ff', bg: '#0c1a2e', sev: 6  },
-  BANK_ACCOUNT: { label: 'BANK',       color: '#ffa657', bg: '#2d1e00', sev: 8  },
+  BANK_ACCOUNT: { label: 'IBAN',       color: '#ffa657', bg: '#2d1e00', sev: 8  },
   GENERIC_PII:  { label: 'PII',        color: '#8b949e', bg: '#1c2128', sev: 5  },
 };
 
@@ -484,6 +572,7 @@ const PATTERNS = [
   },
   {
     type: 'PHONE',
+    // NANP: area [2-9]XX, exchange [2-9]XX
     re: /(?:\+?1[-. ]?)?(?:\(?([2-9][0-9]{2})\)?[-. ]?)([2-9][0-9]{2})[-. ]?([0-9]{4})(?!\d)/g,
     conf: 0.90
   },
@@ -494,7 +583,7 @@ const PATTERNS = [
   },
   {
     type: 'API_KEY',
-    re: /\b(?:(?:AKIA|ABIA|ACCA)[0-9A-Z]{16}|ghp_[0-9a-zA-Z]{36}|sk-[a-zA-Z0-9]{20,}|[a-f0-9]{32,64})\b/gi,
+    re: /\b(?:(?:AKIA|ABIA|ACCA)[0-9A-Z]{16}|ghp_[0-9a-zA-Z]{36}|github_pat_[0-9a-zA-Z_]{82}|ghs_[0-9a-zA-Z]{36}|sk-[a-zA-Z0-9]{20,}|Bearer\s+[a-zA-Z0-9\-._~+/]{20,}|[a-f0-9]{32,64})\b/gi,
     conf: 0.93
   },
   {
@@ -509,13 +598,12 @@ const PATTERNS = [
   },
   {
     type: 'BANK_ACCOUNT',
-    re: /\b[A-Z]{2}\d{2}[A-Z0-9]{4,30}\b/g,  // IBAN
+    re: /\b[A-Z]{2}\d{2}[A-Z0-9]{4,30}\b/g,
     conf: 0.90
   },
 ];
 
-// Credit card with Luhn (handled separately below)
-// CREDIT_CARD pattern
+// Credit card — Luhn-validated separately
 const CC_RE = /\b(?:4[0-9]{12}(?:[0-9]{3,6})?|(?:5[1-5][0-9]{2}|222[1-9]|2[3-6][0-9]{2}|27[01][0-9]|2720)[0-9]{12}|3[47][0-9]{13}|6(?:011|5[0-9]{2})[0-9]{12,15}|(?:2131|1800|35\d{3})\d{11})\b|\b(?:\d{4}[- ]){3}\d{4}\b/g;
 
 // ── Luhn algorithm ───────────────────────────────────────────────────────────
@@ -536,38 +624,49 @@ function luhn(digits) {
 function entropy(s) {
   const freq = {};
   for (const c of s) freq[c] = (freq[c] || 0) + 1;
-  let h = 0, n = s.length;
+  let h = 0; const n = s.length;
   for (const f of Object.values(freq)) { const p = f/n; h -= p * Math.log2(p); }
   return h;
 }
 
 // ── Simplified Naive Bayes context classifier ─────────────────────────────────
-// Keyword lookup tables derived from the Java TrainingData corpus
-const PII_CONTEXT_WORDS   = new Set(['contact','email','call','phone','dear','hello','hi',
-  'mr','mrs','ms','dr','prof','sir','manager','ceo','cto','patient','client','customer',
-  'employee','user','name','from','sent','author','signed','referred']);
-const BENIGN_CONTEXT_WORDS = new Set(['ate','drink','love','buy','sells','watched','read',
-  'novel','chapter','book','film','movie','fictional','biblical','verse','story','show']);
+// Keyword sets derived from the Java TrainingData corpus
+const PII_CONTEXT_WORDS = new Set([
+  'contact','email','call','phone','dear','hello','hi','hey',
+  'mr','mrs','ms','dr','prof','sir','madam',
+  'manager','director','ceo','cto','cfo','president','officer','founder','head',
+  'patient','client','customer','employee','user',
+  'from','to','signed','sent','author','by','recipient',
+  'name','firstname','lastname','surname','fullname',
+  'company','corp','inc','ltd','llc','firm','vendor'
+]);
+const BENIGN_CONTEXT_WORDS = new Set([
+  'ate','drink','love','buy','sells','watched','read','fresh','ripe','sweet',
+  'snack','food','fruit','juice','product','store','market',
+  'novel','chapter','book','film','movie','fictional','biblical','verse','story','show','game'
+]);
 
-function mlClassify(token, surroundingWords) {
-  if (!token || !/^[A-Z]/.test(token)) return { label: 'BENIGN', prob: 0.95 };
-  let piiScore = 0, benignScore = 0;
-  const lower = surroundingWords.map(w => w.toLowerCase());
+function mlClassify(token, surroundingWords, prevWord) {
+  if (!token || !/^[A-Z]/.test(token)) return { label: 'BENIGN', prob: 0.01 };
+  // Gate: no PII keyword as predecessor → skip (matches Java MLDetector gate)
+  const prevLower = (prevWord || '').toLowerCase().replace(/[^a-z]/g, '');
+  if (!PII_CONTEXT_WORDS.has(prevLower)) return { label: 'BENIGN', prob: 0.01 };
+
+  let piiScore = 0.5, benignScore = 0;
+  const lower = surroundingWords.map(w => w.toLowerCase().replace(/[^a-z]/g, ''));
   for (const w of lower) {
-    if (PII_CONTEXT_WORDS.has(w))   piiScore++;
-    if (BENIGN_CONTEXT_WORDS.has(w)) benignScore++;
+    if (PII_CONTEXT_WORDS.has(w))    piiScore   += 1.0;
+    if (BENIGN_CONTEXT_WORDS.has(w)) benignScore += 1.5;
   }
-  // Prior: title-case in absence of context leans slightly PII
-  piiScore += 0.3;
   const total = piiScore + benignScore + 0.01;
   const prob  = piiScore / total;
-  return { label: prob > 0.5 ? 'PII' : 'BENIGN', prob };
+  return { label: prob > 0.45 ? 'PII' : 'BENIGN', prob };
 }
 
 // ── Core detect function ──────────────────────────────────────────────────────
 function detect(text, threshold) {
   const matches = [];
-  const used    = [];   // track covered char ranges to avoid overlaps
+  const used    = [];
 
   function overlaps(s, e) {
     return used.some(([a,b]) => s < b && a < e);
@@ -578,11 +677,13 @@ function detect(text, threshold) {
     matches.push({ type, value, start, end, conf, source });
   }
 
-  // Credit card
-  for (const m of (text.match(CC_RE) || [])) {
-    const idx = text.indexOf(m);
-    if (luhn(m) && !overlaps(idx, idx + m.length)) {
-      addMatch('CREDIT_CARD', m, idx, idx + m.length, 1.0, 'HEURISTIC');
+  // Credit card (with Luhn)
+  const ccText = text;
+  let ccm;
+  const ccRx = new RegExp(CC_RE.source, CC_RE.flags.replace('g','') + 'g');
+  while ((ccm = ccRx.exec(ccText)) !== null) {
+    if (luhn(ccm[0]) && !overlaps(ccm.index, ccm.index + ccm[0].length)) {
+      addMatch('CREDIT_CARD', ccm[0], ccm.index, ccm.index + ccm[0].length, 1.0, 'HEURISTIC');
     }
   }
 
@@ -591,33 +692,45 @@ function detect(text, threshold) {
     const rx = new RegExp(re.source, re.flags.replace('g','') + 'g');
     let m;
     while ((m = rx.exec(text)) !== null) {
-      // API key entropy filter
-      if (type === 'API_KEY' && m[0].length < 20 && entropy(m[0]) < 3.5) continue;
-      addMatch(type, m[0], m.index, m.index + m[0].length, conf, 'HEURISTIC');
+      if (type === 'API_KEY') {
+        const raw = m[0];
+        // Skip short low-entropy hex — might be a git hash or colour code
+        if (raw.length < 20 && entropy(raw) < 3.5) continue;
+        // AWS/GitHub/sk- prefixed keys always pass
+        if (!/^(?:AKIA|ABIA|ACCA|ghp_|github_pat_|ghs_|sk-|Bearer)/i.test(raw)) {
+          if (entropy(raw) < 3.5) continue;
+        }
+      }
+      const fullMatch = m[0];
+      addMatch(type, fullMatch, m.index, m.index + fullMatch.length, conf, 'HEURISTIC');
     }
   }
 
-  // ML layer: scan title-cased tokens
+  // ML layer: scan title-cased tokens with keyword-gate (mirrors Java MLDetector)
   const words = text.split(/\s+/);
   let cursor = 0;
   for (let i = 0; i < words.length; i++) {
     const w = words[i];
+    // Strip trailing punctuation
+    const clean = w.replace(/[^a-zA-Z0-9]+$/, '');
     const start = text.indexOf(w, cursor);
-    const end = start + w.length;
-    cursor = end;
-    if (!/^[A-Z][a-z]/.test(w)) continue;
-    if (w.length < 3) continue;
-    const ctx = words.slice(Math.max(0,i-3), i).concat(words.slice(i+1, i+4));
-    const { label, prob } = mlClassify(w, ctx);
+    if (start < 0) { cursor += w.length + 1; continue; }
+    const end = start + clean.length;
+    cursor = start + w.length;
+
+    if (!/^[A-Z][a-z]/.test(clean)) continue;
+    if (clean.length < 3) continue;
+
+    const ctx  = words.slice(Math.max(0,i-3), i).concat(words.slice(i+1, Math.min(words.length, i+4)));
+    const prev = i > 0 ? words[i-1] : '';
+    const { label, prob } = mlClassify(clean, ctx, prev);
     if (label === 'PII' && prob >= threshold && !overlaps(start, end)) {
-      let piiType = 'PERSON_NAME';
       const ctxStr = ctx.join(' ').toLowerCase();
-      if (/company|corp|inc|ltd|llc|firm|vendor/.test(ctxStr)) piiType = 'ORGANIZATION';
-      addMatch(piiType, w, start, end, prob, 'ML');
+      const piiType = /company|corp|inc|ltd|llc|firm|vendor/.test(ctxStr) ? 'ORGANIZATION' : 'PERSON_NAME';
+      addMatch(piiType, clean, start, end, prob, 'ML');
     }
   }
 
-  // Sort by position
   matches.sort((a,b) => a.start - b.start);
   return matches;
 }
@@ -637,7 +750,7 @@ function redactText(text, matches, mode) {
     if (mode === 'token') {
       token = `[${meta.label}_${counters[m.type]}]`;
     } else if (mode === 'mask') {
-      token = '█'.repeat(m.value.length);
+      token = '█'.repeat(Math.max(4, m.value.length));
     } else {
       token = '[REDACTED]';
     }
@@ -649,7 +762,7 @@ function redactText(text, matches, mode) {
   return { result, reverseMap };
 }
 
-// ── UI functions ───────────────────────────────────────────────────────────────
+// ── UI functions ──────────────────────────────────────────────────────────────
 function runRedact() {
   const text      = document.getElementById('input').value;
   const mode      = document.getElementById('mode').value;
@@ -668,11 +781,10 @@ function runRedact() {
   // Update output pane
   const outEl = document.getElementById('output');
   if (mode === 'token') {
-    // Highlight tokens in output
     let highlighted = escapeHtml(result)
-      .replace(/\[([A-Z_0-9]+)\]/g,
-        '<mark>[$1]</mark>');
-    outEl.innerHTML = highlighted || '<em style="color:var(--accent2)">✓ Clean — no PII detected</em>';
+      .replace(/\[([A-Z_ 0-9]+)\]/g, '<mark>[$1]</mark>');
+    outEl.innerHTML = highlighted ||
+      '<em style="color:var(--accent2)">✓ Clean — no PII detected</em>';
   } else {
     outEl.textContent = result || '✓ Clean — no PII detected';
   }
@@ -708,7 +820,7 @@ function runRedact() {
     row.className = 'finding-row';
     row.innerHTML = `
       <span class="type-badge" style="color:${meta.color};background:${meta.bg}">${meta.label}</span>
-      <span class="finding-value" title="${escapeHtml(m.value)}">${escapeHtml(truncate(m.value, 30))}</span>
+      <span class="finding-value" title="${escapeHtml(m.value)}">${escapeHtml(truncate(m.value, 32))}</span>
       <span class="finding-token">${escapeHtml(token)}</span>
       <div class="conf-bar" title="Confidence: ${(m.conf*100).toFixed(0)}%">
         <div class="conf-fill" style="width:${m.conf*100}%"></div>
@@ -726,7 +838,7 @@ function runRedact() {
     rmEntries.innerHTML = rmKeys.map(k =>
       `<div class="rm-entry">
         <span class="rm-token">${escapeHtml(k)}</span>
-        <span class="rm-value">${escapeHtml(truncate(reverseMap[k], 40))}</span>
+        <span class="rm-value">${escapeHtml(truncate(reverseMap[k], 42))}</span>
       </div>`
     ).join('');
   } else {
@@ -753,8 +865,9 @@ function copyOutput() {
   const text = document.getElementById('output').innerText;
   navigator.clipboard.writeText(text).then(() => {
     const btn = event.target;
+    const orig = btn.textContent;
     btn.textContent = '✓ Copied!';
-    setTimeout(() => btn.textContent = '📋 Copy', 1500);
+    setTimeout(() => btn.textContent = orig, 1500);
   });
 }
 
@@ -768,7 +881,7 @@ function truncate(s, n) {
   return s.length <= n ? s : s.slice(0, n) + '…';
 }
 
-// Auto-redact on Enter (but allow newlines with Shift+Enter)
+// Ctrl+Enter triggers redact
 document.getElementById('input').addEventListener('keydown', e => {
   if (e.key === 'Enter' && e.ctrlKey) { e.preventDefault(); runRedact(); }
 });
