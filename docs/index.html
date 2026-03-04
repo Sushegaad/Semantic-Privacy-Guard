@@ -365,11 +365,9 @@
       </div>
     </div>
 
-    <textarea id="input"
-      placeholder="Paste any text here and press Ctrl+Enter or click Redact…
-
-Example: Please email Alice at alice@example.com or call (555) 867-5309.
-Her SSN is 123-45-6789 and card 4532 0151 1283 0366."></textarea>
+    <textarea id="input">Liverpool are the champions of England; PSG are the champions of Europe; and Chelsea are the champions of the world!
+199-84-9876
+someone.naik@gmail.com</textarea>
 
     <div class="controls">
       <label for="mode">Mode:</label>
@@ -465,8 +463,8 @@ Her SSN is 123-45-6789 and card 4532 0151 1283 0366."></textarea>
 <footer>
   Semantic Privacy Guard v1.0.0 · Apache 2.0 ·
   <a href="https://github.com/Sushegaad/Semantic-Privacy-Guard" target="_blank">GitHub</a> ·
-  <a href="https://sushegaad.github.io/Semantic-Privacy-Guard/docs/index.htmlregex-design.md" target="_blank">Regex Design</a> ·
-  <a href="https://sushegaad.github.io/Semantic-Privacy-Guard/docs/index.htmlbenchmarks.md" target="_blank">Benchmarks</a> ·
+  <a href="https://github.com/Sushegaad/Semantic-Privacy-Guard/blob/main/docs/regex-design.md" target="_blank">Regex Design</a> ·
+  <a href="https://github.com/Sushegaad/Semantic-Privacy-Guard/blob/main/docs/benchmarks.md" target="_blank">Benchmarks</a> ·
   <a href="https://github.com/Sushegaad/Semantic-Privacy-Guard/blob/main/SECURITY.md" target="_blank">Security Policy</a>
   <br><small style="margin-top:.4rem;display:block">
     ⚠️ This playground runs entirely in your browser — no text is ever transmitted to any server.
@@ -884,6 +882,9 @@ function truncate(s, n) {
 document.getElementById('input').addEventListener('keydown', e => {
   if (e.key === 'Enter' && e.ctrlKey) { e.preventDefault(); runRedact(); }
 });
+
+// Auto-run on page load so the default text is already processed
+window.addEventListener('DOMContentLoaded', () => runRedact());
 </script>
 </body>
 </html>

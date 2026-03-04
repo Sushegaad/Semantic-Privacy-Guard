@@ -45,6 +45,14 @@ A naive regex fires on every title-cased word. SPG's Naive Bayes context classif
 
 ---
 
+## Playground Screenshot
+
+[![Semantic Privacy Guard Playground](docs/playground-screenshot.png)](https://sushegaad.github.io/Semantic-Privacy-Guard/docs/index.html)
+
+*The live playground detecting an SSN and an email address in real time — redacted output, detection table with confidence bars, and reverse map all visible.*
+
+---
+
 ## Quick Start
 
 ### Maven
