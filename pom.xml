@@ -5,7 +5,11 @@
          https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>com.semanticprivacyguard</groupId>
+  <!-- ================================================================
+       Maven Central coordinates — groupId MUST match your verified
+       namespace on central.sonatype.com: io.github.sushegaad
+       ================================================================ -->
+  <groupId>io.github.sushegaad</groupId>
   <artifactId>semantic-privacy-guard</artifactId>
   <version>1.0.0</version>
   <packaging>jar</packaging>
@@ -16,7 +20,7 @@
     identifies sensitive PII using a hybrid heuristic + Naive Bayes ML approach,
     and redacts it before it leaves the corporate network — built for the AI era.
   </description>
-  <url>https://github.com/hemant-naik/semantic-privacy-guard</url>
+  <url>https://github.com/Sushegaad/Semantic-Privacy-Guard</url>
   <inceptionYear>2026</inceptionYear>
 
   <licenses>
@@ -29,21 +33,23 @@
 
   <developers>
     <developer>
-      <id>hemant-naik</id>
+      <id>sushegaad</id>
       <name>Hemant Naik</name>
       <email>hemant.naik@gmail.com</email>
+      <url>https://github.com/Sushegaad</url>
     </developer>
   </developers>
 
   <scm>
-    <connection>scm:git:git://github.com/hemant-naik/semantic-privacy-guard.git</connection>
-    <developerConnection>scm:git:ssh://github.com/hemant-naik/semantic-privacy-guard.git</developerConnection>
-    <url>https://github.com/hemant-naik/semantic-privacy-guard/tree/main</url>
+    <connection>scm:git:git://github.com/Sushegaad/Semantic-Privacy-Guard.git</connection>
+    <developerConnection>scm:git:ssh://github.com/Sushegaad/Semantic-Privacy-Guard.git</developerConnection>
+    <url>https://github.com/Sushegaad/Semantic-Privacy-Guard/tree/main</url>
+    <tag>HEAD</tag>
   </scm>
 
   <issueManagement>
     <system>GitHub Issues</system>
-    <url>https://github.com/hemant-naik/semantic-privacy-guard/issues</url>
+    <url>https://github.com/Sushegaad/Semantic-Privacy-Guard/issues</url>
   </issueManagement>
 
   <properties>
@@ -59,6 +65,8 @@
     <maven-jar-plugin.version>3.3.0</maven-jar-plugin.version>
     <maven-source-plugin.version>3.3.0</maven-source-plugin.version>
     <maven-javadoc-plugin.version>3.6.3</maven-javadoc-plugin.version>
+    <maven-gpg-plugin.version>3.2.4</maven-gpg-plugin.version>
+    <central-publishing-plugin.version>0.7.0</central-publishing-plugin.version>
     <jacoco-maven-plugin.version>0.8.11</jacoco-maven-plugin.version>
 
     <!-- Test dependency versions -->
@@ -121,7 +129,7 @@
         </configuration>
       </plugin>
 
-      <!-- Sources JAR -->
+      <!-- Sources JAR (required by Maven Central) -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-source-plugin</artifactId>
@@ -134,7 +142,7 @@
         </executions>
       </plugin>
 
-      <!-- Javadoc JAR -->
+      <!-- Javadoc JAR (required by Maven Central) -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-javadoc-plugin</artifactId>
@@ -188,8 +196,12 @@
     </plugins>
   </build>
 
-  <!-- Benchmark profile — run with: mvn test -P benchmark -->
+  <!-- ================================================================
+       PROFILES
+       ================================================================ -->
   <profiles>
+
+    <!-- Benchmark profile — run with: mvn test -P benchmark -->
     <profile>
       <id>benchmark</id>
       <build>
@@ -207,6 +219,58 @@
         </plugins>
       </build>
     </profile>
+
+    <!-- Release profile — activated automatically by the publish workflow.
+         Signs all artifacts with GPG and publishes to Maven Central.
+         Activate locally with: mvn deploy -P release               -->
+    <profile>
+      <id>release</id>
+      <build>
+        <plugins>
+
+          <!-- GPG signing (required by Maven Central) -->
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-gpg-plugin</artifactId>
+            <version>${maven-gpg-plugin.version}</version>
+            <executions>
+              <execution>
+                <id>sign-artifacts</id>
+                <phase>verify</phase>
+                <goals><goal>sign</goal></goals>
+                <configuration>
+                  <!-- Key fingerprint passed via -Dgpg.keyname in CI -->
+                  <gpgArguments>
+                    <arg>--batch</arg>
+                    <arg>--yes</arg>
+                    <arg>--pinentry-mode</arg>
+                    <arg>loopback</arg>
+                  </gpgArguments>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+
+          <!-- Central Publishing Plugin (replaces legacy Nexus staging) -->
+          <plugin>
+            <groupId>org.sonatype.central</groupId>
+            <artifactId>central-publishing-maven-plugin</artifactId>
+            <version>${central-publishing-plugin.version}</version>
+            <extensions>true</extensions>
+            <configuration>
+              <!-- Matches the <server id> in the CI-generated settings.xml -->
+              <publishingServerId>central</publishingServerId>
+              <!-- Set to true for auto-release; false means manual review
+                   on central.sonatype.com before the artifact goes live. -->
+              <autoPublish>true</autoPublish>
+              <waitUntil>published</waitUntil>
+            </configuration>
+          </plugin>
+
+        </plugins>
+      </build>
+    </profile>
+
   </profiles>
 
 </project>

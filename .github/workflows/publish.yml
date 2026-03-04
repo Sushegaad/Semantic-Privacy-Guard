@@ -1,0 +1,69 @@
+name: Publish to Maven Central
+
+# Triggers when you create a GitHub Release (tag like v1.0.0).
+# You can also trigger it manually from the Actions tab.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish (e.g. 1.0.0)'
+        required: false
+
+jobs:
+  publish:
+    name: Sign & publish to Maven Central
+    runs-on: ubuntu-latest
+
+    # Required by the Central Publishing Plugin for trusted publishing
+    permissions:
+      contents: read
+
+    steps:
+      # ── 1. Checkout ────────────────────────────────────────────────
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      # ── 2. Java 17 + Maven cache ───────────────────────────────────
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+
+      # ── 3. Import GPG private key ──────────────────────────────────
+      # Store your armored private key in the secret MAVEN_GPG_PRIVATE_KEY
+      # (see the setup guide in the README / PUBLISHING.md).
+      - name: Import GPG key
+        run: |
+          echo "${{ secrets.MAVEN_GPG_PRIVATE_KEY }}" | \
+            gpg --batch --import
+        env:
+          MAVEN_GPG_PRIVATE_KEY: ${{ secrets.MAVEN_GPG_PRIVATE_KEY }}
+
+      # ── 4. Write Maven settings.xml with Central credentials ───────
+      # CENTRAL_USERNAME = your token username from central.sonatype.com
+      # CENTRAL_PASSWORD = your token password from central.sonatype.com
+      - name: Configure Maven settings
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          server-id: central
+          server-username: CENTRAL_USERNAME
+          server-password: CENTRAL_PASSWORD
+
+      # ── 5. Build, sign, and publish ────────────────────────────────
+      - name: Deploy to Maven Central
+        run: |
+          mvn --batch-mode \
+              --no-transfer-progress \
+              -P release \
+              -Dgpg.passphrase="${{ secrets.MAVEN_GPG_PASSPHRASE }}" \
+              clean deploy
+        env:
+          CENTRAL_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
+          CENTRAL_PASSWORD: ${{ secrets.CENTRAL_PASSWORD }}
+          MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}

@@ -1,6 +1,7 @@
 # 🛡 Semantic Privacy Guard
 
 [![CI](https://github.com/Sushegaad/Semantic-Privacy-Guard/actions/workflows/ci.yml/badge.svg)](https://github.com/Sushegaad/Semantic-Privacy-Guard/actions/workflows/ci.yml)
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.sushegaad/semantic-privacy-guard?color=blue&logo=apache-maven)](https://central.sonatype.com/artifact/io.github.sushegaad/semantic-privacy-guard)
 [![Coverage](https://img.shields.io/badge/coverage-%E2%89%A580%25-brightgreen)](https://github.com/Sushegaad/Semantic-Privacy-Guard/actions)
 [![Java](https://img.shields.io/badge/Java-17%2B-blue?logo=openjdk)](https://openjdk.org/)
 [![Zero deps](https://img.shields.io/badge/runtime%20deps-0-brightgreen)](#)
@@ -59,7 +60,7 @@ A naive regex fires on every title-cased word. SPG's Naive Bayes context classif
 
 ```xml
 <dependency>
-  <groupId>com.semanticprivacyguard</groupId>
+  <groupId>io.github.sushegaad</groupId>
   <artifactId>semantic-privacy-guard</artifactId>
   <version>1.0.0</version>
 </dependency>
@@ -68,7 +69,7 @@ A naive regex fires on every title-cased word. SPG's Naive Bayes context classif
 ### Gradle
 
 ```groovy
-implementation 'com.semanticprivacyguard:semantic-privacy-guard:1.0.0'
+implementation 'io.github.sushegaad:semantic-privacy-guard:1.0.0'
 ```
 
 ### One-liner usage
