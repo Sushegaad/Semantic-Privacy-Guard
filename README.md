@@ -6,6 +6,7 @@
 [![Zero deps](https://img.shields.io/badge/runtime%20deps-0-brightgreen)](#)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
 [![Security Policy](https://img.shields.io/badge/security-policy-orange)](SECURITY.md)
+[![Live Playground](https://img.shields.io/badge/playground-live-brightgreen)](https://sushegaad.github.io/Semantic-Privacy-Guard/)
 
 > **A lightweight, zero-dependency Java middleware that intercepts LLM prompts,
 > identifies PII using a hybrid Regex + Naive Bayes approach, and redacts it
@@ -15,9 +16,11 @@
 
 ## 🚀 Live Playground
 
-**[Try it in your browser →](https://Sushegaad.github.io/Semantic-Privacy-Guard/)**
+**[Try it in your browser →](https://sushegaad.github.io/Semantic-Privacy-Guard/)**
 
 Paste any text, choose a redaction mode, and see instant results — 100% client-side, nothing sent to any server.
+
+> **How GitHub Pages serves this:** the `pages.yml` workflow uploads the `docs/` directory as the site root, so `docs/index.html` is served at the URL above. Enable GitHub Pages in *Settings → Pages → Source: GitHub Actions* for the link to go live.
 
 ---
 
@@ -263,7 +266,7 @@ SPG has zero runtime dependencies, eliminating supply-chain attack vectors. All 
 
 ## Docs
 
-- [Live Playground](https://Sushegaad.github.io/Semantic-Privacy-Guard/) — try SPG in your browser
+- [Live Playground](https://sushegaad.github.io/Semantic-Privacy-Guard/) — try SPG in your browser
 - [Regex Design Decisions](docs/regex-design.md) — why SSN excludes `9xx`, Luhn validation, entropy filtering
 - [Benchmarks](docs/benchmarks.md) — throughput and accuracy vs alternatives
 - [Security Policy](SECURITY.md) — CVE process, disclosure timeline, scope
