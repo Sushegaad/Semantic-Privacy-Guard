@@ -19,9 +19,6 @@
 **[Try it in your browser →](https://sushegaad.github.io/Semantic-Privacy-Guard/)**
 
 Paste any text, choose a redaction mode, and see instant results — 100% client-side, nothing sent to any server.
-
-> **How GitHub Pages serves this:** the `pages.yml` workflow uploads the `docs/` directory as the site root, so `docs/index.html` is served at the URL above. Enable GitHub Pages in *Settings → Pages → Source: GitHub Actions* for the link to go live.
-
 ---
 
 ## Why Semantic Privacy Guard?
