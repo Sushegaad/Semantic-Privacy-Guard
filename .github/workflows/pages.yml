@@ -3,9 +3,6 @@ name: Deploy GitHub Pages
 on:
   push:
     branches: [ "main" ]
-    paths:
-      - "docs/**"
-      - ".github/workflows/pages.yml"
   workflow_dispatch:
 
 permissions:
@@ -35,7 +32,9 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: "./docs"
+          # Deploy the full repository root so docs/index.html is served at
+          # https://sushegaad.github.io/Semantic-Privacy-Guard/docs/index.html
+          path: "."
 
       - name: Deploy to GitHub Pages
         id: deployment
