@@ -1,5 +1,5 @@
 GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED,COMPLEXITY_MISSED,COMPLEXITY_COVERED,METHOD_MISSED,METHOD_COVERED
-Semantic Privacy Guard,com.semanticprivacyguard.detector,HeuristicDetector,8,341,8,46,2,66,8,36,1,16
+Semantic Privacy Guard,com.semanticprivacyguard.detector,HeuristicDetector,8,341,8,46,2,68,8,36,1,16
 Semantic Privacy Guard,com.semanticprivacyguard.detector,CompositeDetector,65,94,14,14,13,23,12,6,2,2
 Semantic Privacy Guard,com.semanticprivacyguard.detector,MLDetector,29,527,22,46,5,55,22,20,1,7
 Semantic Privacy Guard,com.semanticprivacyguard.util,TextUtils,67,243,26,38,11,46,21,19,3,5
