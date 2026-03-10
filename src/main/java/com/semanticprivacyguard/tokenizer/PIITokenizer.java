@@ -86,20 +86,53 @@ public final class PIITokenizer {
      * non-overlapping and sorted by start index (as guaranteed by
      * {@link com.semanticprivacyguard.detector.CompositeDetector}).</p>
      *
+     * <p>Token counters are scoped to this single call — i.e. the first email
+     * found is always {@code [EMAIL_1]}.  For document-scoped numbering across
+     * multiple calls (e.g. stream/line-by-line processing) use
+     * {@link #redact(String, List, Map)} and pass a shared counter map.</p>
+     *
      * @param text    the original text (never {@code null})
      * @param matches non-overlapping, sorted list of PII matches
      * @return a {@link RedactionOutput} containing the redacted text and the
      *         token-to-original reverse map
      */
     public RedactionOutput redact(String text, List<PIIMatch> matches) {
-        Objects.requireNonNull(text, "text must not be null");
+        return redact(text, matches, new EnumMap<>(PIIType.class));
+    }
+
+    /**
+     * Applies all matches to {@code text} using the supplied {@code sharedCounters}
+     * map for token numbering.
+     *
+     * <p>Pass the same {@code sharedCounters} instance across successive calls to
+     * obtain document-scoped token numbers that are unique and monotonically
+     * increasing across all lines — e.g. {@code [EMAIL_1]} on line 3 and
+     * {@code [EMAIL_2]} on line 7, never two {@code [EMAIL_1]} tokens in the same
+     * document.  This is the variant used internally by
+     * {@link com.semanticprivacyguard.stream.StreamProcessor}.</p>
+     *
+     * <p>The map is mutated in place; callers own the map and may inspect or
+     * reset it between documents.</p>
+     *
+     * @param text           the original text (never {@code null})
+     * @param matches        non-overlapping, sorted list of PII matches
+     * @param sharedCounters mutable per-type counter map shared across calls
+     *                       (never {@code null})
+     * @return a {@link RedactionOutput} containing the redacted text and the
+     *         token-to-original reverse map for this line only
+     */
+    public RedactionOutput redact(String text,
+                                  List<PIIMatch> matches,
+                                  Map<PIIType, Integer> sharedCounters) {
+        Objects.requireNonNull(text,           "text must not be null");
+        Objects.requireNonNull(sharedCounters, "sharedCounters must not be null");
+
         if (matches == null || matches.isEmpty()) {
             return new RedactionOutput(text, Collections.emptyMap());
         }
 
-        StringBuilder     sb         = new StringBuilder(text.length());
-        Map<String,String> reverseMap = new LinkedHashMap<>();
-        Map<PIIType,Integer> counters = new EnumMap<>(PIIType.class);
+        StringBuilder      sb         = new StringBuilder(text.length());
+        Map<String, String> reverseMap = new LinkedHashMap<>();
 
         int cursor = 0;
         for (PIIMatch m : matches) {
@@ -108,7 +141,7 @@ public final class PIITokenizer {
                 sb.append(text, cursor, m.getStartIndex());
             }
 
-            String token = buildToken(m, counters);
+            String token = buildToken(m, sharedCounters);
             sb.append(token);
             reverseMap.put(token, m.getValue());
             cursor = m.getEndIndex();

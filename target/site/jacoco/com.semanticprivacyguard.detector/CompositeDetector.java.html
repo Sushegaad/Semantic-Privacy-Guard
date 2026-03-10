@@ -48,7 +48,7 @@ public final class CompositeDetector implements PIIDetector {
 
     @Override
     public List&lt;PIIMatch&gt; detect(String text) {
-<span class="pc bpc" id="L51" title="2 of 4 branches missed.">        if (text == null || text.isBlank()) return List.of();</span>
+<span class="pc bpc" id="L51" title="1 of 4 branches missed.">        if (text == null || text.isBlank()) return List.of();</span>
 
         // Collect raw matches from all detectors
 <span class="fc" id="L54">        List&lt;PIIMatch&gt; raw = new ArrayList&lt;&gt;();</span>

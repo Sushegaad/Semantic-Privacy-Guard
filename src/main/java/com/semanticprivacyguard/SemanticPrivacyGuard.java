@@ -7,9 +7,17 @@ import com.semanticprivacyguard.detector.MLDetector;
 import com.semanticprivacyguard.detector.PIIDetector;
 import com.semanticprivacyguard.model.PIIMatch;
 import com.semanticprivacyguard.model.RedactionResult;
+import com.semanticprivacyguard.stream.StreamProcessor;
+import com.semanticprivacyguard.stream.StreamRedactionSummary;
 import com.semanticprivacyguard.tokenizer.PIITokenizer;
 import com.semanticprivacyguard.tokenizer.PIITokenizer.RedactionOutput;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.Reader;
+import java.io.Writer;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -48,6 +56,16 @@ import java.util.List;
  *     .build();
  *
  * SemanticPrivacyGuard spg = SemanticPrivacyGuard.create(config);
+ * }</pre>
+ *
+ * <h2>Stream / large-file processing</h2>
+ * <pre>{@code
+ * // Constant heap usage regardless of file size — one line at a time
+ * StreamRedactionSummary s =
+ *     spg.redactPath(Path.of("server.log"), Path.of("server.clean.log"));
+ *
+ * System.out.println(s);
+ * // → StreamRedactionSummary[lines=84231, linesWithPII=312, matches=389, timeMs=740]
  * }</pre>
  *
  * <h2>Thread safety</h2>
@@ -182,6 +200,79 @@ public final class SemanticPrivacyGuard {
      * Returns the active configuration for this instance.
      */
     public SPGConfig getConfig() { return config; }
+
+    // ── Stream API ────────────────────────────────────────────────────────────
+
+    /**
+     * Returns a {@link StreamProcessor} configured identically to this instance.
+     *
+     * <p>Use the returned processor when you need to redact large files or
+     * byte/character streams without loading the entire content into memory.
+     * Processing is line-by-line with constant heap usage regardless of
+     * document size.</p>
+     *
+     * <pre>{@code
+     * StreamProcessor proc = spg.streamProcessor();
+     *
+     * // Redact a 500 MB log file with a small, stable heap footprint
+     * StreamRedactionSummary s =
+     *     proc.redact(Path.of("big.log"), Path.of("big.clean.log"));
+     * }</pre>
+     *
+     * @return a new {@link StreamProcessor} sharing this instance's configuration
+     */
+    public StreamProcessor streamProcessor() {
+        return new StreamProcessor(config);
+    }
+
+    /**
+     * Convenience method: redacts an {@link InputStream} line-by-line and writes
+     * the sanitised output to {@code out}, both streams treated as UTF-8.
+     *
+     * <p>Both streams are left open; the caller is responsible for closing them.
+     * Equivalent to {@code streamProcessor().redact(in, out)}.</p>
+     *
+     * @param in  the source byte stream (never {@code null})
+     * @param out the output byte stream (never {@code null})
+     * @return aggregated {@link StreamRedactionSummary} for the full document
+     * @throws IOException if any I/O error occurs
+     */
+    public StreamRedactionSummary redactStream(InputStream in,
+                                               OutputStream out) throws IOException {
+        return streamProcessor().redact(in, out);
+    }
+
+    /**
+     * Convenience method: redacts a character stream line-by-line.
+     *
+     * <p>Both streams are left open; the caller is responsible for closing them.
+     * Equivalent to {@code streamProcessor().redact(reader, writer)}.</p>
+     *
+     * @param reader the source character stream (never {@code null})
+     * @param writer the output character stream (never {@code null})
+     * @return aggregated {@link StreamRedactionSummary} for the full document
+     * @throws IOException if any I/O error occurs
+     */
+    public StreamRedactionSummary redactStream(Reader reader,
+                                               Writer writer) throws IOException {
+        return streamProcessor().redact(reader, writer);
+    }
+
+    /**
+     * Convenience method: redacts a file on disk and writes the result to another
+     * file, processing line-by-line with constant heap usage.
+     *
+     * <p>Equivalent to {@code streamProcessor().redact(inputFile, outputFile)}.</p>
+     *
+     * @param inputFile  path of the file to redact (must be readable)
+     * @param outputFile path of the output file (created or overwritten)
+     * @return aggregated {@link StreamRedactionSummary} for the full document
+     * @throws IOException if either file cannot be opened or an I/O error occurs
+     */
+    public StreamRedactionSummary redactPath(Path inputFile,
+                                             Path outputFile) throws IOException {
+        return streamProcessor().redact(inputFile, outputFile);
+    }
 
     // ── Private ───────────────────────────────────────────────────────────────
 

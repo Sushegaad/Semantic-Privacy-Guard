@@ -86,54 +86,87 @@ public final class PIITokenizer {
      * non-overlapping and sorted by start index (as guaranteed by
      * {@link com.semanticprivacyguard.detector.CompositeDetector}).&lt;/p&gt;
      *
+     * &lt;p&gt;Token counters are scoped to this single call — i.e. the first email
+     * found is always {@code [EMAIL_1]}.  For document-scoped numbering across
+     * multiple calls (e.g. stream/line-by-line processing) use
+     * {@link #redact(String, List, Map)} and pass a shared counter map.&lt;/p&gt;
+     *
      * @param text    the original text (never {@code null})
      * @param matches non-overlapping, sorted list of PII matches
      * @return a {@link RedactionOutput} containing the redacted text and the
      *         token-to-original reverse map
      */
     public RedactionOutput redact(String text, List&lt;PIIMatch&gt; matches) {
-<span class="fc" id="L95">        Objects.requireNonNull(text, &quot;text must not be null&quot;);</span>
-<span class="pc bpc" id="L96" title="1 of 4 branches missed.">        if (matches == null || matches.isEmpty()) {</span>
-<span class="fc" id="L97">            return new RedactionOutput(text, Collections.emptyMap());</span>
+<span class="fc" id="L100">        return redact(text, matches, new EnumMap&lt;&gt;(PIIType.class));</span>
+    }
+
+    /**
+     * Applies all matches to {@code text} using the supplied {@code sharedCounters}
+     * map for token numbering.
+     *
+     * &lt;p&gt;Pass the same {@code sharedCounters} instance across successive calls to
+     * obtain document-scoped token numbers that are unique and monotonically
+     * increasing across all lines — e.g. {@code [EMAIL_1]} on line 3 and
+     * {@code [EMAIL_2]} on line 7, never two {@code [EMAIL_1]} tokens in the same
+     * document.  This is the variant used internally by
+     * {@link com.semanticprivacyguard.stream.StreamProcessor}.&lt;/p&gt;
+     *
+     * &lt;p&gt;The map is mutated in place; callers own the map and may inspect or
+     * reset it between documents.&lt;/p&gt;
+     *
+     * @param text           the original text (never {@code null})
+     * @param matches        non-overlapping, sorted list of PII matches
+     * @param sharedCounters mutable per-type counter map shared across calls
+     *                       (never {@code null})
+     * @return a {@link RedactionOutput} containing the redacted text and the
+     *         token-to-original reverse map for this line only
+     */
+    public RedactionOutput redact(String text,
+                                  List&lt;PIIMatch&gt; matches,
+                                  Map&lt;PIIType, Integer&gt; sharedCounters) {
+<span class="fc" id="L127">        Objects.requireNonNull(text,           &quot;text must not be null&quot;);</span>
+<span class="fc" id="L128">        Objects.requireNonNull(sharedCounters, &quot;sharedCounters must not be null&quot;);</span>
+
+<span class="pc bpc" id="L130" title="1 of 4 branches missed.">        if (matches == null || matches.isEmpty()) {</span>
+<span class="fc" id="L131">            return new RedactionOutput(text, Collections.emptyMap());</span>
         }
 
-<span class="fc" id="L100">        StringBuilder     sb         = new StringBuilder(text.length());</span>
-<span class="fc" id="L101">        Map&lt;String,String&gt; reverseMap = new LinkedHashMap&lt;&gt;();</span>
-<span class="fc" id="L102">        Map&lt;PIIType,Integer&gt; counters = new EnumMap&lt;&gt;(PIIType.class);</span>
+<span class="fc" id="L134">        StringBuilder      sb         = new StringBuilder(text.length());</span>
+<span class="fc" id="L135">        Map&lt;String, String&gt; reverseMap = new LinkedHashMap&lt;&gt;();</span>
 
-<span class="fc" id="L104">        int cursor = 0;</span>
-<span class="fc bfc" id="L105" title="All 2 branches covered.">        for (PIIMatch m : matches) {</span>
+<span class="fc" id="L137">        int cursor = 0;</span>
+<span class="fc bfc" id="L138" title="All 2 branches covered.">        for (PIIMatch m : matches) {</span>
             // Append text between last match end and this match start
-<span class="fc bfc" id="L107" title="All 2 branches covered.">            if (m.getStartIndex() &gt; cursor) {</span>
-<span class="fc" id="L108">                sb.append(text, cursor, m.getStartIndex());</span>
+<span class="fc bfc" id="L140" title="All 2 branches covered.">            if (m.getStartIndex() &gt; cursor) {</span>
+<span class="fc" id="L141">                sb.append(text, cursor, m.getStartIndex());</span>
             }
 
-<span class="fc" id="L111">            String token = buildToken(m, counters);</span>
-<span class="fc" id="L112">            sb.append(token);</span>
-<span class="fc" id="L113">            reverseMap.put(token, m.getValue());</span>
-<span class="fc" id="L114">            cursor = m.getEndIndex();</span>
-<span class="fc" id="L115">        }</span>
+<span class="fc" id="L144">            String token = buildToken(m, sharedCounters);</span>
+<span class="fc" id="L145">            sb.append(token);</span>
+<span class="fc" id="L146">            reverseMap.put(token, m.getValue());</span>
+<span class="fc" id="L147">            cursor = m.getEndIndex();</span>
+<span class="fc" id="L148">        }</span>
 
         // Append any trailing text after the last match
-<span class="fc bfc" id="L118" title="All 2 branches covered.">        if (cursor &lt; text.length()) {</span>
-<span class="fc" id="L119">            sb.append(text, cursor, text.length());</span>
+<span class="fc bfc" id="L151" title="All 2 branches covered.">        if (cursor &lt; text.length()) {</span>
+<span class="fc" id="L152">            sb.append(text, cursor, text.length());</span>
         }
 
-<span class="fc" id="L122">        return new RedactionOutput(sb.toString(), reverseMap);</span>
+<span class="fc" id="L155">        return new RedactionOutput(sb.toString(), reverseMap);</span>
     }
 
     // ── Private ───────────────────────────────────────────────────────────────
 
     private String buildToken(PIIMatch match, Map&lt;PIIType, Integer&gt; counters) {
-<span class="fc bfc" id="L128" title="All 3 branches covered.">        return switch (mode) {</span>
+<span class="fc bfc" id="L161" title="All 3 branches covered.">        return switch (mode) {</span>
             case TOKEN -&gt; {
-<span class="fc" id="L130">                int n = counters.merge(match.getType(), 1, Integer::sum);</span>
-<span class="fc" id="L131">                yield &quot;[&quot; + match.getType().getLabel() + &quot;_&quot; + n + &quot;]&quot;;</span>
+<span class="fc" id="L163">                int n = counters.merge(match.getType(), 1, Integer::sum);</span>
+<span class="fc" id="L164">                yield &quot;[&quot; + match.getType().getLabel() + &quot;_&quot; + n + &quot;]&quot;;</span>
             }
-<span class="fc" id="L133">            case MASK -&gt; MASK_CHAR</span>
-<span class="fc" id="L134">                    + String.valueOf(MASK_CHAR).repeat(</span>
-<span class="fc" id="L135">                        Math.max(0, match.getValue().length() - 1));</span>
-<span class="fc" id="L136">            case BLANK -&gt; BLANK_TOKEN;</span>
+<span class="fc" id="L166">            case MASK -&gt; MASK_CHAR</span>
+<span class="fc" id="L167">                    + String.valueOf(MASK_CHAR).repeat(</span>
+<span class="fc" id="L168">                        Math.max(0, match.getValue().length() - 1));</span>
+<span class="fc" id="L169">            case BLANK -&gt; BLANK_TOKEN;</span>
         };
     }
 
@@ -142,7 +175,7 @@ public final class PIITokenizer {
     /**
      * Holds the redacted text string and the token → original reverse map.
      */
-<span class="fc" id="L145">    public record RedactionOutput(String redactedText,</span>
+<span class="fc" id="L178">    public record RedactionOutput(String redactedText,</span>
                                    Map&lt;String, String&gt; reverseMap) {}
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

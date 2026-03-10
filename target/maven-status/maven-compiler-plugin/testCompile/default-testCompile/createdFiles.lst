@@ -1,12 +1,12 @@
+com/semanticprivacyguard/HeuristicDetectorTest$ApiKeyTests.class
+com/semanticprivacyguard/MLDetectorTest.class
 com/semanticprivacyguard/HeuristicDetectorTest$IPTests.class
 com/semanticprivacyguard/SemanticPrivacyGuardTest.class
 com/semanticprivacyguard/HeuristicDetectorTest$IBANTests.class
 com/semanticprivacyguard/HeuristicDetectorTest$CreditCardTests.class
-com/semanticprivacyguard/HeuristicDetectorTest$ApiKeyTests.class
 com/semanticprivacyguard/HeuristicDetectorTest$SSNTests.class
 com/semanticprivacyguard/HeuristicDetectorTest.class
 com/semanticprivacyguard/BenchmarkTest.class
-com/semanticprivacyguard/MLDetectorTest.class
 com/semanticprivacyguard/HeuristicDetectorTest$PhoneTests.class
 com/semanticprivacyguard/HeuristicDetectorTest$PasswordTests.class
 com/semanticprivacyguard/HeuristicDetectorTest$EmailTests.class

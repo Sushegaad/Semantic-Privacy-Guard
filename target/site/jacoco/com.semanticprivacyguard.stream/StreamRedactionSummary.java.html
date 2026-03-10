@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>StreamRedactionSummary.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Semantic Privacy Guard</a> &gt; <a href="index.source.html" class="el_package">com.semanticprivacyguard.stream</a> &gt; <span class="el_source">StreamRedactionSummary.java</span></div><h1>StreamRedactionSummary.java</h1><pre class="source lang-java linenums">package com.semanticprivacyguard.stream;
+
+import com.semanticprivacyguard.model.PIIType;
+
+import java.util.Collections;
+import java.util.EnumMap;
+import java.util.Map;
+
+/**
+ * Aggregated statistics returned by {@link StreamProcessor} after processing a
+ * stream, file, or sequence of lines.
+ *
+ * &lt;p&gt;Because stream processing never holds the full document in memory, a
+ * per-line {@link com.semanticprivacyguard.model.RedactionResult} is not
+ * available after the fact.  This summary provides the document-level counts
+ * that callers need for auditing, alerting, and observability.&lt;/p&gt;
+ *
+ * &lt;pre&gt;{@code
+ * StreamRedactionSummary summary = spg.redactStream(inputStream, outputStream);
+ *
+ * System.out.printf(&quot;Scanned %d lines, found PII on %d (%.1f%%)%n&quot;,
+ *     summary.getTotalLines(),
+ *     summary.getLinesWithPII(),
+ *     summary.getPIILineRatio() * 100);
+ *
+ * summary.getMatchCountByType()
+ *        .forEach((type, count) -&gt;
+ *            System.out.printf(&quot;  %s: %d%n&quot;, type.getLabel(), count));
+ * }&lt;/pre&gt;
+ *
+ * @author Hemant Naik
+ * @since 1.1.0
+ */
+public final class StreamRedactionSummary {
+
+    private final long               totalLines;
+    private final long               linesWithPII;
+    private final long               totalMatches;
+    private final long               processingTimeMs;
+    private final Map&lt;PIIType, Long&gt; matchCountByType;
+
+    /**
+     * Constructs a {@code StreamRedactionSummary}.
+     *
+     * @param totalLines       total number of lines read
+     * @param linesWithPII     number of lines that contained at least one PII match
+     * @param totalMatches     total number of individual PII matches across all lines
+     * @param processingTimeMs wall-clock time for the full processing pass in ms
+     * @param matchCountByType per-type match counts (defensive copy is taken)
+     */
+    public StreamRedactionSummary(long               totalLines,
+                                  long               linesWithPII,
+                                  long               totalMatches,
+                                  long               processingTimeMs,
+<span class="fc" id="L55">                                  Map&lt;PIIType, Long&gt;  matchCountByType) {</span>
+<span class="fc" id="L56">        this.totalLines        = totalLines;</span>
+<span class="fc" id="L57">        this.linesWithPII      = linesWithPII;</span>
+<span class="fc" id="L58">        this.totalMatches      = totalMatches;</span>
+<span class="fc" id="L59">        this.processingTimeMs  = processingTimeMs;</span>
+<span class="fc" id="L60">        this.matchCountByType  = Collections.unmodifiableMap(</span>
+<span class="pc bpc" id="L61" title="1 of 2 branches missed.">            matchCountByType == null</span>
+<span class="nc" id="L62">                ? Collections.emptyMap()</span>
+<span class="fc" id="L63">                : new EnumMap&lt;&gt;(matchCountByType));</span>
+<span class="fc" id="L64">    }</span>
+
+    // ── Accessors ─────────────────────────────────────────────────────────────
+
+    /** Returns the total number of lines read from the source. */
+<span class="fc" id="L69">    public long getTotalLines()       { return totalLines;       }</span>
+
+    /** Returns the number of lines on which at least one PII match was found. */
+<span class="fc" id="L72">    public long getLinesWithPII()     { return linesWithPII;     }</span>
+
+    /** Returns the total number of individual PII matches across all lines. */
+<span class="fc" id="L75">    public long getTotalMatches()     { return totalMatches;     }</span>
+
+    /** Returns the wall-clock processing time for the full pass in milliseconds. */
+<span class="fc" id="L78">    public long getProcessingTimeMs() { return processingTimeMs; }</span>
+
+    /**
+     * Returns an unmodifiable map from {@link PIIType} to the number of times
+     * that type was detected across all lines.
+     */
+<span class="fc" id="L84">    public Map&lt;PIIType, Long&gt; getMatchCountByType() { return matchCountByType; }</span>
+
+    /** Returns {@code true} if at least one PII match was found anywhere in the stream. */
+<span class="pc bpc" id="L87" title="1 of 2 branches missed.">    public boolean hasPII() { return totalMatches &gt; 0; }</span>
+
+    /**
+     * Returns the fraction of lines that contained PII, in the range [0.0, 1.0].
+     * Returns 0.0 if no lines were read.
+     */
+    public double getPIILineRatio() {
+<span class="pc bpc" id="L94" title="1 of 2 branches missed.">        return totalLines == 0 ? 0.0 : (double) linesWithPII / totalLines;</span>
+    }
+
+    // ── Summary ───────────────────────────────────────────────────────────────
+
+    /**
+     * Returns a human-readable one-line summary.
+     *
+     * &lt;pre&gt;
+     * StreamRedactionSummary[lines=1000, linesWithPII=42, matches=67, timeMs=38]
+     * &lt;/pre&gt;
+     */
+    @Override
+    public String toString() {
+<span class="fc" id="L108">        return String.format(</span>
+            &quot;StreamRedactionSummary[lines=%d, linesWithPII=%d, matches=%d, timeMs=%d]&quot;,
+<span class="fc" id="L110">            totalLines, linesWithPII, totalMatches, processingTimeMs);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

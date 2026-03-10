@@ -7,9 +7,17 @@ import com.semanticprivacyguard.detector.MLDetector;
 import com.semanticprivacyguard.detector.PIIDetector;
 import com.semanticprivacyguard.model.PIIMatch;
 import com.semanticprivacyguard.model.RedactionResult;
+import com.semanticprivacyguard.stream.StreamProcessor;
+import com.semanticprivacyguard.stream.StreamRedactionSummary;
 import com.semanticprivacyguard.tokenizer.PIITokenizer;
 import com.semanticprivacyguard.tokenizer.PIITokenizer.RedactionOutput;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.Reader;
+import java.io.Writer;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -50,6 +58,16 @@ import java.util.List;
  * SemanticPrivacyGuard spg = SemanticPrivacyGuard.create(config);
  * }&lt;/pre&gt;
  *
+ * &lt;h2&gt;Stream / large-file processing&lt;/h2&gt;
+ * &lt;pre&gt;{@code
+ * // Constant heap usage regardless of file size — one line at a time
+ * StreamRedactionSummary s =
+ *     spg.redactPath(Path.of(&quot;server.log&quot;), Path.of(&quot;server.clean.log&quot;));
+ *
+ * System.out.println(s);
+ * // → StreamRedactionSummary[lines=84231, linesWithPII=312, matches=389, timeMs=740]
+ * }&lt;/pre&gt;
+ *
  * &lt;h2&gt;Thread safety&lt;/h2&gt;
  *
  * &lt;p&gt;All instances are &lt;b&gt;thread-safe&lt;/b&gt; and designed for use with Java 17+
@@ -70,11 +88,11 @@ public final class SemanticPrivacyGuard {
 
     // ── Construction ──────────────────────────────────────────────────────────
 
-<span class="fc" id="L73">    private SemanticPrivacyGuard(SPGConfig config) {</span>
-<span class="fc" id="L74">        this.config    = config;</span>
-<span class="fc" id="L75">        this.detector  = buildDetector(config);</span>
-<span class="fc" id="L76">        this.tokenizer = new PIITokenizer(config.getRedactionMode());</span>
-<span class="fc" id="L77">    }</span>
+<span class="fc" id="L91">    private SemanticPrivacyGuard(SPGConfig config) {</span>
+<span class="fc" id="L92">        this.config    = config;</span>
+<span class="fc" id="L93">        this.detector  = buildDetector(config);</span>
+<span class="fc" id="L94">        this.tokenizer = new PIITokenizer(config.getRedactionMode());</span>
+<span class="fc" id="L95">    }</span>
 
     /**
      * Creates a new instance with default configuration.
@@ -82,7 +100,7 @@ public final class SemanticPrivacyGuard {
      * @return a ready-to-use {@code SemanticPrivacyGuard}
      */
     public static SemanticPrivacyGuard create() {
-<span class="fc" id="L85">        return new SemanticPrivacyGuard(SPGConfig.defaults());</span>
+<span class="fc" id="L103">        return new SemanticPrivacyGuard(SPGConfig.defaults());</span>
     }
 
     /**
@@ -92,8 +110,8 @@ public final class SemanticPrivacyGuard {
      * @return a ready-to-use {@code SemanticPrivacyGuard}
      */
     public static SemanticPrivacyGuard create(SPGConfig config) {
-<span class="fc" id="L95">        return new SemanticPrivacyGuard(</span>
-<span class="fc" id="L96">            java.util.Objects.requireNonNull(config, &quot;config must not be null&quot;));</span>
+<span class="fc" id="L113">        return new SemanticPrivacyGuard(</span>
+<span class="fc" id="L114">            java.util.Objects.requireNonNull(config, &quot;config must not be null&quot;));</span>
     }
 
     // ── Core API ──────────────────────────────────────────────────────────────
@@ -108,39 +126,39 @@ public final class SemanticPrivacyGuard {
      *         returns a result wrapping the original text with no matches
      */
     public RedactionResult redact(String text) {
-<span class="pc bpc" id="L111" title="1 of 4 branches missed.">        if (text == null || text.isBlank()) {</span>
-<span class="fc" id="L112">            return new RedactionResult(</span>
-<span class="pc bpc" id="L113" title="1 of 2 branches missed.">                text == null ? &quot;&quot; : text,</span>
-<span class="pc bpc" id="L114" title="1 of 2 branches missed.">                text == null ? &quot;&quot; : text,</span>
-<span class="fc" id="L115">                Collections.emptyList(),</span>
-<span class="fc" id="L116">                Collections.emptyMap(),</span>
+<span class="pc bpc" id="L129" title="1 of 4 branches missed.">        if (text == null || text.isBlank()) {</span>
+<span class="fc" id="L130">            return new RedactionResult(</span>
+<span class="pc bpc" id="L131" title="1 of 2 branches missed.">                text == null ? &quot;&quot; : text,</span>
+<span class="pc bpc" id="L132" title="1 of 2 branches missed.">                text == null ? &quot;&quot; : text,</span>
+<span class="fc" id="L133">                Collections.emptyList(),</span>
+<span class="fc" id="L134">                Collections.emptyMap(),</span>
                 0L);
         }
 
-<span class="fc" id="L120">        long start = System.currentTimeMillis();</span>
+<span class="fc" id="L138">        long start = System.currentTimeMillis();</span>
 
         // Detect
-<span class="fc" id="L123">        List&lt;PIIMatch&gt; allMatches = detector.detect(text);</span>
+<span class="fc" id="L141">        List&lt;PIIMatch&gt; allMatches = detector.detect(text);</span>
 
         // Apply minimum severity filter
-<span class="fc" id="L126">        int minSev = config.getMinimumSeverity();</span>
-<span class="fc" id="L127">        List&lt;PIIMatch&gt; filtered = new ArrayList&lt;&gt;();</span>
-<span class="fc bfc" id="L128" title="All 2 branches covered.">        for (PIIMatch m : allMatches) {</span>
-<span class="pc bpc" id="L129" title="1 of 2 branches missed.">            if (m.getType().getSeverity() &gt;= minSev) filtered.add(m);</span>
-<span class="fc" id="L130">        }</span>
+<span class="fc" id="L144">        int minSev = config.getMinimumSeverity();</span>
+<span class="fc" id="L145">        List&lt;PIIMatch&gt; filtered = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L146" title="All 2 branches covered.">        for (PIIMatch m : allMatches) {</span>
+<span class="pc bpc" id="L147" title="1 of 2 branches missed.">            if (m.getType().getSeverity() &gt;= minSev) filtered.add(m);</span>
+<span class="fc" id="L148">        }</span>
 
         // Tokenize / redact
-<span class="fc" id="L133">        RedactionOutput output = tokenizer.redact(text, filtered);</span>
+<span class="fc" id="L151">        RedactionOutput output = tokenizer.redact(text, filtered);</span>
 
-<span class="fc" id="L135">        long elapsed = System.currentTimeMillis() - start;</span>
+<span class="fc" id="L153">        long elapsed = System.currentTimeMillis() - start;</span>
 
-<span class="fc" id="L137">        return new RedactionResult(</span>
+<span class="fc" id="L155">        return new RedactionResult(</span>
             text,
-<span class="fc" id="L139">            output.redactedText(),</span>
+<span class="fc" id="L157">            output.redactedText(),</span>
             filtered,
-<span class="fc bfc" id="L141" title="All 2 branches covered.">            config.isBuildReverseMap()</span>
-<span class="fc" id="L142">                ? output.reverseMap()</span>
-<span class="fc" id="L143">                : Collections.emptyMap(),</span>
+<span class="fc bfc" id="L159" title="All 2 branches covered.">            config.isBuildReverseMap()</span>
+<span class="fc" id="L160">                ? output.reverseMap()</span>
+<span class="fc" id="L161">                : Collections.emptyMap(),</span>
             elapsed
         );
     }
@@ -156,10 +174,10 @@ public final class SemanticPrivacyGuard {
      * @return {@code true} if PII was found
      */
     public boolean containsPII(String text) {
-<span class="pc bpc" id="L159" title="2 of 4 branches missed.">        if (text == null || text.isBlank()) return false;</span>
-<span class="fc" id="L160">        int minSev = config.getMinimumSeverity();</span>
-<span class="fc" id="L161">        return detector.detect(text).stream()</span>
-<span class="pc bpc" id="L162" title="1 of 2 branches missed.">            .anyMatch(m -&gt; m.getType().getSeverity() &gt;= minSev);</span>
+<span class="pc bpc" id="L177" title="2 of 4 branches missed.">        if (text == null || text.isBlank()) return false;</span>
+<span class="fc" id="L178">        int minSev = config.getMinimumSeverity();</span>
+<span class="fc" id="L179">        return detector.detect(text).stream()</span>
+<span class="pc bpc" id="L180" title="1 of 2 branches missed.">            .anyMatch(m -&gt; m.getType().getSeverity() &gt;= minSev);</span>
     }
 
     /**
@@ -171,33 +189,106 @@ public final class SemanticPrivacyGuard {
      * @return unmodifiable list of detected PII matches
      */
     public List&lt;PIIMatch&gt; analyse(String text) {
-<span class="pc bpc" id="L174" title="2 of 4 branches missed.">        if (text == null || text.isBlank()) return List.of();</span>
-<span class="fc" id="L175">        int minSev = config.getMinimumSeverity();</span>
-<span class="fc" id="L176">        return detector.detect(text).stream()</span>
-<span class="pc bpc" id="L177" title="1 of 2 branches missed.">            .filter(m -&gt; m.getType().getSeverity() &gt;= minSev)</span>
-<span class="fc" id="L178">            .toList();</span>
+<span class="pc bpc" id="L192" title="2 of 4 branches missed.">        if (text == null || text.isBlank()) return List.of();</span>
+<span class="fc" id="L193">        int minSev = config.getMinimumSeverity();</span>
+<span class="fc" id="L194">        return detector.detect(text).stream()</span>
+<span class="pc bpc" id="L195" title="1 of 2 branches missed.">            .filter(m -&gt; m.getType().getSeverity() &gt;= minSev)</span>
+<span class="fc" id="L196">            .toList();</span>
     }
 
     /**
      * Returns the active configuration for this instance.
      */
-<span class="nc" id="L184">    public SPGConfig getConfig() { return config; }</span>
+<span class="nc" id="L202">    public SPGConfig getConfig() { return config; }</span>
+
+    // ── Stream API ────────────────────────────────────────────────────────────
+
+    /**
+     * Returns a {@link StreamProcessor} configured identically to this instance.
+     *
+     * &lt;p&gt;Use the returned processor when you need to redact large files or
+     * byte/character streams without loading the entire content into memory.
+     * Processing is line-by-line with constant heap usage regardless of
+     * document size.&lt;/p&gt;
+     *
+     * &lt;pre&gt;{@code
+     * StreamProcessor proc = spg.streamProcessor();
+     *
+     * // Redact a 500 MB log file with a small, stable heap footprint
+     * StreamRedactionSummary s =
+     *     proc.redact(Path.of(&quot;big.log&quot;), Path.of(&quot;big.clean.log&quot;));
+     * }&lt;/pre&gt;
+     *
+     * @return a new {@link StreamProcessor} sharing this instance's configuration
+     */
+    public StreamProcessor streamProcessor() {
+<span class="fc" id="L225">        return new StreamProcessor(config);</span>
+    }
+
+    /**
+     * Convenience method: redacts an {@link InputStream} line-by-line and writes
+     * the sanitised output to {@code out}, both streams treated as UTF-8.
+     *
+     * &lt;p&gt;Both streams are left open; the caller is responsible for closing them.
+     * Equivalent to {@code streamProcessor().redact(in, out)}.&lt;/p&gt;
+     *
+     * @param in  the source byte stream (never {@code null})
+     * @param out the output byte stream (never {@code null})
+     * @return aggregated {@link StreamRedactionSummary} for the full document
+     * @throws IOException if any I/O error occurs
+     */
+    public StreamRedactionSummary redactStream(InputStream in,
+                                               OutputStream out) throws IOException {
+<span class="fc" id="L242">        return streamProcessor().redact(in, out);</span>
+    }
+
+    /**
+     * Convenience method: redacts a character stream line-by-line.
+     *
+     * &lt;p&gt;Both streams are left open; the caller is responsible for closing them.
+     * Equivalent to {@code streamProcessor().redact(reader, writer)}.&lt;/p&gt;
+     *
+     * @param reader the source character stream (never {@code null})
+     * @param writer the output character stream (never {@code null})
+     * @return aggregated {@link StreamRedactionSummary} for the full document
+     * @throws IOException if any I/O error occurs
+     */
+    public StreamRedactionSummary redactStream(Reader reader,
+                                               Writer writer) throws IOException {
+<span class="fc" id="L258">        return streamProcessor().redact(reader, writer);</span>
+    }
+
+    /**
+     * Convenience method: redacts a file on disk and writes the result to another
+     * file, processing line-by-line with constant heap usage.
+     *
+     * &lt;p&gt;Equivalent to {@code streamProcessor().redact(inputFile, outputFile)}.&lt;/p&gt;
+     *
+     * @param inputFile  path of the file to redact (must be readable)
+     * @param outputFile path of the output file (created or overwritten)
+     * @return aggregated {@link StreamRedactionSummary} for the full document
+     * @throws IOException if either file cannot be opened or an I/O error occurs
+     */
+    public StreamRedactionSummary redactPath(Path inputFile,
+                                             Path outputFile) throws IOException {
+<span class="fc" id="L274">        return streamProcessor().redact(inputFile, outputFile);</span>
+    }
 
     // ── Private ───────────────────────────────────────────────────────────────
 
     private static CompositeDetector buildDetector(SPGConfig cfg) {
-<span class="fc" id="L189">        List&lt;PIIDetector&gt; detectors = new ArrayList&lt;&gt;();</span>
-<span class="pc bpc" id="L190" title="1 of 2 branches missed.">        if (cfg.isHeuristicEnabled()) {</span>
-<span class="fc" id="L191">            detectors.add(new HeuristicDetector(cfg.getEnabledTypes()));</span>
+<span class="fc" id="L280">        List&lt;PIIDetector&gt; detectors = new ArrayList&lt;&gt;();</span>
+<span class="pc bpc" id="L281" title="1 of 2 branches missed.">        if (cfg.isHeuristicEnabled()) {</span>
+<span class="fc" id="L282">            detectors.add(new HeuristicDetector(cfg.getEnabledTypes()));</span>
         }
-<span class="pc bpc" id="L193" title="1 of 2 branches missed.">        if (cfg.isMlEnabled()) {</span>
-<span class="fc" id="L194">            detectors.add(new MLDetector(</span>
-<span class="fc" id="L195">                com.semanticprivacyguard.ml.TrainingData.buildDefaultClassifier(),</span>
+<span class="pc bpc" id="L284" title="1 of 2 branches missed.">        if (cfg.isMlEnabled()) {</span>
+<span class="fc" id="L285">            detectors.add(new MLDetector(</span>
+<span class="fc" id="L286">                com.semanticprivacyguard.ml.TrainingData.buildDefaultClassifier(),</span>
                 new com.semanticprivacyguard.ml.FeatureExtractor(),
-<span class="fc" id="L197">                cfg.getMlConfidenceThreshold()</span>
+<span class="fc" id="L288">                cfg.getMlConfidenceThreshold()</span>
             ));
         }
-<span class="fc" id="L200">        return new CompositeDetector(detectors);</span>
+<span class="fc" id="L291">        return new CompositeDetector(detectors);</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

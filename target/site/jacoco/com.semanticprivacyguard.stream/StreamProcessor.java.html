@@ -1,0 +1,334 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>StreamProcessor.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Semantic Privacy Guard</a> &gt; <a href="index.source.html" class="el_package">com.semanticprivacyguard.stream</a> &gt; <span class="el_source">StreamProcessor.java</span></div><h1>StreamProcessor.java</h1><pre class="source lang-java linenums">package com.semanticprivacyguard.stream;
+
+import com.semanticprivacyguard.config.SPGConfig;
+import com.semanticprivacyguard.detector.CompositeDetector;
+import com.semanticprivacyguard.detector.HeuristicDetector;
+import com.semanticprivacyguard.detector.MLDetector;
+import com.semanticprivacyguard.detector.PIIDetector;
+import com.semanticprivacyguard.ml.FeatureExtractor;
+import com.semanticprivacyguard.ml.TrainingData;
+import com.semanticprivacyguard.model.PIIMatch;
+import com.semanticprivacyguard.model.PIIType;
+import com.semanticprivacyguard.tokenizer.PIITokenizer;
+
+import java.io.*;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.*;
+import java.util.stream.Stream;
+
+/**
+ * &lt;b&gt;Memory-efficient, line-by-line PII redaction over streams and files.&lt;/b&gt;
+ *
+ * &lt;h2&gt;Why this matters&lt;/h2&gt;
+ *
+ * &lt;p&gt;The standard {@code SemanticPrivacyGuard.redact(String)} API loads the
+ * entire input into a single {@code String}.  For a 50 MB log file that means
+ * ~50 MB on the heap for the raw text, plus another 100–150 MB for the
+ * tokenizer's working strings — 150–200 MB &lt;em&gt;per concurrent request&lt;/em&gt;.
+ * On a Lambda with 512 MB of RAM handling 10 concurrent calls that is an
+ * OOM event waiting to happen.&lt;/p&gt;
+ *
+ * &lt;p&gt;{@code StreamProcessor} processes &lt;em&gt;one line at a time&lt;/em&gt;: each line
+ * string is detected, redacted, written to the output, and then immediately
+ * eligible for garbage collection.  Heap usage stays roughly constant
+ * regardless of document size — bounded by the size of the longest single
+ * line (typically &amp;lt; 4 KB in log files).&lt;/p&gt;
+ *
+ * &lt;h2&gt;Token numbering&lt;/h2&gt;
+ *
+ * &lt;p&gt;Counters are &lt;em&gt;document-scoped&lt;/em&gt;, not line-scoped.  If line 3
+ * contains {@code alice@example.com} it gets {@code [EMAIL_1]}; if line 7
+ * contains {@code bob@example.com} it gets {@code [EMAIL_2]}.  The same
+ * value never produces two identical tokens within the same document.&lt;/p&gt;
+ *
+ * &lt;h2&gt;Quick start&lt;/h2&gt;
+ *
+ * &lt;pre&gt;{@code
+ * SemanticPrivacyGuard spg = SemanticPrivacyGuard.create();
+ *
+ * // File-to-file redaction — constant heap regardless of file size
+ * StreamRedactionSummary summary =
+ *     spg.redactPath(Path.of(&quot;access.log&quot;), Path.of(&quot;access.redacted.log&quot;));
+ *
+ * System.out.println(summary);
+ * // → StreamRedactionSummary[lines=84231, linesWithPII=312, matches=389, timeMs=740]
+ *
+ * // InputStream / OutputStream
+ * try (InputStream  in  = new FileInputStream(&quot;raw.txt&quot;);
+ *      OutputStream out = new FileOutputStream(&quot;clean.txt&quot;)) {
+ *     spg.redactStream(in, out);
+ * }
+ *
+ * // Reader / Writer (e.g. inside a servlet filter)
+ * spg.redactStream(request.getReader(), response.getWriter());
+ *
+ * // Lazy Java Stream — integrates with Files.lines() or any Stream&lt;String&gt;
+ * try (Stream&lt;String&gt; lines = Files.lines(inputPath)) {
+ *     spg.streamProcessor()
+ *        .redactLines(lines)
+ *        .forEach(System.out::println);
+ * }
+ * }&lt;/pre&gt;
+ *
+ * &lt;h2&gt;Thread safety&lt;/h2&gt;
+ *
+ * &lt;p&gt;{@code StreamProcessor} instances are &lt;b&gt;thread-safe&lt;/b&gt;.  Each call to
+ * {@code redact()} or {@code redactLines()} maintains its own independent
+ * document-scoped counter state and writes to its own output sink; multiple
+ * threads may use the same instance concurrently without coordination.&lt;/p&gt;
+ *
+ * @author Hemant Naik
+ * @since 1.1.0
+ * @see com.semanticprivacyguard.SemanticPrivacyGuard#streamProcessor()
+ */
+public final class StreamProcessor {
+
+<span class="fc" id="L89">    private static final Charset DEFAULT_CHARSET = StandardCharsets.UTF_8;</span>
+
+    private final SPGConfig          config;
+    private final CompositeDetector  detector;
+    private final PIITokenizer       tokenizer;
+
+    // ── Construction ──────────────────────────────────────────────────────────
+
+    /**
+     * Creates a {@code StreamProcessor} from the given configuration.
+     *
+     * &lt;p&gt;The same configuration used to create a
+     * {@link com.semanticprivacyguard.SemanticPrivacyGuard} instance may be
+     * passed here so that both APIs behave identically.&lt;/p&gt;
+     *
+     * @param config the detection and redaction configuration (never {@code null})
+     */
+<span class="fc" id="L106">    public StreamProcessor(SPGConfig config) {</span>
+<span class="fc" id="L107">        this.config    = Objects.requireNonNull(config, &quot;config must not be null&quot;);</span>
+<span class="fc" id="L108">        this.detector  = buildDetector(config);</span>
+<span class="fc" id="L109">        this.tokenizer = new PIITokenizer(config.getRedactionMode());</span>
+<span class="fc" id="L110">    }</span>
+
+    // ── Primary API: Reader / Writer ──────────────────────────────────────────
+
+    /**
+     * Reads lines from {@code reader}, redacts PII in each line, and writes
+     * the sanitised lines to {@code writer}.
+     *
+     * &lt;p&gt;Both streams are left open after this call; the caller is responsible
+     * for closing them (use try-with-resources).  The writer is flushed but
+     * not closed.&lt;/p&gt;
+     *
+     * &lt;p&gt;Line terminators are normalised: each output line is followed by the
+     * platform line separator ({@code System.lineSeparator()}).  The final
+     * line does &lt;em&gt;not&lt;/em&gt; receive a trailing newline if the source did not
+     * have one — the implementation uses a write-before pattern.&lt;/p&gt;
+     *
+     * @param reader the source of lines (never {@code null})
+     * @param writer the redaction output sink (never {@code null})
+     * @return aggregated {@link StreamRedactionSummary} for the full document
+     * @throws IOException if any I/O error occurs
+     */
+    public StreamRedactionSummary redact(Reader reader, Writer writer) throws IOException {
+<span class="fc" id="L133">        Objects.requireNonNull(reader, &quot;reader must not be null&quot;);</span>
+<span class="fc" id="L134">        Objects.requireNonNull(writer, &quot;writer must not be null&quot;);</span>
+
+<span class="fc bfc" id="L136" title="All 2 branches covered.">        BufferedReader br = (reader instanceof BufferedReader b)</span>
+<span class="fc" id="L137">                          ? b : new BufferedReader(reader);</span>
+<span class="fc bfc" id="L138" title="All 2 branches covered.">        BufferedWriter bw = (writer instanceof BufferedWriter b)</span>
+<span class="fc" id="L139">                          ? b : new BufferedWriter(writer);</span>
+
+        // Document-scoped state — one shared counter map per document so
+        // [EMAIL_1], [EMAIL_2] are globally unique within this stream pass.
+<span class="fc" id="L143">        Map&lt;PIIType, Integer&gt; globalCounters   = new EnumMap&lt;&gt;(PIIType.class);</span>
+<span class="fc" id="L144">        Map&lt;PIIType, Long&gt;    matchCountByType = new EnumMap&lt;&gt;(PIIType.class);</span>
+
+<span class="fc" id="L146">        long totalLines   = 0;</span>
+<span class="fc" id="L147">        long linesWithPII = 0;</span>
+<span class="fc" id="L148">        long totalMatches = 0;</span>
+<span class="fc" id="L149">        int  minSev       = config.getMinimumSeverity();</span>
+<span class="fc" id="L150">        long start        = System.currentTimeMillis();</span>
+
+        // write-before pattern: newline is prepended to every line except the
+        // first, so the last line has no trailing newline iff the source didn't.
+<span class="fc" id="L154">        boolean firstLine = true;</span>
+        String  rawLine;
+
+<span class="fc bfc" id="L157" title="All 2 branches covered.">        while ((rawLine = br.readLine()) != null) {</span>
+<span class="fc bfc" id="L158" title="All 2 branches covered.">            if (!firstLine) bw.newLine();</span>
+<span class="fc" id="L159">            firstLine = false;</span>
+<span class="fc" id="L160">            totalLines++;</span>
+
+            // ── Detect ───────────────────────────────────────────────────────
+<span class="fc" id="L163">            List&lt;PIIMatch&gt; allMatches = detector.detect(rawLine);</span>
+<span class="fc" id="L164">            List&lt;PIIMatch&gt; filtered   = new ArrayList&lt;&gt;(allMatches.size());</span>
+<span class="fc bfc" id="L165" title="All 2 branches covered.">            for (PIIMatch m : allMatches) {</span>
+<span class="pc bpc" id="L166" title="1 of 2 branches missed.">                if (m.getType().getSeverity() &gt;= minSev) filtered.add(m);</span>
+<span class="fc" id="L167">            }</span>
+
+            // ── Accumulate stats ─────────────────────────────────────────────
+<span class="fc bfc" id="L170" title="All 2 branches covered.">            if (!filtered.isEmpty()) {</span>
+<span class="fc" id="L171">                linesWithPII++;</span>
+<span class="fc" id="L172">                totalMatches += filtered.size();</span>
+<span class="fc bfc" id="L173" title="All 2 branches covered.">                for (PIIMatch m : filtered) {</span>
+<span class="fc" id="L174">                    matchCountByType.merge(m.getType(), 1L, Long::sum);</span>
+<span class="fc" id="L175">                }</span>
+            }
+
+            // ── Redact with shared counters, write immediately ────────────────
+<span class="fc" id="L179">            PIITokenizer.RedactionOutput output =</span>
+<span class="fc" id="L180">                tokenizer.redact(rawLine, filtered, globalCounters);</span>
+<span class="fc" id="L181">            bw.write(output.redactedText());</span>
+<span class="fc" id="L182">        }</span>
+
+<span class="fc" id="L184">        bw.flush();</span>
+
+<span class="fc" id="L186">        return new StreamRedactionSummary(</span>
+            totalLines, linesWithPII, totalMatches,
+<span class="fc" id="L188">            System.currentTimeMillis() - start,</span>
+            matchCountByType);
+    }
+
+    // ── InputStream / OutputStream ────────────────────────────────────────────
+
+    /**
+     * Byte-stream variant of {@link #redact(Reader, Writer)}.
+     * Reads from {@code in} and writes to {@code out} using the given charset.
+     *
+     * @param in      source byte stream (never {@code null})
+     * @param out     output byte stream (never {@code null})
+     * @param charset character encoding to use (never {@code null})
+     * @return aggregated {@link StreamRedactionSummary}
+     * @throws IOException if any I/O error occurs
+     */
+    public StreamRedactionSummary redact(InputStream in,
+                                         OutputStream out,
+                                         Charset charset) throws IOException {
+<span class="fc" id="L207">        Objects.requireNonNull(in,      &quot;in must not be null&quot;);</span>
+<span class="fc" id="L208">        Objects.requireNonNull(out,     &quot;out must not be null&quot;);</span>
+<span class="fc" id="L209">        Objects.requireNonNull(charset, &quot;charset must not be null&quot;);</span>
+<span class="fc" id="L210">        return redact(</span>
+            new InputStreamReader(in,  charset),
+            new OutputStreamWriter(out, charset));
+    }
+
+    /**
+     * Byte-stream variant using UTF-8 encoding.
+     *
+     * @param in  source byte stream (never {@code null})
+     * @param out output byte stream (never {@code null})
+     * @return aggregated {@link StreamRedactionSummary}
+     * @throws IOException if any I/O error occurs
+     */
+    public StreamRedactionSummary redact(InputStream in,
+                                         OutputStream out) throws IOException {
+<span class="fc" id="L225">        return redact(in, out, DEFAULT_CHARSET);</span>
+    }
+
+    // ── Path convenience ──────────────────────────────────────────────────────
+
+    /**
+     * File-to-file redaction.  Reads from {@code inputFile}, writes the
+     * redacted output to {@code outputFile} (which is created or overwritten),
+     * and returns aggregated statistics.
+     *
+     * &lt;p&gt;Both files are handled with try-with-resources so they are always
+     * closed, even on error.&lt;/p&gt;
+     *
+     * &lt;pre&gt;{@code
+     * StreamRedactionSummary s =
+     *     processor.redact(Path.of(&quot;server.log&quot;), Path.of(&quot;server.clean.log&quot;));
+     * System.out.println(s);
+     * }&lt;/pre&gt;
+     *
+     * @param inputFile  path to the source file (must exist and be readable)
+     * @param outputFile path to the destination file (created if absent)
+     * @return aggregated {@link StreamRedactionSummary}
+     * @throws IOException if either file cannot be opened or an I/O error occurs
+     */
+    public StreamRedactionSummary redact(Path inputFile,
+                                         Path outputFile) throws IOException {
+<span class="fc" id="L251">        Objects.requireNonNull(inputFile,  &quot;inputFile must not be null&quot;);</span>
+<span class="fc" id="L252">        Objects.requireNonNull(outputFile, &quot;outputFile must not be null&quot;);</span>
+<span class="fc" id="L253">        try (BufferedReader reader = Files.newBufferedReader(inputFile,  DEFAULT_CHARSET);</span>
+<span class="fc" id="L254">             BufferedWriter writer = Files.newBufferedWriter(outputFile, DEFAULT_CHARSET)) {</span>
+<span class="fc" id="L255">            return redact(reader, writer);</span>
+        }
+    }
+
+    // ── Stream&lt;String&gt; API ────────────────────────────────────────────────────
+
+    /**
+     * Returns a lazy {@link Stream}{@code &lt;String&gt;} where each element is the
+     * redacted version of the corresponding input line.
+     *
+     * &lt;p&gt;Token numbering is document-scoped: counters are shared across the
+     * entire stream, so each value receives a globally unique token
+     * ({@code [EMAIL_1]}, {@code [EMAIL_2]}, …) even when PII appears on
+     * different lines.&lt;/p&gt;
+     *
+     * &lt;p&gt;&lt;b&gt;Parallel streams are not supported.&lt;/b&gt;  Document-scoped counters
+     * require sequential processing to guarantee deterministic token numbers.
+     * If a parallel stream is passed this method throws
+     * {@link IllegalArgumentException}.  Call {@code stream.sequential()}
+     * before passing if needed.&lt;/p&gt;
+     *
+     * &lt;p&gt;This method integrates naturally with {@link Files#lines}:&lt;/p&gt;
+     * &lt;pre&gt;{@code
+     * try (Stream&lt;String&gt; lines = Files.lines(inputPath)) {
+     *     processor.redactLines(lines)
+     *              .forEach(outputWriter::println);
+     * }
+     * }&lt;/pre&gt;
+     *
+     * &lt;p&gt;Note: unlike {@link #redact(Reader, Writer)}, this method does not
+     * return a {@link StreamRedactionSummary}; use the Reader/Writer or Path
+     * API when you need statistics.&lt;/p&gt;
+     *
+     * @param lines a &lt;em&gt;sequential&lt;/em&gt; stream of input lines (never {@code null})
+     * @return a lazy stream of redacted lines in the same order
+     * @throws IllegalArgumentException if {@code lines.isParallel()} is {@code true}
+     */
+    public Stream&lt;String&gt; redactLines(Stream&lt;String&gt; lines) {
+<span class="fc" id="L293">        Objects.requireNonNull(lines, &quot;lines must not be null&quot;);</span>
+<span class="fc bfc" id="L294" title="All 2 branches covered.">        if (lines.isParallel()) {</span>
+<span class="fc" id="L295">            throw new IllegalArgumentException(</span>
+                &quot;redactLines() requires a sequential stream — call lines.sequential() first. &quot;
+              + &quot;Parallel processing would produce non-deterministic token numbers.&quot;);
+        }
+
+        // Mutable state captured in the lambda closure — safe because the
+        // stream is guaranteed sequential by the check above.
+<span class="fc" id="L302">        Map&lt;PIIType, Integer&gt; globalCounters = new EnumMap&lt;&gt;(PIIType.class);</span>
+<span class="fc" id="L303">        int minSev = config.getMinimumSeverity();</span>
+
+<span class="fc" id="L305">        return lines.map(line -&gt; {</span>
+<span class="pc bpc" id="L306" title="1 of 2 branches missed.">            if (line == null) return &quot;&quot;;</span>
+
+<span class="fc" id="L308">            List&lt;PIIMatch&gt; allMatches = detector.detect(line);</span>
+<span class="fc" id="L309">            List&lt;PIIMatch&gt; filtered   = new ArrayList&lt;&gt;(allMatches.size());</span>
+<span class="fc bfc" id="L310" title="All 2 branches covered.">            for (PIIMatch m : allMatches) {</span>
+<span class="pc bpc" id="L311" title="1 of 2 branches missed.">                if (m.getType().getSeverity() &gt;= minSev) filtered.add(m);</span>
+<span class="fc" id="L312">            }</span>
+<span class="fc" id="L313">            return tokenizer.redact(line, filtered, globalCounters).redactedText();</span>
+        });
+    }
+
+    // ── Private ───────────────────────────────────────────────────────────────
+
+    private static CompositeDetector buildDetector(SPGConfig cfg) {
+<span class="fc" id="L320">        List&lt;PIIDetector&gt; detectors = new ArrayList&lt;&gt;();</span>
+<span class="pc bpc" id="L321" title="1 of 2 branches missed.">        if (cfg.isHeuristicEnabled()) {</span>
+<span class="fc" id="L322">            detectors.add(new HeuristicDetector(cfg.getEnabledTypes()));</span>
+        }
+<span class="pc bpc" id="L324" title="1 of 2 branches missed.">        if (cfg.isMlEnabled()) {</span>
+<span class="fc" id="L325">            detectors.add(new MLDetector(</span>
+<span class="fc" id="L326">                TrainingData.buildDefaultClassifier(),</span>
+                new FeatureExtractor(),
+<span class="fc" id="L328">                cfg.getMlConfidenceThreshold()</span>
+            ));
+        }
+<span class="fc" id="L331">        return new CompositeDetector(detectors);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

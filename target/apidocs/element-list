@@ -3,5 +3,6 @@ com.semanticprivacyguard.config
 com.semanticprivacyguard.detector
 com.semanticprivacyguard.ml
 com.semanticprivacyguard.model
+com.semanticprivacyguard.stream
 com.semanticprivacyguard.tokenizer
 com.semanticprivacyguard.util

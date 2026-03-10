@@ -10,6 +10,8 @@
 /Users/varsha/GitHub-Repository-Destination/Semantic-Privacy-Guard/Semantic-Privacy-Guard/src/main/java/com/semanticprivacyguard/model/PIIMatch.java
 /Users/varsha/GitHub-Repository-Destination/Semantic-Privacy-Guard/Semantic-Privacy-Guard/src/main/java/com/semanticprivacyguard/model/PIIType.java
 /Users/varsha/GitHub-Repository-Destination/Semantic-Privacy-Guard/Semantic-Privacy-Guard/src/main/java/com/semanticprivacyguard/model/RedactionResult.java
+/Users/varsha/GitHub-Repository-Destination/Semantic-Privacy-Guard/Semantic-Privacy-Guard/src/main/java/com/semanticprivacyguard/stream/StreamProcessor.java
+/Users/varsha/GitHub-Repository-Destination/Semantic-Privacy-Guard/Semantic-Privacy-Guard/src/main/java/com/semanticprivacyguard/stream/StreamRedactionSummary.java
 /Users/varsha/GitHub-Repository-Destination/Semantic-Privacy-Guard/Semantic-Privacy-Guard/src/main/java/com/semanticprivacyguard/tokenizer/PIITokenizer.java
 /Users/varsha/GitHub-Repository-Destination/Semantic-Privacy-Guard/Semantic-Privacy-Guard/src/main/java/com/semanticprivacyguard/util/RegexPatterns.java
 /Users/varsha/GitHub-Repository-Destination/Semantic-Privacy-Guard/Semantic-Privacy-Guard/src/main/java/com/semanticprivacyguard/util/TextUtils.java
