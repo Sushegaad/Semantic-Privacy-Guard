@@ -14,6 +14,7 @@
       --border:   #30363d;
       --accent:   #58a6ff;
       --accent2:  #3fb950;
+      --accent3:  #39d9c0;
       --warn:     #f85149;
       --text:     #c9d1d9;
       --muted:    #8b949e;
@@ -262,10 +263,10 @@
     .pipeline {
       display: flex; gap: 0; align-items: stretch;
       flex-wrap: wrap; justify-content: center;
-      max-width: 960px; margin: 0 auto;
+      max-width: 1100px; margin: 0 auto;
     }
     .pipe-step {
-      flex: 1; min-width: 180px; max-width: 220px;
+      flex: 1; min-width: 150px; max-width: 200px;
       background: var(--bg);
       border: 1px solid var(--border);
       border-radius: 8px;
@@ -288,6 +289,7 @@
     .pipe-step .desc { font-size: .75rem; color: var(--muted); line-height: 1.4; }
     .pipe-step.accent-blue { border-color: #1f6feb; }
     .pipe-step.accent-green { border-color: #238636; }
+    .pipe-step.accent-teal { border-color: #0d7875; }
     .pipe-step.accent-purple { border-color: #6e40c9; }
     .pipe-step.accent-orange { border-color: #9e6a03; }
 
@@ -331,8 +333,8 @@
 <div class="hero">
   <h1>AI Privacy <em>Firewall</em> for Java</h1>
   <p>
-    Intercept LLM prompts, detect PII using a hybrid
-    <strong>Regex&nbsp;+&nbsp;Naive&nbsp;Bayes</strong> pipeline, and replace
+    Intercept LLM prompts, detect PII using a three-layer
+    <strong>Regex&nbsp;+&nbsp;Naive&nbsp;Bayes&nbsp;+&nbsp;OpenNLP&nbsp;NER</strong> pipeline, and replace
     sensitive data with structured tokens — before it leaves your network.
   </p>
   <div class="pill-row">
@@ -343,8 +345,8 @@
     <span class="pill active">IPv4 / IPv6</span>
     <span class="pill active">API Keys</span>
     <span class="pill active">Passwords</span>
-    <span class="pill active">Names (ML)</span>
-    <span class="pill active">Orgs (ML)</span>
+    <span class="pill active">Names (ML+NLP)</span>
+    <span class="pill active">Orgs (ML+NLP)</span>
     <span class="pill active">IBAN</span>
   </div>
 </div>
@@ -362,6 +364,7 @@
         <button class="sample-btn" onclick="loadSample('ml')">ML disambiguation</button>
         <button class="sample-btn" onclick="loadSample('mixed')">Full mix</button>
         <button class="sample-btn" onclick="loadSample('apikey')">API keys</button>
+        <button class="sample-btn" onclick="loadSample('nlp')" title="Showcases multi-token names that NLP layer handles server-side">NLP names</button>
       </div>
     </div>
 
@@ -446,6 +449,11 @@ someone.naik@gmail.com</textarea>
       <div class="name">MLDetector</div>
       <div class="desc">Multinomial Naive Bayes. Classifies title-cased tokens using bag-of-words context features.</div>
     </div>
+    <div class="pipe-step accent-teal">
+      <div class="layer">Layer 3</div>
+      <div class="name">NLPDetector</div>
+      <div class="desc">Apache OpenNLP MaxEnt NER. Handles compound names, hyphens, and varied syntactic positions.</div>
+    </div>
     <div class="pipe-step accent-purple">
       <div class="layer">Merge</div>
       <div class="name">CompositeDetector</div>
@@ -461,10 +469,9 @@ someone.naik@gmail.com</textarea>
 
 <!-- ── Footer ────────────────────────────────────────────────────────────── -->
 <footer>
-  Semantic Privacy Guard v1.0.0 · Apache 2.0 ·
+  Semantic Privacy Guard v1.1.0 · Apache 2.0 ·
   <a href="https://github.com/Sushegaad/Semantic-Privacy-Guard" target="_blank">GitHub</a> ·
-  <a href="https://github.com/Sushegaad/Semantic-Privacy-Guard/blob/main/docs/regex-design.md" target="_blank">Regex Design</a> ·
-  <a href="https://github.com/Sushegaad/Semantic-Privacy-Guard/blob/main/docs/benchmarks.md" target="_blank">Benchmarks</a> ·
+  <a href="https://github.com/Sushegaad/Semantic-Privacy-Guard/blob/main/README.md" target="_blank">Documentation</a> ·
   <a href="https://github.com/Sushegaad/Semantic-Privacy-Guard/blob/main/SECURITY.md" target="_blank">Security Policy</a>
   <br><small style="margin-top:.4rem;display:block">
     ⚠️ This playground runs entirely in your browser — no text is ever transmitted to any server.
@@ -535,7 +542,19 @@ OPENAI_API_KEY=sk-abcdefghijklmnopqrstuvwxyz123456
 AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE
 AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
 DB_PASSWORD=password=S3cureDB!Pass#2024
-HEX_SECRET=a3f8e2b1c9d4f05e6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9`
+HEX_SECRET=a3f8e2b1c9d4f05e6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9`,
+
+  nlp: `OpenNLP NER (Layer 3) — multi-token & compound name detection:
+
+Dear Mary Elizabeth Watson-Jones, please review the attached proposal.
+CC: Dr. James O'Brien, Chief Medical Officer at Barclays Bank PLC.
+The contract was countersigned by Priya Krishnamurthy on 2024-03-15.
+Please forward to carol.whitfield@globaltech.io for final approval.
+Our vendor contact is Michael van der Berg from Deutsche Bank AG.
+
+[Note: This playground runs Heuristic + ML layers in-browser.
+The OpenNLP NER layer (Layer 3) runs server-side in the Java library,
+further improving detection of compound/hyphenated names and org names.]`
 };
 
 // ── PII type metadata ────────────────────────────────────────────────────────
