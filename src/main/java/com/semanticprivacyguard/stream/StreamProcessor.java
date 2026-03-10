@@ -4,11 +4,14 @@ import com.semanticprivacyguard.config.SPGConfig;
 import com.semanticprivacyguard.detector.CompositeDetector;
 import com.semanticprivacyguard.detector.HeuristicDetector;
 import com.semanticprivacyguard.detector.MLDetector;
+import com.semanticprivacyguard.detector.NLPDetector;
 import com.semanticprivacyguard.detector.PIIDetector;
 import com.semanticprivacyguard.ml.FeatureExtractor;
 import com.semanticprivacyguard.ml.TrainingData;
 import com.semanticprivacyguard.model.PIIMatch;
 import com.semanticprivacyguard.model.PIIType;
+import com.semanticprivacyguard.nlp.NLPModelException;
+import com.semanticprivacyguard.nlp.NLPModelLoader;
 import com.semanticprivacyguard.tokenizer.PIITokenizer;
 
 import java.io.*;
@@ -318,6 +321,7 @@ public final class StreamProcessor {
 
     private static CompositeDetector buildDetector(SPGConfig cfg) {
         List<PIIDetector> detectors = new ArrayList<>();
+
         if (cfg.isHeuristicEnabled()) {
             detectors.add(new HeuristicDetector(cfg.getEnabledTypes()));
         }
@@ -328,6 +332,22 @@ public final class StreamProcessor {
                 cfg.getMlConfidenceThreshold()
             ));
         }
+        if (cfg.isNlpEnabled()) {
+            try {
+                NLPModelLoader.LoadedModels models =
+                    (cfg.getNlpModelsDirectory() != null)
+                        ? NLPModelLoader.fromDirectory(cfg.getNlpModelsDirectory())
+                        : NLPModelLoader.fromClasspath();
+                detectors.add(new NLPDetector(models, cfg.getNlpConfidenceThreshold()));
+            } catch (NLPModelException e) {
+                throw new IllegalStateException(
+                    "NLP is enabled but models could not be loaded — "
+                  + e.getMessage()
+                  + ". See README.md#nlp-setup for model download instructions.",
+                    e);
+            }
+        }
+
         return new CompositeDetector(detectors);
     }
 }

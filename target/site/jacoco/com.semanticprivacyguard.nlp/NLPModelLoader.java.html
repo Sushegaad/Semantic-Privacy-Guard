@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>NLPModelLoader.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Semantic Privacy Guard</a> &gt; <a href="index.source.html" class="el_package">com.semanticprivacyguard.nlp</a> &gt; <span class="el_source">NLPModelLoader.java</span></div><h1>NLPModelLoader.java</h1><pre class="source lang-java linenums">package com.semanticprivacyguard.nlp;
+
+import opennlp.tools.namefind.TokenNameFinderModel;
+import opennlp.tools.tokenize.TokenizerModel;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
+/**
+ * Loads Apache OpenNLP model files for use by {@link com.semanticprivacyguard.detector.NLPDetector}.
+ *
+ * &lt;h2&gt;Model files&lt;/h2&gt;
+ *
+ * &lt;table&gt;
+ *   &lt;caption&gt;OpenNLP model files used by Semantic Privacy Guard&lt;/caption&gt;
+ *   &lt;tr&gt;&lt;th&gt;File&lt;/th&gt;&lt;th&gt;Role&lt;/th&gt;&lt;th&gt;Required?&lt;/th&gt;&lt;/tr&gt;
+ *   &lt;tr&gt;&lt;td&gt;{@code en-ner-person.bin}&lt;/td&gt;
+ *       &lt;td&gt;Person name detection&lt;/td&gt;&lt;td&gt;Yes&lt;/td&gt;&lt;/tr&gt;
+ *   &lt;tr&gt;&lt;td&gt;{@code en-ner-organization.bin}&lt;/td&gt;
+ *       &lt;td&gt;Organisation name detection&lt;/td&gt;&lt;td&gt;No&lt;/td&gt;&lt;/tr&gt;
+ *   &lt;tr&gt;&lt;td&gt;{@code en-token.bin}&lt;/td&gt;
+ *       &lt;td&gt;MaxEnt tokeniser (trained with same pipeline as NER models)&lt;/td&gt;
+ *       &lt;td&gt;No — falls back to whitespace tokenisation&lt;/td&gt;&lt;/tr&gt;
+ * &lt;/table&gt;
+ *
+ * &lt;h2&gt;Obtaining the models&lt;/h2&gt;
+ *
+ * &lt;p&gt;Download English models from the Apache OpenNLP model repository:&lt;/p&gt;
+ * &lt;pre&gt;
+ * # Apache OpenNLP 1.5 models (recommended for opennlp-tools 2.x)
+ * https://opennlp.sourceforge.net/models-1.5/
+ *
+ * Required file:
+ *   en-ner-person.bin
+ *
+ * Recommended additional files:
+ *   en-ner-organization.bin
+ *   en-token.bin
+ * &lt;/pre&gt;
+ *
+ * &lt;h2&gt;Classpath placement&lt;/h2&gt;
+ *
+ * &lt;p&gt;Place the downloaded model files in your project at:&lt;/p&gt;
+ * &lt;pre&gt;
+ * src/main/resources/
+ *   models/
+ *     en-ner-person.bin        ← required
+ *     en-ner-organization.bin  ← recommended
+ *     en-token.bin             ← recommended
+ * &lt;/pre&gt;
+ *
+ * &lt;h2&gt;Filesystem placement&lt;/h2&gt;
+ *
+ * &lt;p&gt;Alternatively, place model files in any directory and pass its path to
+ * {@code SPGConfig.builder().nlpModelsDirectory(Path.of(&quot;/opt/nlp-models&quot;))}.&lt;/p&gt;
+ *
+ * @author Hemant Naik
+ * @since 1.1.0
+ * @see com.semanticprivacyguard.detector.NLPDetector
+ */
+public final class NLPModelLoader {
+
+    private static final String PERSON_MODEL  = &quot;en-ner-person.bin&quot;;
+    private static final String ORG_MODEL     = &quot;en-ner-organization.bin&quot;;
+    private static final String TOKEN_MODEL   = &quot;en-token.bin&quot;;
+    private static final String CLASSPATH_DIR = &quot;models/&quot;;
+
+    private NLPModelLoader() {}
+
+    // ── Public factory methods ────────────────────────────────────────────────
+
+    /**
+     * Loads models from the classpath under the {@code models/} resource prefix.
+     *
+     * &lt;p&gt;Looks for {@code /models/en-ner-person.bin} (required),
+     * {@code /models/en-ner-organization.bin} (optional), and
+     * {@code /models/en-token.bin} (optional) on the classpath.&lt;/p&gt;
+     *
+     * @return a {@link LoadedModels} record ready for use in {@link com.semanticprivacyguard.detector.NLPDetector}
+     * @throws NLPModelException if the required person model cannot be found or
+     *                           loaded from the classpath
+     */
+    public static LoadedModels fromClasspath() throws NLPModelException {
+<span class="nc" id="L86">        TokenNameFinderModel personModel =</span>
+<span class="nc" id="L87">            loadNameFinderFromClasspath(CLASSPATH_DIR + PERSON_MODEL, true);</span>
+
+<span class="nc" id="L89">        TokenNameFinderModel orgModel =</span>
+<span class="nc" id="L90">            loadNameFinderFromClasspath(CLASSPATH_DIR + ORG_MODEL, false);</span>
+
+<span class="nc" id="L92">        TokenizerModel tokenizerModel =</span>
+<span class="nc" id="L93">            loadTokenizerFromClasspath(CLASSPATH_DIR + TOKEN_MODEL);</span>
+
+<span class="nc" id="L95">        return new LoadedModels(personModel, orgModel, tokenizerModel);</span>
+    }
+
+    /**
+     * Loads models from the specified filesystem directory.
+     *
+     * &lt;p&gt;{@code en-ner-person.bin} is required; {@code en-ner-organization.bin}
+     * and {@code en-token.bin} are optional and silently skipped if absent.&lt;/p&gt;
+     *
+     * @param directory directory containing the {@code .bin} model files
+     * @return a {@link LoadedModels} record ready for use in {@link com.semanticprivacyguard.detector.NLPDetector}
+     * @throws NLPModelException if the required person model cannot be found or
+     *                           loaded from {@code directory}
+     */
+    public static LoadedModels fromDirectory(Path directory) throws NLPModelException {
+<span class="nc bnc" id="L110" title="All 2 branches missed.">        if (!Files.isDirectory(directory)) {</span>
+<span class="nc" id="L111">            throw new NLPModelException(</span>
+                &quot;NLP models directory does not exist or is not a directory: &quot; + directory);
+        }
+
+<span class="nc" id="L115">        TokenNameFinderModel personModel =</span>
+<span class="nc" id="L116">            loadNameFinderFromFile(directory.resolve(PERSON_MODEL), true);</span>
+
+<span class="nc" id="L118">        TokenNameFinderModel orgModel =</span>
+<span class="nc" id="L119">            loadNameFinderFromFile(directory.resolve(ORG_MODEL), false);</span>
+
+<span class="nc" id="L121">        TokenizerModel tokenizerModel =</span>
+<span class="nc" id="L122">            loadTokenizerFromFile(directory.resolve(TOKEN_MODEL));</span>
+
+<span class="nc" id="L124">        return new LoadedModels(personModel, orgModel, tokenizerModel);</span>
+    }
+
+    // ── Internal helpers ──────────────────────────────────────────────────────
+
+    private static TokenNameFinderModel loadNameFinderFromClasspath(
+            String resource, boolean required) throws NLPModelException {
+<span class="nc" id="L131">        InputStream is = NLPModelLoader.class.getClassLoader()</span>
+<span class="nc" id="L132">                             .getResourceAsStream(resource);</span>
+<span class="nc bnc" id="L133" title="All 2 branches missed.">        if (is == null) {</span>
+<span class="nc bnc" id="L134" title="All 2 branches missed.">            if (required) {</span>
+<span class="nc" id="L135">                throw new NLPModelException(</span>
+                    &quot;Required OpenNLP model not found on classpath: &quot; + resource
+                  + &quot;\nDownload it from https://opennlp.sourceforge.net/models-1.5/ &quot;
+                  + &quot;and place it at src/main/resources/&quot; + resource);
+            }
+<span class="nc" id="L140">            return null;</span>
+        }
+<span class="nc" id="L142">        try (InputStream stream = is) {</span>
+<span class="nc" id="L143">            return new TokenNameFinderModel(stream);</span>
+<span class="nc" id="L144">        } catch (IOException e) {</span>
+<span class="nc" id="L145">            throw new NLPModelException(</span>
+                &quot;Failed to load OpenNLP model from classpath: &quot; + resource, e);
+        }
+    }
+
+    private static TokenizerModel loadTokenizerFromClasspath(
+            String resource) throws NLPModelException {
+<span class="nc" id="L152">        InputStream is = NLPModelLoader.class.getClassLoader()</span>
+<span class="nc" id="L153">                             .getResourceAsStream(resource);</span>
+<span class="nc bnc" id="L154" title="All 2 branches missed.">        if (is == null) return null;   // optional — caller falls back to whitespace</span>
+<span class="nc" id="L155">        try (InputStream stream = is) {</span>
+<span class="nc" id="L156">            return new TokenizerModel(stream);</span>
+<span class="nc" id="L157">        } catch (IOException e) {</span>
+<span class="nc" id="L158">            throw new NLPModelException(</span>
+                &quot;Failed to load OpenNLP tokenizer model from classpath: &quot; + resource, e);
+        }
+    }
+
+    private static TokenNameFinderModel loadNameFinderFromFile(
+            Path file, boolean required) throws NLPModelException {
+<span class="nc bnc" id="L165" title="All 2 branches missed.">        if (!Files.exists(file)) {</span>
+<span class="nc bnc" id="L166" title="All 2 branches missed.">            if (required) {</span>
+<span class="nc" id="L167">                throw new NLPModelException(</span>
+                    &quot;Required OpenNLP model file not found: &quot; + file
+                  + &quot;\nDownload it from https://opennlp.sourceforge.net/models-1.5/&quot;);
+            }
+<span class="nc" id="L171">            return null;</span>
+        }
+<span class="nc" id="L173">        try (InputStream is = Files.newInputStream(file)) {</span>
+<span class="nc" id="L174">            return new TokenNameFinderModel(is);</span>
+<span class="nc" id="L175">        } catch (IOException e) {</span>
+<span class="nc" id="L176">            throw new NLPModelException(</span>
+                &quot;Failed to load OpenNLP model file: &quot; + file, e);
+        }
+    }
+
+    private static TokenizerModel loadTokenizerFromFile(Path file) throws NLPModelException {
+<span class="nc bnc" id="L182" title="All 2 branches missed.">        if (!Files.exists(file)) return null;  // optional</span>
+<span class="nc" id="L183">        try (InputStream is = Files.newInputStream(file)) {</span>
+<span class="nc" id="L184">            return new TokenizerModel(is);</span>
+<span class="nc" id="L185">        } catch (IOException e) {</span>
+<span class="nc" id="L186">            throw new NLPModelException(</span>
+                &quot;Failed to load OpenNLP tokenizer model file: &quot; + file, e);
+        }
+    }
+
+    // ── Result type ───────────────────────────────────────────────────────────
+
+    /**
+     * Holds the OpenNLP model objects loaded from disk or classpath.
+     *
+     * &lt;p&gt;{@code personModel} is guaranteed non-null (it is required).
+     * {@code organizationModel} and {@code tokenizerModel} may be {@code null}
+     * if the corresponding model files were absent; callers degrade gracefully
+     * when these are {@code null}.&lt;/p&gt;
+     *
+     * @param personModel       MaxEnt NER model for person names (never {@code null})
+     * @param organizationModel MaxEnt NER model for organisation names (may be {@code null})
+     * @param tokenizerModel    MaxEnt tokenizer model (may be {@code null};
+     *                          {@link opennlp.tools.tokenize.WhitespaceTokenizer} is used
+     *                          as fallback)
+     */
+<span class="nc" id="L207">    public record LoadedModels(</span>
+        TokenNameFinderModel personModel,
+        TokenNameFinderModel organizationModel,
+        TokenizerModel       tokenizerModel
+    ) {}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

@@ -4,6 +4,7 @@ import com.semanticprivacyguard.detector.MLDetector;
 import com.semanticprivacyguard.model.PIIType;
 import com.semanticprivacyguard.tokenizer.PIITokenizer.RedactionMode;
 
+import java.nio.file.Path;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Objects;
@@ -14,12 +15,24 @@ import java.util.Set;
  *
  * &lt;p&gt;Use the nested {@link Builder} to construct instances:&lt;/p&gt;
  * &lt;pre&gt;{@code
+ * // Default — heuristic + ML, no NLP
  * SPGConfig config = SPGConfig.builder()
  *     .redactionMode(RedactionMode.TOKEN)
  *     .mlConfidenceThreshold(0.70)
  *     .enabledTypes(Set.of(PIIType.EMAIL, PIIType.SSN, PIIType.CREDIT_CARD))
  *     .minimumSeverity(6)
  *     .buildReverseMap(true)
+ *     .build();
+ *
+ * // Full three-layer pipeline with NLP models from classpath
+ * SPGConfig nlpConfig = SPGConfig.builder()
+ *     .nlpEnabled(true)
+ *     .build();
+ *
+ * // Full three-layer pipeline with NLP models from the filesystem
+ * SPGConfig nlpConfig = SPGConfig.builder()
+ *     .nlpEnabled(true)
+ *     .nlpModelsDirectory(Path.of(&quot;/opt/nlp-models&quot;))
  *     .build();
  * }&lt;/pre&gt;
  *
@@ -30,54 +43,70 @@ public final class SPGConfig {
 
     // ── Defaults ──────────────────────────────────────────────────────────────
 
-<span class="fc" id="L33">    public static final RedactionMode DEFAULT_REDACTION_MODE   = RedactionMode.TOKEN;</span>
-    public static final double        DEFAULT_ML_THRESHOLD     = MLDetector.DEFAULT_CONFIDENCE_THRESHOLD;
-    public static final int           DEFAULT_MIN_SEVERITY     = 1;
-    public static final boolean       DEFAULT_BUILD_REVERSE_MAP= true;
-    public static final boolean       DEFAULT_HEURISTIC_ENABLED= true;
-    public static final boolean       DEFAULT_ML_ENABLED       = true;
+<span class="nc" id="L46">    public static final RedactionMode DEFAULT_REDACTION_MODE    = RedactionMode.TOKEN;</span>
+    public static final double        DEFAULT_ML_THRESHOLD      = MLDetector.DEFAULT_CONFIDENCE_THRESHOLD;
+    public static final double        DEFAULT_NLP_THRESHOLD     = 0.70;
+    public static final int           DEFAULT_MIN_SEVERITY      = 1;
+    public static final boolean       DEFAULT_BUILD_REVERSE_MAP = true;
+    public static final boolean       DEFAULT_HEURISTIC_ENABLED = true;
+    public static final boolean       DEFAULT_ML_ENABLED        = true;
+    public static final boolean       DEFAULT_NLP_ENABLED       = false;
 
     // ── Fields ────────────────────────────────────────────────────────────────
 
     private final RedactionMode  redactionMode;
     private final double         mlConfidenceThreshold;
-    private final Set&lt;PIIType&gt;   enabledTypes;          // empty = all types
+    private final double         nlpConfidenceThreshold;
+    private final Set&lt;PIIType&gt;   enabledTypes;           // empty = all types
     private final int            minimumSeverity;
     private final boolean        buildReverseMap;
     private final boolean        heuristicEnabled;
     private final boolean        mlEnabled;
+    private final boolean        nlpEnabled;
+    private final Path           nlpModelsDirectory;     // null = load from classpath
 
-<span class="fc" id="L50">    private SPGConfig(Builder b) {</span>
-<span class="fc" id="L51">        this.redactionMode          = b.redactionMode;</span>
-<span class="fc" id="L52">        this.mlConfidenceThreshold  = b.mlConfidenceThreshold;</span>
-<span class="fc bfc" id="L53" title="All 2 branches covered.">        this.enabledTypes           = b.enabledTypes.isEmpty()</span>
-<span class="fc" id="L54">                                      ? Collections.emptySet()</span>
-<span class="fc" id="L55">                                      : Collections.unmodifiableSet(</span>
-<span class="fc" id="L56">                                            EnumSet.copyOf(b.enabledTypes));</span>
-<span class="fc" id="L57">        this.minimumSeverity        = b.minimumSeverity;</span>
-<span class="fc" id="L58">        this.buildReverseMap        = b.buildReverseMap;</span>
-<span class="fc" id="L59">        this.heuristicEnabled       = b.heuristicEnabled;</span>
-<span class="fc" id="L60">        this.mlEnabled              = b.mlEnabled;</span>
-<span class="fc" id="L61">    }</span>
+<span class="nc" id="L68">    private SPGConfig(Builder b) {</span>
+<span class="nc" id="L69">        this.redactionMode          = b.redactionMode;</span>
+<span class="nc" id="L70">        this.mlConfidenceThreshold  = b.mlConfidenceThreshold;</span>
+<span class="nc" id="L71">        this.nlpConfidenceThreshold = b.nlpConfidenceThreshold;</span>
+<span class="nc bnc" id="L72" title="All 2 branches missed.">        this.enabledTypes           = b.enabledTypes.isEmpty()</span>
+<span class="nc" id="L73">                                      ? Collections.emptySet()</span>
+<span class="nc" id="L74">                                      : Collections.unmodifiableSet(</span>
+<span class="nc" id="L75">                                            EnumSet.copyOf(b.enabledTypes));</span>
+<span class="nc" id="L76">        this.minimumSeverity        = b.minimumSeverity;</span>
+<span class="nc" id="L77">        this.buildReverseMap        = b.buildReverseMap;</span>
+<span class="nc" id="L78">        this.heuristicEnabled       = b.heuristicEnabled;</span>
+<span class="nc" id="L79">        this.mlEnabled              = b.mlEnabled;</span>
+<span class="nc" id="L80">        this.nlpEnabled             = b.nlpEnabled;</span>
+<span class="nc" id="L81">        this.nlpModelsDirectory     = b.nlpModelsDirectory;</span>
+<span class="nc" id="L82">    }</span>
 
     // ── Accessors ─────────────────────────────────────────────────────────────
 
-<span class="fc" id="L65">    public RedactionMode getRedactionMode()         { return redactionMode;         }</span>
-<span class="fc" id="L66">    public double        getMlConfidenceThreshold() { return mlConfidenceThreshold; }</span>
+<span class="nc" id="L86">    public RedactionMode getRedactionMode()         { return redactionMode;         }</span>
+<span class="nc" id="L87">    public double        getMlConfidenceThreshold() { return mlConfidenceThreshold; }</span>
+<span class="nc" id="L88">    public double        getNlpConfidenceThreshold(){ return nlpConfidenceThreshold;}</span>
     /** Returns the set of enabled types; empty set means all types are enabled. */
-<span class="fc" id="L68">    public Set&lt;PIIType&gt;  getEnabledTypes()          { return enabledTypes;          }</span>
-<span class="fc" id="L69">    public int           getMinimumSeverity()       { return minimumSeverity;       }</span>
-<span class="fc" id="L70">    public boolean       isBuildReverseMap()        { return buildReverseMap;       }</span>
-<span class="fc" id="L71">    public boolean       isHeuristicEnabled()       { return heuristicEnabled;      }</span>
-<span class="fc" id="L72">    public boolean       isMlEnabled()              { return mlEnabled;             }</span>
+<span class="nc" id="L90">    public Set&lt;PIIType&gt;  getEnabledTypes()          { return enabledTypes;          }</span>
+<span class="nc" id="L91">    public int           getMinimumSeverity()       { return minimumSeverity;       }</span>
+<span class="nc" id="L92">    public boolean       isBuildReverseMap()        { return buildReverseMap;       }</span>
+<span class="nc" id="L93">    public boolean       isHeuristicEnabled()       { return heuristicEnabled;      }</span>
+<span class="nc" id="L94">    public boolean       isMlEnabled()              { return mlEnabled;             }</span>
+<span class="nc" id="L95">    public boolean       isNlpEnabled()             { return nlpEnabled;            }</span>
+
+    /**
+     * Returns the directory from which OpenNLP model files are loaded,
+     * or {@code null} if models should be loaded from the classpath.
+     */
+<span class="nc" id="L101">    public Path          getNlpModelsDirectory()    { return nlpModelsDirectory;    }</span>
 
     // ── Factory ───────────────────────────────────────────────────────────────
 
     /** Returns a builder pre-loaded with default values. */
-<span class="fc" id="L77">    public static Builder builder() { return new Builder(); }</span>
+<span class="nc" id="L106">    public static Builder builder() { return new Builder(); }</span>
 
     /** Returns a default configuration instance. */
-<span class="fc" id="L80">    public static SPGConfig defaults() { return builder().build(); }</span>
+<span class="nc" id="L109">    public static SPGConfig defaults() { return builder().build(); }</span>
 
     // ─────────────────────────────────────────────────────────────────────────
 
@@ -86,15 +115,18 @@ public final class SPGConfig {
      */
     public static final class Builder {
 
-<span class="fc" id="L89">        private RedactionMode redactionMode         = DEFAULT_REDACTION_MODE;</span>
-<span class="fc" id="L90">        private double        mlConfidenceThreshold = DEFAULT_ML_THRESHOLD;</span>
-<span class="fc" id="L91">        private Set&lt;PIIType&gt;  enabledTypes          = EnumSet.noneOf(PIIType.class);</span>
-<span class="fc" id="L92">        private int           minimumSeverity       = DEFAULT_MIN_SEVERITY;</span>
-<span class="fc" id="L93">        private boolean       buildReverseMap       = DEFAULT_BUILD_REVERSE_MAP;</span>
-<span class="fc" id="L94">        private boolean       heuristicEnabled      = DEFAULT_HEURISTIC_ENABLED;</span>
-<span class="fc" id="L95">        private boolean       mlEnabled             = DEFAULT_ML_ENABLED;</span>
+<span class="nc" id="L118">        private RedactionMode redactionMode          = DEFAULT_REDACTION_MODE;</span>
+<span class="nc" id="L119">        private double        mlConfidenceThreshold  = DEFAULT_ML_THRESHOLD;</span>
+<span class="nc" id="L120">        private double        nlpConfidenceThreshold = DEFAULT_NLP_THRESHOLD;</span>
+<span class="nc" id="L121">        private Set&lt;PIIType&gt;  enabledTypes           = EnumSet.noneOf(PIIType.class);</span>
+<span class="nc" id="L122">        private int           minimumSeverity        = DEFAULT_MIN_SEVERITY;</span>
+<span class="nc" id="L123">        private boolean       buildReverseMap        = DEFAULT_BUILD_REVERSE_MAP;</span>
+<span class="nc" id="L124">        private boolean       heuristicEnabled       = DEFAULT_HEURISTIC_ENABLED;</span>
+<span class="nc" id="L125">        private boolean       mlEnabled              = DEFAULT_ML_ENABLED;</span>
+<span class="nc" id="L126">        private boolean       nlpEnabled             = DEFAULT_NLP_ENABLED;</span>
+<span class="nc" id="L127">        private Path          nlpModelsDirectory     = null;</span>
 
-<span class="fc" id="L97">        private Builder() {}</span>
+<span class="nc" id="L129">        private Builder() {}</span>
 
         /**
          * Sets the output redaction mode.
@@ -103,8 +135,8 @@ public final class SPGConfig {
          *             or {@code BLANK}
          */
         public Builder redactionMode(RedactionMode mode) {
-<span class="fc" id="L106">            this.redactionMode = Objects.requireNonNull(mode);</span>
-<span class="fc" id="L107">            return this;</span>
+<span class="nc" id="L138">            this.redactionMode = Objects.requireNonNull(mode);</span>
+<span class="nc" id="L139">            return this;</span>
         }
 
         /**
@@ -115,10 +147,25 @@ public final class SPGConfig {
          * @param threshold value in (0.0, 1.0]
          */
         public Builder mlConfidenceThreshold(double threshold) {
-<span class="nc bnc" id="L118" title="All 4 branches missed.">            if (threshold &lt;= 0.0 || threshold &gt; 1.0) throw new IllegalArgumentException(</span>
+<span class="nc bnc" id="L150" title="All 4 branches missed.">            if (threshold &lt;= 0.0 || threshold &gt; 1.0) throw new IllegalArgumentException(</span>
                 &quot;threshold must be in (0.0, 1.0]&quot;);
-<span class="nc" id="L120">            this.mlConfidenceThreshold = threshold;</span>
-<span class="nc" id="L121">            return this;</span>
+<span class="nc" id="L152">            this.mlConfidenceThreshold = threshold;</span>
+<span class="nc" id="L153">            return this;</span>
+        }
+
+        /**
+         * Sets the minimum OpenNLP {@code NameFinderME} probability for a named entity
+         * to be accepted as a PII match.  Entities with probability below this
+         * threshold are silently discarded.
+         * Default: {@value DEFAULT_NLP_THRESHOLD}.
+         *
+         * @param threshold value in (0.0, 1.0]
+         */
+        public Builder nlpConfidenceThreshold(double threshold) {
+<span class="nc bnc" id="L165" title="All 4 branches missed.">            if (threshold &lt;= 0.0 || threshold &gt; 1.0) throw new IllegalArgumentException(</span>
+                &quot;threshold must be in (0.0, 1.0]&quot;);
+<span class="nc" id="L167">            this.nlpConfidenceThreshold = threshold;</span>
+<span class="nc" id="L168">            return this;</span>
         }
 
         /**
@@ -129,9 +176,9 @@ public final class SPGConfig {
          * @param types the subset of types to detect
          */
         public Builder enabledTypes(Set&lt;PIIType&gt; types) {
-<span class="pc bpc" id="L132" title="1 of 2 branches missed.">            this.enabledTypes = types == null ? EnumSet.noneOf(PIIType.class)</span>
-<span class="fc" id="L133">                                              : EnumSet.copyOf(types);</span>
-<span class="fc" id="L134">            return this;</span>
+<span class="nc bnc" id="L179" title="All 2 branches missed.">            this.enabledTypes = types == null ? EnumSet.noneOf(PIIType.class)</span>
+<span class="nc" id="L180">                                              : EnumSet.copyOf(types);</span>
+<span class="nc" id="L181">            return this;</span>
         }
 
         /**
@@ -143,10 +190,10 @@ public final class SPGConfig {
          * @param severity minimum severity; default is {@value DEFAULT_MIN_SEVERITY}
          */
         public Builder minimumSeverity(int severity) {
-<span class="pc bpc" id="L146" title="2 of 4 branches missed.">            if (severity &lt; 1 || severity &gt; 10) throw new IllegalArgumentException(</span>
+<span class="nc bnc" id="L193" title="All 4 branches missed.">            if (severity &lt; 1 || severity &gt; 10) throw new IllegalArgumentException(</span>
                 &quot;severity must be between 1 and 10&quot;);
-<span class="fc" id="L148">            this.minimumSeverity = severity;</span>
-<span class="fc" id="L149">            return this;</span>
+<span class="nc" id="L195">            this.minimumSeverity = severity;</span>
+<span class="nc" id="L196">            return this;</span>
         }
 
         /**
@@ -156,17 +203,17 @@ public final class SPGConfig {
          * @param build {@code true} to populate the map (default)
          */
         public Builder buildReverseMap(boolean build) {
-<span class="fc" id="L159">            this.buildReverseMap = build;</span>
-<span class="fc" id="L160">            return this;</span>
+<span class="nc" id="L206">            this.buildReverseMap = build;</span>
+<span class="nc" id="L207">            return this;</span>
         }
 
         /**
          * Enables or disables the heuristic (regex) detection layer.
-         * Disabling is useful for benchmarking or if you only want ML results.
+         * Disabling is useful for benchmarking or if you only want ML/NLP results.
          */
         public Builder heuristicEnabled(boolean enabled) {
-<span class="nc" id="L168">            this.heuristicEnabled = enabled;</span>
-<span class="nc" id="L169">            return this;</span>
+<span class="nc" id="L215">            this.heuristicEnabled = enabled;</span>
+<span class="nc" id="L216">            return this;</span>
         }
 
         /**
@@ -175,29 +222,67 @@ public final class SPGConfig {
          * structural PII needs to be caught.
          */
         public Builder mlEnabled(boolean enabled) {
-<span class="nc" id="L178">            this.mlEnabled = enabled;</span>
-<span class="nc" id="L179">            return this;</span>
+<span class="nc" id="L225">            this.mlEnabled = enabled;</span>
+<span class="nc" id="L226">            return this;</span>
+        }
+
+        /**
+         * Enables the Apache OpenNLP Named Entity Recognition layer, which
+         * significantly improves detection of person names and organisation names
+         * in natural language text.
+         *
+         * &lt;p&gt;Requires {@code opennlp-tools} on the runtime classpath and at least
+         * the {@code en-ner-person.bin} model file.  See the README for model
+         * download and placement instructions.&lt;/p&gt;
+         *
+         * &lt;p&gt;Default: {@code false} (opt-in to keep the default footprint
+         * zero-dependency).&lt;/p&gt;
+         *
+         * @param enabled {@code true} to activate the NLP layer
+         */
+        public Builder nlpEnabled(boolean enabled) {
+<span class="nc" id="L244">            this.nlpEnabled = enabled;</span>
+<span class="nc" id="L245">            return this;</span>
+        }
+
+        /**
+         * Specifies the directory from which OpenNLP model files are loaded.
+         * If {@code null} (the default), SPG looks for models on the classpath
+         * under {@code models/} (e.g. {@code models/en-ner-person.bin}).
+         *
+         * &lt;p&gt;Only relevant when {@link #nlpEnabled(boolean)} is {@code true}.&lt;/p&gt;
+         *
+         * @param directory path to a directory containing {@code en-ner-person.bin}
+         *                  and optionally {@code en-ner-organization.bin} and
+         *                  {@code en-token.bin}; may be {@code null}
+         */
+        public Builder nlpModelsDirectory(Path directory) {
+<span class="nc" id="L260">            this.nlpModelsDirectory = directory;</span>
+<span class="nc" id="L261">            return this;</span>
         }
 
         /** Builds and returns an immutable {@link SPGConfig}. */
         public SPGConfig build() {
-<span class="pc bpc" id="L184" title="3 of 4 branches missed.">            if (!heuristicEnabled &amp;&amp; !mlEnabled) {</span>
-<span class="nc" id="L185">                throw new IllegalStateException(</span>
-                    &quot;At least one of heuristicEnabled or mlEnabled must be true.&quot;);
+<span class="nc bnc" id="L266" title="All 6 branches missed.">            if (!heuristicEnabled &amp;&amp; !mlEnabled &amp;&amp; !nlpEnabled) {</span>
+<span class="nc" id="L267">                throw new IllegalStateException(</span>
+                    &quot;At least one detector must be enabled: heuristicEnabled, &quot;
+                  + &quot;mlEnabled, or nlpEnabled.&quot;);
             }
-<span class="fc" id="L188">            return new SPGConfig(this);</span>
+<span class="nc" id="L271">            return new SPGConfig(this);</span>
         }
     }
 
     @Override
     public String toString() {
-<span class="nc" id="L194">        return String.format(</span>
-            &quot;SPGConfig{mode=%s, mlThreshold=%.2f, enabledTypes=%s, &quot;
-          + &quot;minSeverity=%d, reverseMap=%b, heuristic=%b, ml=%b}&quot;,
-<span class="nc" id="L197">            redactionMode, mlConfidenceThreshold,</span>
-<span class="nc bnc" id="L198" title="All 2 branches missed.">            enabledTypes.isEmpty() ? &quot;ALL&quot; : enabledTypes,</span>
-<span class="nc" id="L199">            minimumSeverity, buildReverseMap,</span>
-<span class="nc" id="L200">            heuristicEnabled, mlEnabled);</span>
+<span class="nc" id="L277">        return String.format(</span>
+            &quot;SPGConfig{mode=%s, mlThreshold=%.2f, nlpThreshold=%.2f, &quot;
+          + &quot;enabledTypes=%s, minSeverity=%d, reverseMap=%b, &quot;
+          + &quot;heuristic=%b, ml=%b, nlp=%b, nlpModels=%s}&quot;,
+<span class="nc" id="L281">            redactionMode, mlConfidenceThreshold, nlpConfidenceThreshold,</span>
+<span class="nc bnc" id="L282" title="All 2 branches missed.">            enabledTypes.isEmpty() ? &quot;ALL&quot; : enabledTypes,</span>
+<span class="nc" id="L283">            minimumSeverity, buildReverseMap,</span>
+<span class="nc" id="L284">            heuristicEnabled, mlEnabled, nlpEnabled,</span>
+<span class="nc bnc" id="L285" title="All 2 branches missed.">            nlpModelsDirectory != null ? nlpModelsDirectory : &quot;classpath&quot;);</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

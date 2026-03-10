@@ -28,7 +28,9 @@ public final class PIIMatch implements Comparable<PIIMatch> {
         HEURISTIC,
         /** Classified as PII by the Naive Bayes context model. */
         ML,
-        /** Matched both heuristic and ML paths. */
+        /** Identified by the Apache OpenNLP Named Entity Recogniser. */
+        NLP,
+        /** Matched by two or more detection layers independently. */
         HYBRID
     }
 

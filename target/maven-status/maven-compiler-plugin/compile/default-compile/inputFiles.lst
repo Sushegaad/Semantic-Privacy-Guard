@@ -3,6 +3,7 @@
 /Users/varsha/GitHub-Repository-Destination/Semantic-Privacy-Guard/Semantic-Privacy-Guard/src/main/java/com/semanticprivacyguard/detector/CompositeDetector.java
 /Users/varsha/GitHub-Repository-Destination/Semantic-Privacy-Guard/Semantic-Privacy-Guard/src/main/java/com/semanticprivacyguard/detector/HeuristicDetector.java
 /Users/varsha/GitHub-Repository-Destination/Semantic-Privacy-Guard/Semantic-Privacy-Guard/src/main/java/com/semanticprivacyguard/detector/MLDetector.java
+/Users/varsha/GitHub-Repository-Destination/Semantic-Privacy-Guard/Semantic-Privacy-Guard/src/main/java/com/semanticprivacyguard/detector/NLPDetector.java
 /Users/varsha/GitHub-Repository-Destination/Semantic-Privacy-Guard/Semantic-Privacy-Guard/src/main/java/com/semanticprivacyguard/detector/PIIDetector.java
 /Users/varsha/GitHub-Repository-Destination/Semantic-Privacy-Guard/Semantic-Privacy-Guard/src/main/java/com/semanticprivacyguard/ml/FeatureExtractor.java
 /Users/varsha/GitHub-Repository-Destination/Semantic-Privacy-Guard/Semantic-Privacy-Guard/src/main/java/com/semanticprivacyguard/ml/NaiveBayesClassifier.java
@@ -10,6 +11,8 @@
 /Users/varsha/GitHub-Repository-Destination/Semantic-Privacy-Guard/Semantic-Privacy-Guard/src/main/java/com/semanticprivacyguard/model/PIIMatch.java
 /Users/varsha/GitHub-Repository-Destination/Semantic-Privacy-Guard/Semantic-Privacy-Guard/src/main/java/com/semanticprivacyguard/model/PIIType.java
 /Users/varsha/GitHub-Repository-Destination/Semantic-Privacy-Guard/Semantic-Privacy-Guard/src/main/java/com/semanticprivacyguard/model/RedactionResult.java
+/Users/varsha/GitHub-Repository-Destination/Semantic-Privacy-Guard/Semantic-Privacy-Guard/src/main/java/com/semanticprivacyguard/nlp/NLPModelException.java
+/Users/varsha/GitHub-Repository-Destination/Semantic-Privacy-Guard/Semantic-Privacy-Guard/src/main/java/com/semanticprivacyguard/nlp/NLPModelLoader.java
 /Users/varsha/GitHub-Repository-Destination/Semantic-Privacy-Guard/Semantic-Privacy-Guard/src/main/java/com/semanticprivacyguard/stream/StreamProcessor.java
 /Users/varsha/GitHub-Repository-Destination/Semantic-Privacy-Guard/Semantic-Privacy-Guard/src/main/java/com/semanticprivacyguard/stream/StreamRedactionSummary.java
 /Users/varsha/GitHub-Repository-Destination/Semantic-Privacy-Guard/Semantic-Privacy-Guard/src/main/java/com/semanticprivacyguard/tokenizer/PIITokenizer.java

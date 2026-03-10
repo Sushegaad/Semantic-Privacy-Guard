@@ -11,14 +11,15 @@
        ================================================================ -->
   <groupId>io.github.sushegaad</groupId>
   <artifactId>semantic-privacy-guard</artifactId>
-  <version>1.0.0</version>
+  <version>1.1.0</version>
   <packaging>jar</packaging>
 
   <name>Semantic Privacy Guard</name>
   <description>
-    A lightweight, zero-dependency Java middleware library that intercepts text,
-    identifies sensitive PII using a hybrid heuristic + Naive Bayes ML approach,
-    and redacts it before it leaves the corporate network — built for the AI era.
+    A lightweight Java middleware library that intercepts text, identifies sensitive PII
+    using a three-layer hybrid approach (Regex + Naive Bayes ML + Apache OpenNLP NER),
+    and redacts it before it leaves the corporate network — with stream-based processing
+    for memory-efficient handling of large files and log streams.
   </description>
   <url>https://github.com/Sushegaad/Semantic-Privacy-Guard</url>
   <inceptionYear>2026</inceptionYear>
@@ -69,18 +70,33 @@
     <central-publishing-plugin.version>0.7.0</central-publishing-plugin.version>
     <jacoco-maven-plugin.version>0.8.11</jacoco-maven-plugin.version>
 
-    <!-- Test dependency versions -->
+    <!-- Dependency versions -->
     <junit.version>5.10.2</junit.version>
+    <opennlp.version>2.3.3</opennlp.version>
   </properties>
 
   <dependencies>
-    <!-- ===== TEST SCOPE ONLY — zero runtime dependencies ===== -->
+
+    <!-- ===== Apache OpenNLP — optional; enables the NLP detection layer =====
+         Mark as optional so it is NOT pulled in transitively for library users
+         who do not call SemanticPrivacyGuard with nlpEnabled(true).
+         Users who want NLP must add this dependency themselves plus download
+         the Apache OpenNLP model files (see README.md#nlp-setup).       -->
+    <dependency>
+      <groupId>org.apache.opennlp</groupId>
+      <artifactId>opennlp-tools</artifactId>
+      <version>${opennlp.version}</version>
+      <optional>true</optional>
+    </dependency>
+
+    <!-- ===== TEST SCOPE ONLY ===== -->
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
       <version>${junit.version}</version>
       <scope>test</scope>
     </dependency>
+
   </dependencies>
 
   <build>

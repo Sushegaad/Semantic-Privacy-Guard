@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>NLPModelException.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Semantic Privacy Guard</a> &gt; <a href="index.source.html" class="el_package">com.semanticprivacyguard.nlp</a> &gt; <span class="el_source">NLPModelException.java</span></div><h1>NLPModelException.java</h1><pre class="source lang-java linenums">package com.semanticprivacyguard.nlp;
+
+/**
+ * Thrown when Apache OpenNLP model files cannot be found or loaded.
+ *
+ * &lt;p&gt;This exception is raised at {@code SemanticPrivacyGuard} construction time
+ * when {@code nlpEnabled(true)} is set in the configuration but one or more
+ * required model files are missing or unreadable.&lt;/p&gt;
+ *
+ * &lt;h2&gt;Common causes and fixes&lt;/h2&gt;
+ * &lt;ul&gt;
+ *   &lt;li&gt;&lt;b&gt;Classpath models not present&lt;/b&gt; — download {@code en-ner-person.bin}
+ *       from the Apache OpenNLP model repository and place it at
+ *       {@code src/main/resources/models/en-ner-person.bin}.&lt;/li&gt;
+ *   &lt;li&gt;&lt;b&gt;Filesystem directory not found&lt;/b&gt; — verify the path passed to
+ *       {@code SPGConfig.builder().nlpModelsDirectory(path)} exists and is
+ *       readable.&lt;/li&gt;
+ *   &lt;li&gt;&lt;b&gt;Corrupt model file&lt;/b&gt; — delete and re-download the model.&lt;/li&gt;
+ * &lt;/ul&gt;
+ *
+ * &lt;p&gt;See the README section &lt;em&gt;NLP Setup&lt;/em&gt; for full download and
+ * configuration instructions.&lt;/p&gt;
+ *
+ * @author Hemant Naik
+ * @since 1.1.0
+ */
+public class NLPModelException extends Exception {
+
+    /**
+     * Constructs a new {@code NLPModelException} with the given detail message.
+     *
+     * @param message human-readable description of the failure
+     */
+    public NLPModelException(String message) {
+<span class="nc" id="L35">        super(message);</span>
+<span class="nc" id="L36">    }</span>
+
+    /**
+     * Constructs a new {@code NLPModelException} with a detail message and cause.
+     *
+     * @param message human-readable description of the failure
+     * @param cause   the underlying I/O or classpath error
+     */
+    public NLPModelException(String message, Throwable cause) {
+<span class="nc" id="L45">        super(message, cause);</span>
+<span class="nc" id="L46">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

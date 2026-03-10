@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>NLPDetector.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Semantic Privacy Guard</a> &gt; <a href="index.source.html" class="el_package">com.semanticprivacyguard.detector</a> &gt; <span class="el_source">NLPDetector.java</span></div><h1>NLPDetector.java</h1><pre class="source lang-java linenums">package com.semanticprivacyguard.detector;
+
+import com.semanticprivacyguard.model.PIIMatch;
+import com.semanticprivacyguard.model.PIIType;
+import com.semanticprivacyguard.nlp.NLPModelLoader.LoadedModels;
+
+import opennlp.tools.namefind.NameFinderME;
+import opennlp.tools.namefind.TokenNameFinderModel;
+import opennlp.tools.tokenize.TokenizerME;
+import opennlp.tools.tokenize.WhitespaceTokenizer;
+import opennlp.tools.util.Span;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+
+/**
+ * &lt;b&gt;PII detector backed by Apache OpenNLP Named Entity Recognition.&lt;/b&gt;
+ *
+ * &lt;p&gt;Supplements the {@link HeuristicDetector} and {@link MLDetector} with
+ * a proper Maximum Entropy (MaxEnt) NER model trained on large corpora.
+ * OpenNLP understands multi-token person names ({@code &quot;John Michael Smith&quot;}),
+ * compound organisation names ({@code &quot;Barclays Bank PLC&quot;}), and
+ * names that appear in varied syntactic positions — cases that trip up the
+ * bag-of-words Naive Bayes layer.&lt;/p&gt;
+ *
+ * &lt;h2&gt;Detected types&lt;/h2&gt;
+ * &lt;ul&gt;
+ *   &lt;li&gt;{@link PIIType#PERSON_NAME} — from {@code en-ner-person.bin}&lt;/li&gt;
+ *   &lt;li&gt;{@link PIIType#ORGANIZATION} — from {@code en-ner-organization.bin}
+ *       (only if that model was loaded)&lt;/li&gt;
+ * &lt;/ul&gt;
+ *
+ * &lt;h2&gt;Thread safety&lt;/h2&gt;
+ *
+ * &lt;p&gt;{@link NameFinderME} maintains per-call &lt;em&gt;adaptive data&lt;/em&gt; that
+ * accumulates evidence across tokens in a document.  It is &lt;b&gt;not thread-safe&lt;/b&gt;.
+ * This class uses {@link ThreadLocal} to give each thread its own
+ * {@code NameFinderME} wrapper (initialized lazily from the shared, immutable
+ * {@link TokenNameFinderModel}).  Adaptive data is cleared after every
+ * {@link #detect} call so no state bleeds between requests.&lt;/p&gt;
+ *
+ * &lt;p&gt;With Java 17+ virtual threads each virtual thread gets its own wrapper
+ * instance; since {@code NameFinderME} is lightweight (it holds only adaptive
+ * state), the per-thread overhead is negligible.&lt;/p&gt;
+ *
+ * @author Hemant Naik
+ * @since 1.1.0
+ * @see com.semanticprivacyguard.nlp.NLPModelLoader
+ */
+public final class NLPDetector implements PIIDetector {
+
+    private final double minProbability;
+
+    // Immutable, thread-safe model objects shared across all threads
+    private final TokenNameFinderModel personModel;
+    private final TokenNameFinderModel organizationModel; // may be null
+
+    // Thread-local NameFinderME wrappers — one per thread, lazily initialized
+    private final ThreadLocal&lt;NameFinderME&gt; personFinder;
+    private final ThreadLocal&lt;NameFinderME&gt; organizationFinder; // may produce null
+    private final ThreadLocal&lt;TokenizerME&gt;  tokenizerME;        // may produce null
+
+    // Shared immutable WhitespaceTokenizer fallback
+    private final boolean useWhitespaceTokenizer;
+
+    /**
+     * Creates an {@code NLPDetector} from pre-loaded OpenNLP models.
+     *
+     * @param models         models loaded via {@link com.semanticprivacyguard.nlp.NLPModelLoader}
+     *                       (never {@code null})
+     * @param minProbability minimum OpenNLP entity probability to accept as a match;
+     *                       entities with probability below this value are discarded
+     */
+<span class="nc" id="L75">    public NLPDetector(LoadedModels models, double minProbability) {</span>
+<span class="nc" id="L76">        Objects.requireNonNull(models,              &quot;models must not be null&quot;);</span>
+<span class="nc" id="L77">        Objects.requireNonNull(models.personModel(),&quot;person model must not be null&quot;);</span>
+
+<span class="nc" id="L79">        this.minProbability    = minProbability;</span>
+<span class="nc" id="L80">        this.personModel       = models.personModel();</span>
+<span class="nc" id="L81">        this.organizationModel = models.organizationModel();</span>
+
+        // Lazy-init ThreadLocals — each thread creates its own NameFinderME wrapper
+<span class="nc" id="L84">        this.personFinder = ThreadLocal.withInitial(</span>
+<span class="nc" id="L85">            () -&gt; new NameFinderME(personModel));</span>
+
+<span class="nc bnc" id="L87" title="All 2 branches missed.">        this.organizationFinder = (organizationModel != null)</span>
+<span class="nc" id="L88">            ? ThreadLocal.withInitial(() -&gt; new NameFinderME(organizationModel))</span>
+<span class="nc" id="L89">            : null;</span>
+
+<span class="nc bnc" id="L91" title="All 2 branches missed.">        this.useWhitespaceTokenizer = (models.tokenizerModel() == null);</span>
+<span class="nc bnc" id="L92" title="All 2 branches missed.">        this.tokenizerME = (!useWhitespaceTokenizer)</span>
+<span class="nc" id="L93">            ? ThreadLocal.withInitial(() -&gt; new TokenizerME(models.tokenizerModel()))</span>
+<span class="nc" id="L94">            : null;</span>
+<span class="nc" id="L95">    }</span>
+
+    @Override
+<span class="nc" id="L98">    public String name() { return &quot;NLPDetector&quot;; }</span>
+
+    // ── Detection ─────────────────────────────────────────────────────────────
+
+    /**
+     * Runs OpenNLP NER on {@code text} and returns all person-name and
+     * organisation-name spans that meet the configured probability threshold.
+     *
+     * &lt;p&gt;Adaptive data is cleared after each call so no state leaks between
+     * requests.  The method is safe to call concurrently from many threads.&lt;/p&gt;
+     *
+     * @param text the input text (never {@code null})
+     * @return mutable list of PII matches; empty if none found
+     */
+    @Override
+    public List&lt;PIIMatch&gt; detect(String text) {
+<span class="nc bnc" id="L114" title="All 4 branches missed.">        if (text == null || text.isBlank()) return List.of();</span>
+
+        // ── Tokenize ──────────────────────────────────────────────────────────
+        // tokenPositions[i] = character span of the i-th token in 'text'
+        Span[]   tokenPositions;
+        String[] tokens;
+
+<span class="nc bnc" id="L121" title="All 2 branches missed.">        if (useWhitespaceTokenizer) {</span>
+<span class="nc" id="L122">            tokenPositions = WhitespaceTokenizer.INSTANCE.tokenizePos(text);</span>
+<span class="nc" id="L123">            tokens         = Span.spansToStrings(tokenPositions, text);</span>
+        } else {
+<span class="nc" id="L125">            TokenizerME tok = tokenizerME.get();</span>
+<span class="nc" id="L126">            tokenPositions  = tok.tokenizePos(text);</span>
+<span class="nc" id="L127">            tokens          = Span.spansToStrings(tokenPositions, text);</span>
+        }
+
+<span class="nc bnc" id="L130" title="All 2 branches missed.">        if (tokens.length == 0) return List.of();</span>
+
+<span class="nc" id="L132">        List&lt;PIIMatch&gt; matches = new ArrayList&lt;&gt;();</span>
+
+        // ── Person NER ────────────────────────────────────────────────────────
+<span class="nc" id="L135">        NameFinderME pf = personFinder.get();</span>
+        try {
+<span class="nc" id="L137">            Span[] personSpans = pf.find(tokens);</span>
+<span class="nc" id="L138">            collectMatches(personSpans, tokenPositions, text, PIIType.PERSON_NAME, matches);</span>
+        } finally {
+<span class="nc" id="L140">            pf.clearAdaptiveData();</span>
+        }
+
+        // ── Organisation NER (optional) ───────────────────────────────────────
+<span class="nc bnc" id="L144" title="All 2 branches missed.">        if (organizationFinder != null) {</span>
+<span class="nc" id="L145">            NameFinderME of = organizationFinder.get();</span>
+            try {
+<span class="nc" id="L147">                Span[] orgSpans = of.find(tokens);</span>
+<span class="nc" id="L148">                collectMatches(orgSpans, tokenPositions, text, PIIType.ORGANIZATION, matches);</span>
+            } finally {
+<span class="nc" id="L150">                of.clearAdaptiveData();</span>
+            }
+        }
+
+<span class="nc" id="L154">        return matches;</span>
+    }
+
+    // ── Private ───────────────────────────────────────────────────────────────
+
+    /**
+     * Maps OpenNLP token-space {@code Span} objects back to character offsets
+     * in the original text and creates {@link PIIMatch} instances for each
+     * entity that meets {@code minProbability}.
+     */
+    private void collectMatches(Span[]         entitySpans,
+                                 Span[]         tokenPositions,
+                                 String         text,
+                                 PIIType        type,
+                                 List&lt;PIIMatch&gt; out) {
+<span class="nc bnc" id="L169" title="All 2 branches missed.">        for (Span entity : entitySpans) {</span>
+<span class="nc bnc" id="L170" title="All 2 branches missed.">            if (entity.getProb() &lt; minProbability) continue;</span>
+
+<span class="nc" id="L172">            int startTok = entity.getStart();</span>
+<span class="nc" id="L173">            int endTok   = entity.getEnd() - 1;   // entity.getEnd() is exclusive</span>
+
+            // Guard against malformed spans
+<span class="nc bnc" id="L176" title="All 4 branches missed.">            if (startTok &gt;= tokenPositions.length || endTok &gt;= tokenPositions.length) continue;</span>
+
+<span class="nc" id="L178">            int charStart = tokenPositions[startTok].getStart();</span>
+<span class="nc" id="L179">            int charEnd   = tokenPositions[endTok].getEnd();</span>
+
+<span class="nc" id="L181">            String value = text.substring(charStart, charEnd).trim();</span>
+<span class="nc bnc" id="L182" title="All 2 branches missed.">            if (value.isEmpty()) continue;</span>
+
+<span class="nc" id="L184">            out.add(new PIIMatch(</span>
+                type,
+                value,
+                charStart,
+                charEnd,
+                PIIMatch.DetectionSource.NLP,
+<span class="nc" id="L190">                Math.min(entity.getProb(), 1.0)</span>
+            ));
+        }
+<span class="nc" id="L193">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

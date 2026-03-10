@@ -4,9 +4,12 @@ import com.semanticprivacyguard.config.SPGConfig;
 import com.semanticprivacyguard.detector.CompositeDetector;
 import com.semanticprivacyguard.detector.HeuristicDetector;
 import com.semanticprivacyguard.detector.MLDetector;
+import com.semanticprivacyguard.detector.NLPDetector;
 import com.semanticprivacyguard.detector.PIIDetector;
 import com.semanticprivacyguard.model.PIIMatch;
 import com.semanticprivacyguard.model.RedactionResult;
+import com.semanticprivacyguard.nlp.NLPModelException;
+import com.semanticprivacyguard.nlp.NLPModelLoader;
 import com.semanticprivacyguard.stream.StreamProcessor;
 import com.semanticprivacyguard.stream.StreamRedactionSummary;
 import com.semanticprivacyguard.tokenizer.PIITokenizer;
@@ -80,7 +83,7 @@ import java.util.List;
 public final class SemanticPrivacyGuard {
 
     /** Library version, aligned with pom.xml. */
-    public static final String VERSION = "1.0.0";
+    public static final String VERSION = "1.1.0";
 
     private final SPGConfig         config;
     private final CompositeDetector detector;
@@ -278,6 +281,7 @@ public final class SemanticPrivacyGuard {
 
     private static CompositeDetector buildDetector(SPGConfig cfg) {
         List<PIIDetector> detectors = new ArrayList<>();
+
         if (cfg.isHeuristicEnabled()) {
             detectors.add(new HeuristicDetector(cfg.getEnabledTypes()));
         }
@@ -288,6 +292,22 @@ public final class SemanticPrivacyGuard {
                 cfg.getMlConfidenceThreshold()
             ));
         }
+        if (cfg.isNlpEnabled()) {
+            try {
+                NLPModelLoader.LoadedModels models =
+                    (cfg.getNlpModelsDirectory() != null)
+                        ? NLPModelLoader.fromDirectory(cfg.getNlpModelsDirectory())
+                        : NLPModelLoader.fromClasspath();
+                detectors.add(new NLPDetector(models, cfg.getNlpConfidenceThreshold()));
+            } catch (NLPModelException e) {
+                throw new IllegalStateException(
+                    "NLP is enabled but models could not be loaded — "
+                  + e.getMessage()
+                  + ". See README.md#nlp-setup for model download instructions.",
+                    e);
+            }
+        }
+
         return new CompositeDetector(detectors);
     }
 }
