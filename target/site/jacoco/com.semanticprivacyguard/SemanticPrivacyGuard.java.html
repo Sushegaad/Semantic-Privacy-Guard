@@ -91,11 +91,11 @@ public final class SemanticPrivacyGuard {
 
     // ── Construction ──────────────────────────────────────────────────────────
 
-<span class="nc" id="L94">    private SemanticPrivacyGuard(SPGConfig config) {</span>
-<span class="nc" id="L95">        this.config    = config;</span>
-<span class="nc" id="L96">        this.detector  = buildDetector(config);</span>
-<span class="nc" id="L97">        this.tokenizer = new PIITokenizer(config.getRedactionMode());</span>
-<span class="nc" id="L98">    }</span>
+<span class="fc" id="L94">    private SemanticPrivacyGuard(SPGConfig config) {</span>
+<span class="fc" id="L95">        this.config    = config;</span>
+<span class="fc" id="L96">        this.detector  = buildDetector(config);</span>
+<span class="fc" id="L97">        this.tokenizer = new PIITokenizer(config.getRedactionMode());</span>
+<span class="fc" id="L98">    }</span>
 
     /**
      * Creates a new instance with default configuration.
@@ -103,7 +103,7 @@ public final class SemanticPrivacyGuard {
      * @return a ready-to-use {@code SemanticPrivacyGuard}
      */
     public static SemanticPrivacyGuard create() {
-<span class="nc" id="L106">        return new SemanticPrivacyGuard(SPGConfig.defaults());</span>
+<span class="fc" id="L106">        return new SemanticPrivacyGuard(SPGConfig.defaults());</span>
     }
 
     /**
@@ -113,8 +113,8 @@ public final class SemanticPrivacyGuard {
      * @return a ready-to-use {@code SemanticPrivacyGuard}
      */
     public static SemanticPrivacyGuard create(SPGConfig config) {
-<span class="nc" id="L116">        return new SemanticPrivacyGuard(</span>
-<span class="nc" id="L117">            java.util.Objects.requireNonNull(config, &quot;config must not be null&quot;));</span>
+<span class="fc" id="L116">        return new SemanticPrivacyGuard(</span>
+<span class="fc" id="L117">            java.util.Objects.requireNonNull(config, &quot;config must not be null&quot;));</span>
     }
 
     // ── Core API ──────────────────────────────────────────────────────────────
@@ -129,39 +129,39 @@ public final class SemanticPrivacyGuard {
      *         returns a result wrapping the original text with no matches
      */
     public RedactionResult redact(String text) {
-<span class="nc bnc" id="L132" title="All 4 branches missed.">        if (text == null || text.isBlank()) {</span>
-<span class="nc" id="L133">            return new RedactionResult(</span>
-<span class="nc bnc" id="L134" title="All 2 branches missed.">                text == null ? &quot;&quot; : text,</span>
-<span class="nc bnc" id="L135" title="All 2 branches missed.">                text == null ? &quot;&quot; : text,</span>
-<span class="nc" id="L136">                Collections.emptyList(),</span>
-<span class="nc" id="L137">                Collections.emptyMap(),</span>
+<span class="pc bpc" id="L132" title="1 of 4 branches missed.">        if (text == null || text.isBlank()) {</span>
+<span class="fc" id="L133">            return new RedactionResult(</span>
+<span class="pc bpc" id="L134" title="1 of 2 branches missed.">                text == null ? &quot;&quot; : text,</span>
+<span class="pc bpc" id="L135" title="1 of 2 branches missed.">                text == null ? &quot;&quot; : text,</span>
+<span class="fc" id="L136">                Collections.emptyList(),</span>
+<span class="fc" id="L137">                Collections.emptyMap(),</span>
                 0L);
         }
 
-<span class="nc" id="L141">        long start = System.currentTimeMillis();</span>
+<span class="fc" id="L141">        long start = System.currentTimeMillis();</span>
 
         // Detect
-<span class="nc" id="L144">        List&lt;PIIMatch&gt; allMatches = detector.detect(text);</span>
+<span class="fc" id="L144">        List&lt;PIIMatch&gt; allMatches = detector.detect(text);</span>
 
         // Apply minimum severity filter
-<span class="nc" id="L147">        int minSev = config.getMinimumSeverity();</span>
-<span class="nc" id="L148">        List&lt;PIIMatch&gt; filtered = new ArrayList&lt;&gt;();</span>
-<span class="nc bnc" id="L149" title="All 2 branches missed.">        for (PIIMatch m : allMatches) {</span>
-<span class="nc bnc" id="L150" title="All 2 branches missed.">            if (m.getType().getSeverity() &gt;= minSev) filtered.add(m);</span>
-<span class="nc" id="L151">        }</span>
+<span class="fc" id="L147">        int minSev = config.getMinimumSeverity();</span>
+<span class="fc" id="L148">        List&lt;PIIMatch&gt; filtered = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L149" title="All 2 branches covered.">        for (PIIMatch m : allMatches) {</span>
+<span class="pc bpc" id="L150" title="1 of 2 branches missed.">            if (m.getType().getSeverity() &gt;= minSev) filtered.add(m);</span>
+<span class="fc" id="L151">        }</span>
 
         // Tokenize / redact
-<span class="nc" id="L154">        RedactionOutput output = tokenizer.redact(text, filtered);</span>
+<span class="fc" id="L154">        RedactionOutput output = tokenizer.redact(text, filtered);</span>
 
-<span class="nc" id="L156">        long elapsed = System.currentTimeMillis() - start;</span>
+<span class="fc" id="L156">        long elapsed = System.currentTimeMillis() - start;</span>
 
-<span class="nc" id="L158">        return new RedactionResult(</span>
+<span class="fc" id="L158">        return new RedactionResult(</span>
             text,
-<span class="nc" id="L160">            output.redactedText(),</span>
+<span class="fc" id="L160">            output.redactedText(),</span>
             filtered,
-<span class="nc bnc" id="L162" title="All 2 branches missed.">            config.isBuildReverseMap()</span>
-<span class="nc" id="L163">                ? output.reverseMap()</span>
-<span class="nc" id="L164">                : Collections.emptyMap(),</span>
+<span class="fc bfc" id="L162" title="All 2 branches covered.">            config.isBuildReverseMap()</span>
+<span class="fc" id="L163">                ? output.reverseMap()</span>
+<span class="fc" id="L164">                : Collections.emptyMap(),</span>
             elapsed
         );
     }
@@ -177,10 +177,10 @@ public final class SemanticPrivacyGuard {
      * @return {@code true} if PII was found
      */
     public boolean containsPII(String text) {
-<span class="nc bnc" id="L180" title="All 4 branches missed.">        if (text == null || text.isBlank()) return false;</span>
-<span class="nc" id="L181">        int minSev = config.getMinimumSeverity();</span>
-<span class="nc" id="L182">        return detector.detect(text).stream()</span>
-<span class="nc bnc" id="L183" title="All 2 branches missed.">            .anyMatch(m -&gt; m.getType().getSeverity() &gt;= minSev);</span>
+<span class="pc bpc" id="L180" title="2 of 4 branches missed.">        if (text == null || text.isBlank()) return false;</span>
+<span class="fc" id="L181">        int minSev = config.getMinimumSeverity();</span>
+<span class="fc" id="L182">        return detector.detect(text).stream()</span>
+<span class="pc bpc" id="L183" title="1 of 2 branches missed.">            .anyMatch(m -&gt; m.getType().getSeverity() &gt;= minSev);</span>
     }
 
     /**
@@ -192,11 +192,11 @@ public final class SemanticPrivacyGuard {
      * @return unmodifiable list of detected PII matches
      */
     public List&lt;PIIMatch&gt; analyse(String text) {
-<span class="nc bnc" id="L195" title="All 4 branches missed.">        if (text == null || text.isBlank()) return List.of();</span>
-<span class="nc" id="L196">        int minSev = config.getMinimumSeverity();</span>
-<span class="nc" id="L197">        return detector.detect(text).stream()</span>
-<span class="nc bnc" id="L198" title="All 2 branches missed.">            .filter(m -&gt; m.getType().getSeverity() &gt;= minSev)</span>
-<span class="nc" id="L199">            .toList();</span>
+<span class="pc bpc" id="L195" title="2 of 4 branches missed.">        if (text == null || text.isBlank()) return List.of();</span>
+<span class="fc" id="L196">        int minSev = config.getMinimumSeverity();</span>
+<span class="fc" id="L197">        return detector.detect(text).stream()</span>
+<span class="pc bpc" id="L198" title="1 of 2 branches missed.">            .filter(m -&gt; m.getType().getSeverity() &gt;= minSev)</span>
+<span class="fc" id="L199">            .toList();</span>
     }
 
     /**
@@ -225,7 +225,7 @@ public final class SemanticPrivacyGuard {
      * @return a new {@link StreamProcessor} sharing this instance's configuration
      */
     public StreamProcessor streamProcessor() {
-<span class="nc" id="L228">        return new StreamProcessor(config);</span>
+<span class="fc" id="L228">        return new StreamProcessor(config);</span>
     }
 
     /**
@@ -242,7 +242,7 @@ public final class SemanticPrivacyGuard {
      */
     public StreamRedactionSummary redactStream(InputStream in,
                                                OutputStream out) throws IOException {
-<span class="nc" id="L245">        return streamProcessor().redact(in, out);</span>
+<span class="fc" id="L245">        return streamProcessor().redact(in, out);</span>
     }
 
     /**
@@ -258,7 +258,7 @@ public final class SemanticPrivacyGuard {
      */
     public StreamRedactionSummary redactStream(Reader reader,
                                                Writer writer) throws IOException {
-<span class="nc" id="L261">        return streamProcessor().redact(reader, writer);</span>
+<span class="fc" id="L261">        return streamProcessor().redact(reader, writer);</span>
     }
 
     /**
@@ -274,41 +274,41 @@ public final class SemanticPrivacyGuard {
      */
     public StreamRedactionSummary redactPath(Path inputFile,
                                              Path outputFile) throws IOException {
-<span class="nc" id="L277">        return streamProcessor().redact(inputFile, outputFile);</span>
+<span class="fc" id="L277">        return streamProcessor().redact(inputFile, outputFile);</span>
     }
 
     // ── Private ───────────────────────────────────────────────────────────────
 
     private static CompositeDetector buildDetector(SPGConfig cfg) {
-<span class="nc" id="L283">        List&lt;PIIDetector&gt; detectors = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L283">        List&lt;PIIDetector&gt; detectors = new ArrayList&lt;&gt;();</span>
 
-<span class="nc bnc" id="L285" title="All 2 branches missed.">        if (cfg.isHeuristicEnabled()) {</span>
-<span class="nc" id="L286">            detectors.add(new HeuristicDetector(cfg.getEnabledTypes()));</span>
+<span class="pc bpc" id="L285" title="1 of 2 branches missed.">        if (cfg.isHeuristicEnabled()) {</span>
+<span class="fc" id="L286">            detectors.add(new HeuristicDetector(cfg.getEnabledTypes()));</span>
         }
-<span class="nc bnc" id="L288" title="All 2 branches missed.">        if (cfg.isMlEnabled()) {</span>
-<span class="nc" id="L289">            detectors.add(new MLDetector(</span>
-<span class="nc" id="L290">                com.semanticprivacyguard.ml.TrainingData.buildDefaultClassifier(),</span>
+<span class="pc bpc" id="L288" title="1 of 2 branches missed.">        if (cfg.isMlEnabled()) {</span>
+<span class="fc" id="L289">            detectors.add(new MLDetector(</span>
+<span class="fc" id="L290">                com.semanticprivacyguard.ml.TrainingData.buildDefaultClassifier(),</span>
                 new com.semanticprivacyguard.ml.FeatureExtractor(),
-<span class="nc" id="L292">                cfg.getMlConfidenceThreshold()</span>
+<span class="fc" id="L292">                cfg.getMlConfidenceThreshold()</span>
             ));
         }
-<span class="nc bnc" id="L295" title="All 2 branches missed.">        if (cfg.isNlpEnabled()) {</span>
+<span class="fc bfc" id="L295" title="All 2 branches covered.">        if (cfg.isNlpEnabled()) {</span>
             try {
                 NLPModelLoader.LoadedModels models =
-<span class="nc bnc" id="L298" title="All 2 branches missed.">                    (cfg.getNlpModelsDirectory() != null)</span>
+<span class="pc bpc" id="L298" title="1 of 2 branches missed.">                    (cfg.getNlpModelsDirectory() != null)</span>
 <span class="nc" id="L299">                        ? NLPModelLoader.fromDirectory(cfg.getNlpModelsDirectory())</span>
 <span class="nc" id="L300">                        : NLPModelLoader.fromClasspath();</span>
 <span class="nc" id="L301">                detectors.add(new NLPDetector(models, cfg.getNlpConfidenceThreshold()));</span>
-<span class="nc" id="L302">            } catch (NLPModelException e) {</span>
-<span class="nc" id="L303">                throw new IllegalStateException(</span>
+<span class="fc" id="L302">            } catch (NLPModelException e) {</span>
+<span class="fc" id="L303">                throw new IllegalStateException(</span>
                     &quot;NLP is enabled but models could not be loaded — &quot;
-<span class="nc" id="L305">                  + e.getMessage()</span>
+<span class="fc" id="L305">                  + e.getMessage()</span>
                   + &quot;. See README.md#nlp-setup for model download instructions.&quot;,
                     e);
 <span class="nc" id="L308">            }</span>
         }
 
-<span class="nc" id="L311">        return new CompositeDetector(detectors);</span>
+<span class="fc" id="L311">        return new CompositeDetector(detectors);</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

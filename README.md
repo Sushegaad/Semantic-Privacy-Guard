@@ -385,12 +385,6 @@ Requirements: JDK 17+ and Maven 3.8+.
 
 ---
 
-## Publishing to Maven Central
-
-See [PUBLISHING.md](PUBLISHING.md) for the GPG key + GitHub Secrets setup guide and step-by-step release instructions.
-
----
-
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md). Contributions especially welcome for:
@@ -407,16 +401,6 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). Contributions especially welcome for:
 See [SECURITY.md](SECURITY.md) for the CVE response process and responsible disclosure policy.
 
 The base library has zero runtime dependencies, eliminating supply-chain attack vectors. OpenNLP is an optional dependency and is only loaded when explicitly configured. All regex patterns are validated against catastrophic backtracking (ReDoS).
-
----
-
-## Docs
-
-- [Live Playground](https://sushegaad.github.io/Semantic-Privacy-Guard/docs/index.html) — try SPG in your browser
-- [Regex Design Decisions](docs/regex-design.md) — why SSN excludes `9xx`, Luhn validation, entropy filtering
-- [Benchmarks](docs/benchmarks.md) — throughput and accuracy vs alternatives
-- [Publishing Guide](PUBLISHING.md) — Maven Central release walkthrough
-- [Security Policy](SECURITY.md) — CVE process, disclosure timeline, scope
 
 ---
 

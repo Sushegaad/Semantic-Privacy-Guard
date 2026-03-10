@@ -89,7 +89,7 @@ import java.util.stream.Stream;
  */
 public final class StreamProcessor {
 
-<span class="nc" id="L92">    private static final Charset DEFAULT_CHARSET = StandardCharsets.UTF_8;</span>
+<span class="fc" id="L92">    private static final Charset DEFAULT_CHARSET = StandardCharsets.UTF_8;</span>
 
     private final SPGConfig          config;
     private final CompositeDetector  detector;
@@ -106,11 +106,11 @@ public final class StreamProcessor {
      *
      * @param config the detection and redaction configuration (never {@code null})
      */
-<span class="nc" id="L109">    public StreamProcessor(SPGConfig config) {</span>
-<span class="nc" id="L110">        this.config    = Objects.requireNonNull(config, &quot;config must not be null&quot;);</span>
-<span class="nc" id="L111">        this.detector  = buildDetector(config);</span>
-<span class="nc" id="L112">        this.tokenizer = new PIITokenizer(config.getRedactionMode());</span>
-<span class="nc" id="L113">    }</span>
+<span class="fc" id="L109">    public StreamProcessor(SPGConfig config) {</span>
+<span class="fc" id="L110">        this.config    = Objects.requireNonNull(config, &quot;config must not be null&quot;);</span>
+<span class="fc" id="L111">        this.detector  = buildDetector(config);</span>
+<span class="fc" id="L112">        this.tokenizer = new PIITokenizer(config.getRedactionMode());</span>
+<span class="fc" id="L113">    }</span>
 
     // ── Primary API: Reader / Writer ──────────────────────────────────────────
 
@@ -133,62 +133,62 @@ public final class StreamProcessor {
      * @throws IOException if any I/O error occurs
      */
     public StreamRedactionSummary redact(Reader reader, Writer writer) throws IOException {
-<span class="nc" id="L136">        Objects.requireNonNull(reader, &quot;reader must not be null&quot;);</span>
-<span class="nc" id="L137">        Objects.requireNonNull(writer, &quot;writer must not be null&quot;);</span>
+<span class="fc" id="L136">        Objects.requireNonNull(reader, &quot;reader must not be null&quot;);</span>
+<span class="fc" id="L137">        Objects.requireNonNull(writer, &quot;writer must not be null&quot;);</span>
 
-<span class="nc bnc" id="L139" title="All 2 branches missed.">        BufferedReader br = (reader instanceof BufferedReader b)</span>
-<span class="nc" id="L140">                          ? b : new BufferedReader(reader);</span>
-<span class="nc bnc" id="L141" title="All 2 branches missed.">        BufferedWriter bw = (writer instanceof BufferedWriter b)</span>
-<span class="nc" id="L142">                          ? b : new BufferedWriter(writer);</span>
+<span class="fc bfc" id="L139" title="All 2 branches covered.">        BufferedReader br = (reader instanceof BufferedReader b)</span>
+<span class="fc" id="L140">                          ? b : new BufferedReader(reader);</span>
+<span class="fc bfc" id="L141" title="All 2 branches covered.">        BufferedWriter bw = (writer instanceof BufferedWriter b)</span>
+<span class="fc" id="L142">                          ? b : new BufferedWriter(writer);</span>
 
         // Document-scoped state — one shared counter map per document so
         // [EMAIL_1], [EMAIL_2] are globally unique within this stream pass.
-<span class="nc" id="L146">        Map&lt;PIIType, Integer&gt; globalCounters   = new EnumMap&lt;&gt;(PIIType.class);</span>
-<span class="nc" id="L147">        Map&lt;PIIType, Long&gt;    matchCountByType = new EnumMap&lt;&gt;(PIIType.class);</span>
+<span class="fc" id="L146">        Map&lt;PIIType, Integer&gt; globalCounters   = new EnumMap&lt;&gt;(PIIType.class);</span>
+<span class="fc" id="L147">        Map&lt;PIIType, Long&gt;    matchCountByType = new EnumMap&lt;&gt;(PIIType.class);</span>
 
-<span class="nc" id="L149">        long totalLines   = 0;</span>
-<span class="nc" id="L150">        long linesWithPII = 0;</span>
-<span class="nc" id="L151">        long totalMatches = 0;</span>
-<span class="nc" id="L152">        int  minSev       = config.getMinimumSeverity();</span>
-<span class="nc" id="L153">        long start        = System.currentTimeMillis();</span>
+<span class="fc" id="L149">        long totalLines   = 0;</span>
+<span class="fc" id="L150">        long linesWithPII = 0;</span>
+<span class="fc" id="L151">        long totalMatches = 0;</span>
+<span class="fc" id="L152">        int  minSev       = config.getMinimumSeverity();</span>
+<span class="fc" id="L153">        long start        = System.currentTimeMillis();</span>
 
         // write-before pattern: newline is prepended to every line except the
         // first, so the last line has no trailing newline iff the source didn't.
-<span class="nc" id="L157">        boolean firstLine = true;</span>
+<span class="fc" id="L157">        boolean firstLine = true;</span>
         String  rawLine;
 
-<span class="nc bnc" id="L160" title="All 2 branches missed.">        while ((rawLine = br.readLine()) != null) {</span>
-<span class="nc bnc" id="L161" title="All 2 branches missed.">            if (!firstLine) bw.newLine();</span>
-<span class="nc" id="L162">            firstLine = false;</span>
-<span class="nc" id="L163">            totalLines++;</span>
+<span class="fc bfc" id="L160" title="All 2 branches covered.">        while ((rawLine = br.readLine()) != null) {</span>
+<span class="fc bfc" id="L161" title="All 2 branches covered.">            if (!firstLine) bw.newLine();</span>
+<span class="fc" id="L162">            firstLine = false;</span>
+<span class="fc" id="L163">            totalLines++;</span>
 
             // ── Detect ───────────────────────────────────────────────────────
-<span class="nc" id="L166">            List&lt;PIIMatch&gt; allMatches = detector.detect(rawLine);</span>
-<span class="nc" id="L167">            List&lt;PIIMatch&gt; filtered   = new ArrayList&lt;&gt;(allMatches.size());</span>
-<span class="nc bnc" id="L168" title="All 2 branches missed.">            for (PIIMatch m : allMatches) {</span>
-<span class="nc bnc" id="L169" title="All 2 branches missed.">                if (m.getType().getSeverity() &gt;= minSev) filtered.add(m);</span>
-<span class="nc" id="L170">            }</span>
+<span class="fc" id="L166">            List&lt;PIIMatch&gt; allMatches = detector.detect(rawLine);</span>
+<span class="fc" id="L167">            List&lt;PIIMatch&gt; filtered   = new ArrayList&lt;&gt;(allMatches.size());</span>
+<span class="fc bfc" id="L168" title="All 2 branches covered.">            for (PIIMatch m : allMatches) {</span>
+<span class="pc bpc" id="L169" title="1 of 2 branches missed.">                if (m.getType().getSeverity() &gt;= minSev) filtered.add(m);</span>
+<span class="fc" id="L170">            }</span>
 
             // ── Accumulate stats ─────────────────────────────────────────────
-<span class="nc bnc" id="L173" title="All 2 branches missed.">            if (!filtered.isEmpty()) {</span>
-<span class="nc" id="L174">                linesWithPII++;</span>
-<span class="nc" id="L175">                totalMatches += filtered.size();</span>
-<span class="nc bnc" id="L176" title="All 2 branches missed.">                for (PIIMatch m : filtered) {</span>
-<span class="nc" id="L177">                    matchCountByType.merge(m.getType(), 1L, Long::sum);</span>
-<span class="nc" id="L178">                }</span>
+<span class="fc bfc" id="L173" title="All 2 branches covered.">            if (!filtered.isEmpty()) {</span>
+<span class="fc" id="L174">                linesWithPII++;</span>
+<span class="fc" id="L175">                totalMatches += filtered.size();</span>
+<span class="fc bfc" id="L176" title="All 2 branches covered.">                for (PIIMatch m : filtered) {</span>
+<span class="fc" id="L177">                    matchCountByType.merge(m.getType(), 1L, Long::sum);</span>
+<span class="fc" id="L178">                }</span>
             }
 
             // ── Redact with shared counters, write immediately ────────────────
-<span class="nc" id="L182">            PIITokenizer.RedactionOutput output =</span>
-<span class="nc" id="L183">                tokenizer.redact(rawLine, filtered, globalCounters);</span>
-<span class="nc" id="L184">            bw.write(output.redactedText());</span>
-<span class="nc" id="L185">        }</span>
+<span class="fc" id="L182">            PIITokenizer.RedactionOutput output =</span>
+<span class="fc" id="L183">                tokenizer.redact(rawLine, filtered, globalCounters);</span>
+<span class="fc" id="L184">            bw.write(output.redactedText());</span>
+<span class="fc" id="L185">        }</span>
 
-<span class="nc" id="L187">        bw.flush();</span>
+<span class="fc" id="L187">        bw.flush();</span>
 
-<span class="nc" id="L189">        return new StreamRedactionSummary(</span>
+<span class="fc" id="L189">        return new StreamRedactionSummary(</span>
             totalLines, linesWithPII, totalMatches,
-<span class="nc" id="L191">            System.currentTimeMillis() - start,</span>
+<span class="fc" id="L191">            System.currentTimeMillis() - start,</span>
             matchCountByType);
     }
 
@@ -207,10 +207,10 @@ public final class StreamProcessor {
     public StreamRedactionSummary redact(InputStream in,
                                          OutputStream out,
                                          Charset charset) throws IOException {
-<span class="nc" id="L210">        Objects.requireNonNull(in,      &quot;in must not be null&quot;);</span>
-<span class="nc" id="L211">        Objects.requireNonNull(out,     &quot;out must not be null&quot;);</span>
-<span class="nc" id="L212">        Objects.requireNonNull(charset, &quot;charset must not be null&quot;);</span>
-<span class="nc" id="L213">        return redact(</span>
+<span class="fc" id="L210">        Objects.requireNonNull(in,      &quot;in must not be null&quot;);</span>
+<span class="fc" id="L211">        Objects.requireNonNull(out,     &quot;out must not be null&quot;);</span>
+<span class="fc" id="L212">        Objects.requireNonNull(charset, &quot;charset must not be null&quot;);</span>
+<span class="fc" id="L213">        return redact(</span>
             new InputStreamReader(in,  charset),
             new OutputStreamWriter(out, charset));
     }
@@ -225,7 +225,7 @@ public final class StreamProcessor {
      */
     public StreamRedactionSummary redact(InputStream in,
                                          OutputStream out) throws IOException {
-<span class="nc" id="L228">        return redact(in, out, DEFAULT_CHARSET);</span>
+<span class="fc" id="L228">        return redact(in, out, DEFAULT_CHARSET);</span>
     }
 
     // ── Path convenience ──────────────────────────────────────────────────────
@@ -251,11 +251,11 @@ public final class StreamProcessor {
      */
     public StreamRedactionSummary redact(Path inputFile,
                                          Path outputFile) throws IOException {
-<span class="nc" id="L254">        Objects.requireNonNull(inputFile,  &quot;inputFile must not be null&quot;);</span>
-<span class="nc" id="L255">        Objects.requireNonNull(outputFile, &quot;outputFile must not be null&quot;);</span>
-<span class="nc" id="L256">        try (BufferedReader reader = Files.newBufferedReader(inputFile,  DEFAULT_CHARSET);</span>
-<span class="nc" id="L257">             BufferedWriter writer = Files.newBufferedWriter(outputFile, DEFAULT_CHARSET)) {</span>
-<span class="nc" id="L258">            return redact(reader, writer);</span>
+<span class="fc" id="L254">        Objects.requireNonNull(inputFile,  &quot;inputFile must not be null&quot;);</span>
+<span class="fc" id="L255">        Objects.requireNonNull(outputFile, &quot;outputFile must not be null&quot;);</span>
+<span class="fc" id="L256">        try (BufferedReader reader = Files.newBufferedReader(inputFile,  DEFAULT_CHARSET);</span>
+<span class="fc" id="L257">             BufferedWriter writer = Files.newBufferedWriter(outputFile, DEFAULT_CHARSET)) {</span>
+<span class="fc" id="L258">            return redact(reader, writer);</span>
         }
     }
 
@@ -293,46 +293,46 @@ public final class StreamProcessor {
      * @throws IllegalArgumentException if {@code lines.isParallel()} is {@code true}
      */
     public Stream&lt;String&gt; redactLines(Stream&lt;String&gt; lines) {
-<span class="nc" id="L296">        Objects.requireNonNull(lines, &quot;lines must not be null&quot;);</span>
-<span class="nc bnc" id="L297" title="All 2 branches missed.">        if (lines.isParallel()) {</span>
-<span class="nc" id="L298">            throw new IllegalArgumentException(</span>
+<span class="fc" id="L296">        Objects.requireNonNull(lines, &quot;lines must not be null&quot;);</span>
+<span class="fc bfc" id="L297" title="All 2 branches covered.">        if (lines.isParallel()) {</span>
+<span class="fc" id="L298">            throw new IllegalArgumentException(</span>
                 &quot;redactLines() requires a sequential stream — call lines.sequential() first. &quot;
               + &quot;Parallel processing would produce non-deterministic token numbers.&quot;);
         }
 
         // Mutable state captured in the lambda closure — safe because the
         // stream is guaranteed sequential by the check above.
-<span class="nc" id="L305">        Map&lt;PIIType, Integer&gt; globalCounters = new EnumMap&lt;&gt;(PIIType.class);</span>
-<span class="nc" id="L306">        int minSev = config.getMinimumSeverity();</span>
+<span class="fc" id="L305">        Map&lt;PIIType, Integer&gt; globalCounters = new EnumMap&lt;&gt;(PIIType.class);</span>
+<span class="fc" id="L306">        int minSev = config.getMinimumSeverity();</span>
 
-<span class="nc" id="L308">        return lines.map(line -&gt; {</span>
-<span class="nc bnc" id="L309" title="All 2 branches missed.">            if (line == null) return &quot;&quot;;</span>
+<span class="fc" id="L308">        return lines.map(line -&gt; {</span>
+<span class="pc bpc" id="L309" title="1 of 2 branches missed.">            if (line == null) return &quot;&quot;;</span>
 
-<span class="nc" id="L311">            List&lt;PIIMatch&gt; allMatches = detector.detect(line);</span>
-<span class="nc" id="L312">            List&lt;PIIMatch&gt; filtered   = new ArrayList&lt;&gt;(allMatches.size());</span>
-<span class="nc bnc" id="L313" title="All 2 branches missed.">            for (PIIMatch m : allMatches) {</span>
-<span class="nc bnc" id="L314" title="All 2 branches missed.">                if (m.getType().getSeverity() &gt;= minSev) filtered.add(m);</span>
-<span class="nc" id="L315">            }</span>
-<span class="nc" id="L316">            return tokenizer.redact(line, filtered, globalCounters).redactedText();</span>
+<span class="fc" id="L311">            List&lt;PIIMatch&gt; allMatches = detector.detect(line);</span>
+<span class="fc" id="L312">            List&lt;PIIMatch&gt; filtered   = new ArrayList&lt;&gt;(allMatches.size());</span>
+<span class="fc bfc" id="L313" title="All 2 branches covered.">            for (PIIMatch m : allMatches) {</span>
+<span class="pc bpc" id="L314" title="1 of 2 branches missed.">                if (m.getType().getSeverity() &gt;= minSev) filtered.add(m);</span>
+<span class="fc" id="L315">            }</span>
+<span class="fc" id="L316">            return tokenizer.redact(line, filtered, globalCounters).redactedText();</span>
         });
     }
 
     // ── Private ───────────────────────────────────────────────────────────────
 
     private static CompositeDetector buildDetector(SPGConfig cfg) {
-<span class="nc" id="L323">        List&lt;PIIDetector&gt; detectors = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L323">        List&lt;PIIDetector&gt; detectors = new ArrayList&lt;&gt;();</span>
 
-<span class="nc bnc" id="L325" title="All 2 branches missed.">        if (cfg.isHeuristicEnabled()) {</span>
-<span class="nc" id="L326">            detectors.add(new HeuristicDetector(cfg.getEnabledTypes()));</span>
+<span class="pc bpc" id="L325" title="1 of 2 branches missed.">        if (cfg.isHeuristicEnabled()) {</span>
+<span class="fc" id="L326">            detectors.add(new HeuristicDetector(cfg.getEnabledTypes()));</span>
         }
-<span class="nc bnc" id="L328" title="All 2 branches missed.">        if (cfg.isMlEnabled()) {</span>
-<span class="nc" id="L329">            detectors.add(new MLDetector(</span>
-<span class="nc" id="L330">                TrainingData.buildDefaultClassifier(),</span>
+<span class="pc bpc" id="L328" title="1 of 2 branches missed.">        if (cfg.isMlEnabled()) {</span>
+<span class="fc" id="L329">            detectors.add(new MLDetector(</span>
+<span class="fc" id="L330">                TrainingData.buildDefaultClassifier(),</span>
                 new FeatureExtractor(),
-<span class="nc" id="L332">                cfg.getMlConfidenceThreshold()</span>
+<span class="fc" id="L332">                cfg.getMlConfidenceThreshold()</span>
             ));
         }
-<span class="nc bnc" id="L335" title="All 2 branches missed.">        if (cfg.isNlpEnabled()) {</span>
+<span class="pc bpc" id="L335" title="1 of 2 branches missed.">        if (cfg.isNlpEnabled()) {</span>
             try {
                 NLPModelLoader.LoadedModels models =
 <span class="nc bnc" id="L338" title="All 2 branches missed.">                    (cfg.getNlpModelsDirectory() != null)</span>
@@ -348,7 +348,7 @@ public final class StreamProcessor {
 <span class="nc" id="L348">            }</span>
         }
 
-<span class="nc" id="L351">        return new CompositeDetector(detectors);</span>
+<span class="fc" id="L351">        return new CompositeDetector(detectors);</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

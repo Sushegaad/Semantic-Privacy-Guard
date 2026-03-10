@@ -23,15 +23,15 @@ import java.util.Objects;
 public final class PIIMatch implements Comparable&lt;PIIMatch&gt; {
 
     /** How a particular match was discovered. */
-<span class="nc" id="L26">    public enum DetectionSource {</span>
+<span class="fc" id="L26">    public enum DetectionSource {</span>
         /** Pattern matched a hard-coded regular expression. */
-<span class="nc" id="L28">        HEURISTIC,</span>
+<span class="fc" id="L28">        HEURISTIC,</span>
         /** Classified as PII by the Naive Bayes context model. */
-<span class="nc" id="L30">        ML,</span>
+<span class="fc" id="L30">        ML,</span>
         /** Identified by the Apache OpenNLP Named Entity Recogniser. */
-<span class="nc" id="L32">        NLP,</span>
+<span class="fc" id="L32">        NLP,</span>
         /** Matched by two or more detection layers independently. */
-<span class="nc" id="L34">        HYBRID</span>
+<span class="fc" id="L34">        HYBRID</span>
     }
 
     private final PIIType         type;
@@ -53,32 +53,32 @@ public final class PIIMatch implements Comparable&lt;PIIMatch&gt; {
      */
     public PIIMatch(PIIType type, String value,
                     int startIndex, int endIndex,
-<span class="nc" id="L56">                    DetectionSource source, double confidence) {</span>
-<span class="nc" id="L57">        Objects.requireNonNull(type,   &quot;type must not be null&quot;);</span>
-<span class="nc" id="L58">        Objects.requireNonNull(value,  &quot;value must not be null&quot;);</span>
-<span class="nc" id="L59">        Objects.requireNonNull(source, &quot;source must not be null&quot;);</span>
-<span class="nc bnc" id="L60" title="All 4 branches missed.">        if (startIndex &lt; 0 || endIndex &lt; startIndex) {</span>
+<span class="fc" id="L56">                    DetectionSource source, double confidence) {</span>
+<span class="fc" id="L57">        Objects.requireNonNull(type,   &quot;type must not be null&quot;);</span>
+<span class="fc" id="L58">        Objects.requireNonNull(value,  &quot;value must not be null&quot;);</span>
+<span class="fc" id="L59">        Objects.requireNonNull(source, &quot;source must not be null&quot;);</span>
+<span class="pc bpc" id="L60" title="2 of 4 branches missed.">        if (startIndex &lt; 0 || endIndex &lt; startIndex) {</span>
 <span class="nc" id="L61">            throw new IllegalArgumentException(</span>
                 &quot;Invalid span: [&quot; + startIndex + &quot;, &quot; + endIndex + &quot;)&quot;);
         }
-<span class="nc bnc" id="L64" title="All 4 branches missed.">        if (confidence &lt; 0.0 || confidence &gt; 1.0) {</span>
+<span class="pc bpc" id="L64" title="2 of 4 branches missed.">        if (confidence &lt; 0.0 || confidence &gt; 1.0) {</span>
 <span class="nc" id="L65">            throw new IllegalArgumentException(</span>
                 &quot;confidence must be in [0.0, 1.0], got: &quot; + confidence);
         }
-<span class="nc" id="L68">        this.type       = type;</span>
-<span class="nc" id="L69">        this.value      = value;</span>
-<span class="nc" id="L70">        this.startIndex = startIndex;</span>
-<span class="nc" id="L71">        this.endIndex   = endIndex;</span>
-<span class="nc" id="L72">        this.source     = source;</span>
-<span class="nc" id="L73">        this.confidence = confidence;</span>
-<span class="nc" id="L74">    }</span>
+<span class="fc" id="L68">        this.type       = type;</span>
+<span class="fc" id="L69">        this.value      = value;</span>
+<span class="fc" id="L70">        this.startIndex = startIndex;</span>
+<span class="fc" id="L71">        this.endIndex   = endIndex;</span>
+<span class="fc" id="L72">        this.source     = source;</span>
+<span class="fc" id="L73">        this.confidence = confidence;</span>
+<span class="fc" id="L74">    }</span>
 
     // ── Accessors ─────────────────────────────────────────────────────────────
 
-<span class="nc" id="L78">    public PIIType         getType()       { return type;       }</span>
-<span class="nc" id="L79">    public String          getValue()      { return value;      }</span>
-<span class="nc" id="L80">    public int             getStartIndex() { return startIndex; }</span>
-<span class="nc" id="L81">    public int             getEndIndex()   { return endIndex;   }</span>
+<span class="fc" id="L78">    public PIIType         getType()       { return type;       }</span>
+<span class="fc" id="L79">    public String          getValue()      { return value;      }</span>
+<span class="fc" id="L80">    public int             getStartIndex() { return startIndex; }</span>
+<span class="fc" id="L81">    public int             getEndIndex()   { return endIndex;   }</span>
 <span class="nc" id="L82">    public DetectionSource getSource()     { return source;     }</span>
 <span class="nc" id="L83">    public double          getConfidence() { return confidence; }</span>
 
@@ -100,8 +100,8 @@ public final class PIIMatch implements Comparable&lt;PIIMatch&gt; {
      *  (longest match first for the same start). */
     @Override
     public int compareTo(PIIMatch other) {
-<span class="nc" id="L103">        int cmp = Integer.compare(this.startIndex, other.startIndex);</span>
-<span class="nc bnc" id="L104" title="All 2 branches missed.">        if (cmp != 0) return cmp;</span>
+<span class="fc" id="L103">        int cmp = Integer.compare(this.startIndex, other.startIndex);</span>
+<span class="pc bpc" id="L104" title="1 of 2 branches missed.">        if (cmp != 0) return cmp;</span>
 <span class="nc" id="L105">        return Integer.compare(other.endIndex, this.endIndex); // longer first</span>
     }
 
