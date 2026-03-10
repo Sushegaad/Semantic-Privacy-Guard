@@ -48,11 +48,11 @@ public final class StreamRedactionSummary {
      * @param processingTimeMs wall-clock time for the full processing pass in ms
      * @param matchCountByType per-type match counts (defensive copy is taken)
      */
-    public StreamRedactionSummary(long               totalLines,
+<span class="fc" id="L51">    public StreamRedactionSummary(long               totalLines,</span>
                                   long               linesWithPII,
                                   long               totalMatches,
                                   long               processingTimeMs,
-<span class="fc" id="L55">                                  Map&lt;PIIType, Long&gt;  matchCountByType) {</span>
+                                  Map&lt;PIIType, Long&gt;  matchCountByType) {
 <span class="fc" id="L56">        this.totalLines        = totalLines;</span>
 <span class="fc" id="L57">        this.linesWithPII      = linesWithPII;</span>
 <span class="fc" id="L58">        this.totalMatches      = totalMatches;</span>
@@ -106,7 +106,7 @@ public final class StreamRedactionSummary {
     @Override
     public String toString() {
 <span class="fc" id="L108">        return String.format(</span>
-            &quot;StreamRedactionSummary[lines=%d, linesWithPII=%d, matches=%d, timeMs=%d]&quot;,
+<span class="fc" id="L109">            &quot;StreamRedactionSummary[lines=%d, linesWithPII=%d, matches=%d, timeMs=%d]&quot;,</span>
 <span class="fc" id="L110">            totalLines, linesWithPII, totalMatches, processingTimeMs);</span>
     }
 }

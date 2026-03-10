@@ -49,11 +49,11 @@ public final class RedactionResult {
      * @param reverseMap      token → original map (never {@code null})
      * @param processingTimeMs wall-clock duration in milliseconds
      */
-    public RedactionResult(String originalText,
+<span class="fc" id="L52">    public RedactionResult(String originalText,</span>
                            String redactedText,
                            List&lt;PIIMatch&gt; matches,
                            Map&lt;String, String&gt; reverseMap,
-<span class="fc" id="L56">                           long processingTimeMs) {</span>
+                           long processingTimeMs) {
 <span class="fc" id="L57">        this.originalText     = Objects.requireNonNull(originalText);</span>
 <span class="fc" id="L58">        this.redactedText     = Objects.requireNonNull(redactedText);</span>
 <span class="fc" id="L59">        this.matches          = Collections.unmodifiableList(</span>
@@ -112,7 +112,7 @@ public final class RedactionResult {
 <span class="nc" id="L112">                                    .distinct()</span>
 <span class="nc" id="L113">                                    .count();</span>
 <span class="nc" id="L114">        return String.format(</span>
-            &quot;RedactionResult[matches=%d, distinctTypes=%d, timeMs=%d]&quot;,
+<span class="nc" id="L115">            &quot;RedactionResult[matches=%d, distinctTypes=%d, timeMs=%d]&quot;,</span>
 <span class="nc" id="L116">            matches.size(), distinctTypes, processingTimeMs);</span>
     }
 }

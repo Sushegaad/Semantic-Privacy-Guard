@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>NLPModelLoader.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Semantic Privacy Guard</a> &gt; <a href="index.source.html" class="el_package">com.semanticprivacyguard.nlp</a> &gt; <span class="el_source">NLPModelLoader.java</span></div><h1>NLPModelLoader.java</h1><pre class="source lang-java linenums">package com.semanticprivacyguard.nlp;
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>NLPModelLoader.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Semantic Privacy Guard</a> &gt; <a href="index.source.html" class="el_package">com.semanticprivacyguard.nlp</a> &gt; <span class="el_source">NLPModelLoader.java</span></div><h1>NLPModelLoader.java</h1><pre class="source lang-java linenums"><span class="nc" id="L1">package com.semanticprivacyguard.nlp;</span>
 
 import opennlp.tools.namefind.TokenNameFinderModel;
 import opennlp.tools.tokenize.TokenizerModel;
@@ -83,7 +83,7 @@ public final class NLPModelLoader {
      *                           loaded from the classpath
      */
     public static LoadedModels fromClasspath() throws NLPModelException {
-<span class="fc" id="L86">        TokenNameFinderModel personModel =</span>
+<span class="nc" id="L86">        TokenNameFinderModel personModel =</span>
 <span class="nc" id="L87">            loadNameFinderFromClasspath(CLASSPATH_DIR + PERSON_MODEL, true);</span>
 
 <span class="nc" id="L89">        TokenNameFinderModel orgModel =</span>
@@ -107,12 +107,12 @@ public final class NLPModelLoader {
      *                           loaded from {@code directory}
      */
     public static LoadedModels fromDirectory(Path directory) throws NLPModelException {
-<span class="fc bfc" id="L110" title="All 2 branches covered.">        if (!Files.isDirectory(directory)) {</span>
+<span class="pc bpc" id="L110" title="1 of 2 branches missed.">        if (!Files.isDirectory(directory)) {</span>
 <span class="fc" id="L111">            throw new NLPModelException(</span>
-                &quot;NLP models directory does not exist or is not a directory: &quot; + directory);
+<span class="fc" id="L112">                &quot;NLP models directory does not exist or is not a directory: &quot; + directory);</span>
         }
 
-<span class="fc" id="L115">        TokenNameFinderModel personModel =</span>
+<span class="nc" id="L115">        TokenNameFinderModel personModel =</span>
 <span class="nc" id="L116">            loadNameFinderFromFile(directory.resolve(PERSON_MODEL), true);</span>
 
 <span class="nc" id="L118">        TokenNameFinderModel orgModel =</span>
@@ -133,9 +133,9 @@ public final class NLPModelLoader {
 <span class="pc bpc" id="L133" title="1 of 2 branches missed.">        if (is == null) {</span>
 <span class="pc bpc" id="L134" title="1 of 2 branches missed.">            if (required) {</span>
 <span class="fc" id="L135">                throw new NLPModelException(</span>
-                    &quot;Required OpenNLP model not found on classpath: &quot; + resource
+<span class="fc" id="L136">                    &quot;Required OpenNLP model not found on classpath: &quot; + resource</span>
                   + &quot;\nDownload it from https://opennlp.sourceforge.net/models-1.5/ &quot;
-                  + &quot;and place it at src/main/resources/&quot; + resource);
+<span class="fc" id="L138">                  + &quot;and place it at src/main/resources/&quot; + resource);</span>
             }
 <span class="nc" id="L140">            return null;</span>
         }
@@ -143,7 +143,7 @@ public final class NLPModelLoader {
 <span class="nc" id="L143">            return new TokenNameFinderModel(stream);</span>
 <span class="nc" id="L144">        } catch (IOException e) {</span>
 <span class="nc" id="L145">            throw new NLPModelException(</span>
-                &quot;Failed to load OpenNLP model from classpath: &quot; + resource, e);
+<span class="nc" id="L146">                &quot;Failed to load OpenNLP model from classpath: &quot; + resource, e);</span>
         }
     }
 
@@ -156,7 +156,7 @@ public final class NLPModelLoader {
 <span class="nc" id="L156">            return new TokenizerModel(stream);</span>
 <span class="nc" id="L157">        } catch (IOException e) {</span>
 <span class="nc" id="L158">            throw new NLPModelException(</span>
-                &quot;Failed to load OpenNLP tokenizer model from classpath: &quot; + resource, e);
+<span class="nc" id="L159">                &quot;Failed to load OpenNLP tokenizer model from classpath: &quot; + resource, e);</span>
         }
     }
 
@@ -165,7 +165,7 @@ public final class NLPModelLoader {
 <span class="pc bpc" id="L165" title="1 of 2 branches missed.">        if (!Files.exists(file)) {</span>
 <span class="pc bpc" id="L166" title="1 of 2 branches missed.">            if (required) {</span>
 <span class="fc" id="L167">                throw new NLPModelException(</span>
-                    &quot;Required OpenNLP model file not found: &quot; + file
+<span class="fc" id="L168">                    &quot;Required OpenNLP model file not found: &quot; + file</span>
                   + &quot;\nDownload it from https://opennlp.sourceforge.net/models-1.5/&quot;);
             }
 <span class="nc" id="L171">            return null;</span>
@@ -174,7 +174,7 @@ public final class NLPModelLoader {
 <span class="nc" id="L174">            return new TokenNameFinderModel(is);</span>
 <span class="nc" id="L175">        } catch (IOException e) {</span>
 <span class="nc" id="L176">            throw new NLPModelException(</span>
-                &quot;Failed to load OpenNLP model file: &quot; + file, e);
+<span class="nc" id="L177">                &quot;Failed to load OpenNLP model file: &quot; + file, e);</span>
         }
     }
 
@@ -184,7 +184,7 @@ public final class NLPModelLoader {
 <span class="nc" id="L184">            return new TokenizerModel(is);</span>
 <span class="nc" id="L185">        } catch (IOException e) {</span>
 <span class="nc" id="L186">            throw new NLPModelException(</span>
-                &quot;Failed to load OpenNLP tokenizer model file: &quot; + file, e);
+<span class="nc" id="L187">                &quot;Failed to load OpenNLP tokenizer model file: &quot; + file, e);</span>
         }
     }
 
@@ -204,7 +204,7 @@ public final class NLPModelLoader {
      *                          {@link opennlp.tools.tokenize.WhitespaceTokenizer} is used
      *                          as fallback)
      */
-<span class="nc" id="L207">    public record LoadedModels(</span>
+    public record LoadedModels(
         TokenNameFinderModel personModel,
         TokenNameFinderModel organizationModel,
         TokenizerModel       tokenizerModel

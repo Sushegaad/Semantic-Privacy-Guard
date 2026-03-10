@@ -16,7 +16,7 @@
 
   <name>Semantic Privacy Guard</name>
   <description>
-    A lightweight Java middleware library that intercepts text, identifies sensitive PII
+    A Java middleware library that intercepts text, identifies sensitive PII
     using a three-layer hybrid approach (Regex + Naive Bayes ML + Apache OpenNLP NER),
     and redacts it before it leaves the corporate network — with stream-based processing
     for memory-efficient handling of large files and log streams.

@@ -135,7 +135,7 @@ public final class SemanticPrivacyGuard {
 <span class="pc bpc" id="L135" title="1 of 2 branches missed.">                text == null ? &quot;&quot; : text,</span>
 <span class="fc" id="L136">                Collections.emptyList(),</span>
 <span class="fc" id="L137">                Collections.emptyMap(),</span>
-                0L);
+<span class="fc" id="L138">                0L);</span>
         }
 
 <span class="fc" id="L141">        long start = System.currentTimeMillis();</span>
@@ -148,7 +148,7 @@ public final class SemanticPrivacyGuard {
 <span class="fc" id="L148">        List&lt;PIIMatch&gt; filtered = new ArrayList&lt;&gt;();</span>
 <span class="fc bfc" id="L149" title="All 2 branches covered.">        for (PIIMatch m : allMatches) {</span>
 <span class="pc bpc" id="L150" title="1 of 2 branches missed.">            if (m.getType().getSeverity() &gt;= minSev) filtered.add(m);</span>
-<span class="fc" id="L151">        }</span>
+        }
 
         // Tokenize / redact
 <span class="fc" id="L154">        RedactionOutput output = tokenizer.redact(text, filtered);</span>
@@ -156,13 +156,13 @@ public final class SemanticPrivacyGuard {
 <span class="fc" id="L156">        long elapsed = System.currentTimeMillis() - start;</span>
 
 <span class="fc" id="L158">        return new RedactionResult(</span>
-            text,
+<span class="fc" id="L159">            text,</span>
 <span class="fc" id="L160">            output.redactedText(),</span>
-            filtered,
+<span class="fc" id="L161">            filtered,</span>
 <span class="fc bfc" id="L162" title="All 2 branches covered.">            config.isBuildReverseMap()</span>
 <span class="fc" id="L163">                ? output.reverseMap()</span>
 <span class="fc" id="L164">                : Collections.emptyMap(),</span>
-            elapsed
+<span class="fc" id="L165">            elapsed</span>
         );
     }
 
@@ -288,24 +288,24 @@ public final class SemanticPrivacyGuard {
 <span class="pc bpc" id="L288" title="1 of 2 branches missed.">        if (cfg.isMlEnabled()) {</span>
 <span class="fc" id="L289">            detectors.add(new MLDetector(</span>
 <span class="fc" id="L290">                com.semanticprivacyguard.ml.TrainingData.buildDefaultClassifier(),</span>
-                new com.semanticprivacyguard.ml.FeatureExtractor(),
+<span class="fc" id="L291">                new com.semanticprivacyguard.ml.FeatureExtractor(),</span>
 <span class="fc" id="L292">                cfg.getMlConfidenceThreshold()</span>
             ));
         }
 <span class="fc bfc" id="L295" title="All 2 branches covered.">        if (cfg.isNlpEnabled()) {</span>
             try {
-                NLPModelLoader.LoadedModels models =
+<span class="nc" id="L297">                NLPModelLoader.LoadedModels models =</span>
 <span class="pc bpc" id="L298" title="1 of 2 branches missed.">                    (cfg.getNlpModelsDirectory() != null)</span>
 <span class="nc" id="L299">                        ? NLPModelLoader.fromDirectory(cfg.getNlpModelsDirectory())</span>
 <span class="nc" id="L300">                        : NLPModelLoader.fromClasspath();</span>
 <span class="nc" id="L301">                detectors.add(new NLPDetector(models, cfg.getNlpConfidenceThreshold()));</span>
-<span class="fc" id="L302">            } catch (NLPModelException e) {</span>
+<span class="pc" id="L302">            } catch (NLPModelException e) {</span>
 <span class="fc" id="L303">                throw new IllegalStateException(</span>
-                    &quot;NLP is enabled but models could not be loaded — &quot;
+<span class="fc" id="L304">                    &quot;NLP is enabled but models could not be loaded — &quot;</span>
 <span class="fc" id="L305">                  + e.getMessage()</span>
                   + &quot;. See README.md#nlp-setup for model download instructions.&quot;,
-                    e);
-<span class="nc" id="L308">            }</span>
+<span class="fc" id="L307">                    e);</span>
+            }
         }
 
 <span class="fc" id="L311">        return new CompositeDetector(detectors);</span>

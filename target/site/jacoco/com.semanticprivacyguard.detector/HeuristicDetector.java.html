@@ -93,7 +93,7 @@ public final class HeuristicDetector implements PIIDetector {
 <span class="fc bfc" id="L93" title="All 2 branches covered.">                    &amp;&amp; TextUtils.luhnCheck(digits)) {</span>
 <span class="fc" id="L94">                out.add(match(PIIType.CREDIT_CARD, raw, m.start(), m.end(), 1.0));</span>
             }
-<span class="fc" id="L96">        }</span>
+        }
 <span class="fc" id="L97">    }</span>
 
     private void detectEmail(String text, List&lt;PIIMatch&gt; out) {
@@ -110,7 +110,7 @@ public final class HeuristicDetector implements PIIDetector {
 <span class="pc bpc" id="L110" title="2 of 4 branches missed.">                    || (digits.length() == 11 &amp;&amp; digits.charAt(0) == '1')) {</span>
 <span class="fc" id="L111">                out.add(match(PIIType.PHONE, raw, m.start(), m.end(), 0.90));</span>
             }
-<span class="fc" id="L113">        }</span>
+        }
 <span class="fc" id="L114">    }</span>
 
     private void detectIpAddresses(String text, List&lt;PIIMatch&gt; out) {
@@ -128,7 +128,7 @@ public final class HeuristicDetector implements PIIDetector {
 <span class="nc" id="L128">                continue;</span>
             }
 <span class="fc" id="L130">            out.add(match(PIIType.API_KEY, raw, m.start(), m.end(), 0.93));</span>
-<span class="fc" id="L131">        }</span>
+        }
 <span class="fc" id="L132">    }</span>
 
     private void detectPassword(String text, List&lt;PIIMatch&gt; out) {
@@ -165,7 +165,7 @@ public final class HeuristicDetector implements PIIDetector {
     private PIIMatch match(PIIType type, String value,
                            int start, int end, double confidence) {
 <span class="fc" id="L167">        return new PIIMatch(type, value, start, end,</span>
-                            DetectionSource.HEURISTIC, confidence);
+<span class="fc" id="L168">                            DetectionSource.HEURISTIC, confidence);</span>
     }
 
     private boolean isEnabled(PIIType type) {

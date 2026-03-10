@@ -13,60 +13,60 @@
  */
 <span class="fc" id="L14">public enum PIIType {</span>
 
-    // ── Highest sensitivity ──────────────────────────────────────────────────
+<span class="fc" id="L16">    // ── Highest sensitivity ──────────────────────────────────────────────────</span>
 
     /** US Social Security Number (e.g. {@code 123-45-6789}). */
 <span class="fc" id="L19">    SSN(&quot;SSN&quot;, 10),</span>
 
-    /** Payment card number validated by the Luhn algorithm. */
+<span class="fc" id="L21">    /** Payment card number validated by the Luhn algorithm. */</span>
 <span class="fc" id="L22">    CREDIT_CARD(&quot;CREDIT_CARD&quot;, 10),</span>
 
-    /** API key, OAuth token, JWT, or similar bearer credential. */
+<span class="fc" id="L24">    /** API key, OAuth token, JWT, or similar bearer credential. */</span>
 <span class="fc" id="L25">    API_KEY(&quot;API_KEY&quot;, 9),</span>
 
-    /** Password or passphrase literal appearing in plaintext. */
+<span class="fc" id="L27">    /** Password or passphrase literal appearing in plaintext. */</span>
 <span class="fc" id="L28">    PASSWORD(&quot;PASSWORD&quot;, 9),</span>
 
-    // ── High sensitivity ─────────────────────────────────────────────────────
+<span class="fc" id="L30">    // ── High sensitivity ─────────────────────────────────────────────────────</span>
 
     /** Medical record number, diagnosis code, or HIPAA-protected identifier. */
 <span class="fc" id="L33">    MEDICAL_RECORD(&quot;MEDICAL_RECORD&quot;, 8),</span>
 
-    /** Bank account or routing number. */
+<span class="fc" id="L35">    /** Bank account or routing number. */</span>
 <span class="fc" id="L36">    BANK_ACCOUNT(&quot;BANK_ACCOUNT&quot;, 8),</span>
 
-    /** Passport, driver's licence, or national ID number. */
+<span class="fc" id="L38">    /** Passport, driver's licence, or national ID number. */</span>
 <span class="fc" id="L39">    GOVERNMENT_ID(&quot;GOVERNMENT_ID&quot;, 8),</span>
 
-    // ── Medium sensitivity ────────────────────────────────────────────────────
+<span class="fc" id="L41">    // ── Medium sensitivity ────────────────────────────────────────────────────</span>
 
     /** Personal or corporate email address. */
 <span class="fc" id="L44">    EMAIL(&quot;EMAIL&quot;, 6),</span>
 
-    /** Phone number in any common format. */
+<span class="fc" id="L46">    /** Phone number in any common format. */</span>
 <span class="fc" id="L47">    PHONE(&quot;PHONE&quot;, 6),</span>
 
-    /** Full name detected via ML context classifier. */
+<span class="fc" id="L49">    /** Full name detected via ML context classifier. */</span>
 <span class="fc" id="L50">    PERSON_NAME(&quot;PERSON_NAME&quot;, 6),</span>
 
-    /** Date of birth. */
+<span class="fc" id="L52">    /** Date of birth. */</span>
 <span class="fc" id="L53">    DATE_OF_BIRTH(&quot;DATE_OF_BIRTH&quot;, 6),</span>
 
-    // ── Lower sensitivity ─────────────────────────────────────────────────────
+<span class="fc" id="L55">    // ── Lower sensitivity ─────────────────────────────────────────────────────</span>
 
     /** Physical street address. */
 <span class="fc" id="L58">    ADDRESS(&quot;ADDRESS&quot;, 4),</span>
 
-    /** IPv4 or IPv6 address. */
+<span class="fc" id="L60">    /** IPv4 or IPv6 address. */</span>
 <span class="fc" id="L61">    IP_ADDRESS(&quot;IP_ADDRESS&quot;, 4),</span>
 
-    /** Organisation or company name detected via ML. */
+<span class="fc" id="L63">    /** Organisation or company name detected via ML. */</span>
 <span class="fc" id="L64">    ORGANIZATION(&quot;ORGANIZATION&quot;, 3),</span>
 
-    /** GPS / geolocation coordinates. */
+<span class="fc" id="L66">    /** GPS / geolocation coordinates. */</span>
 <span class="fc" id="L67">    COORDINATES(&quot;COORDINATES&quot;, 3),</span>
 
-    // ── Catch-all ─────────────────────────────────────────────────────────────
+<span class="fc" id="L69">    // ── Catch-all ─────────────────────────────────────────────────────────────</span>
 
     /**
      * Catch-all for generic sensitive tokens that do not fit a specific type

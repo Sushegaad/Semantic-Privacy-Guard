@@ -70,7 +70,7 @@ import java.util.*;
      */
     public void train(String label, List&lt;String&gt; features) {
 <span class="pc bpc" id="L72" title="1 of 2 branches missed.">        if (fitted) throw new IllegalStateException(</span>
-            &quot;Cannot train after finalizeFit() has been called.&quot;);
+<span class="nc" id="L73">            &quot;Cannot train after finalizeFit() has been called.&quot;);</span>
 <span class="fc" id="L74">        classDocCount.merge(label, 1, Integer::sum);</span>
 <span class="fc" id="L75">        Map&lt;String, Integer&gt; wc = classWordCount</span>
 <span class="fc" id="L76">            .computeIfAbsent(label, k -&gt; new HashMap&lt;&gt;());</span>
@@ -78,7 +78,7 @@ import java.util.*;
 <span class="fc" id="L78">            String lf = f.toLowerCase(Locale.ROOT);</span>
 <span class="fc" id="L79">            wc.merge(lf, 1, Integer::sum);</span>
 <span class="fc" id="L80">            vocabulary.add(lf);</span>
-<span class="fc" id="L81">        }</span>
+        }
 <span class="fc" id="L82">        totalDocCount++;</span>
 <span class="fc" id="L83">    }</span>
 
@@ -88,7 +88,7 @@ import java.util.*;
      */
     public void finalizeFit() {
 <span class="pc bpc" id="L90" title="1 of 2 branches missed.">        if (totalDocCount == 0) throw new IllegalStateException(</span>
-            &quot;No training examples provided.&quot;);
+<span class="nc" id="L91">            &quot;No training examples provided.&quot;);</span>
 <span class="fc" id="L92">        classes        = new ArrayList&lt;&gt;(classDocCount.keySet());</span>
 <span class="fc" id="L93">        logPriors      = new HashMap&lt;&gt;();</span>
 <span class="fc" id="L94">        logLikelihoods = new HashMap&lt;&gt;();</span>
@@ -97,7 +97,7 @@ import java.util.*;
 <span class="fc bfc" id="L97" title="All 2 branches covered.">        for (String cls : classes) {</span>
             // log prior
 <span class="fc" id="L99">            double prior = (double) classDocCount.getOrDefault(cls, 0)</span>
-                         / totalDocCount;
+<span class="fc" id="L100">                         / totalDocCount;</span>
 <span class="fc" id="L101">            logPriors.put(cls, Math.log(prior));</span>
 
             // log likelihood with Laplace smoothing
@@ -110,11 +110,11 @@ import java.util.*;
 <span class="fc bfc" id="L110" title="All 2 branches covered.">            for (String word : vocabulary) {</span>
 <span class="fc" id="L111">                double count = wc.getOrDefault(word, 0) + ALPHA;</span>
 <span class="fc" id="L112">                ll.put(word, Math.log(count / denom));</span>
-<span class="fc" id="L113">            }</span>
+            }
             // store the smoothed probability for unseen words
 <span class="fc" id="L115">            ll.put(&quot;__UNSEEN__&quot;, Math.log(ALPHA / denom));</span>
 <span class="fc" id="L116">            logLikelihoods.put(cls, ll);</span>
-<span class="fc" id="L117">        }</span>
+        }
 <span class="fc" id="L118">        fitted = true;</span>
 <span class="fc" id="L119">    }</span>
 
@@ -183,7 +183,7 @@ import java.util.*;
 <span class="fc" id="L183">                String lf = f.toLowerCase(Locale.ROOT);</span>
 <span class="fc" id="L184">                score += ll.getOrDefault(lf,</span>
 <span class="fc" id="L185">                             ll.getOrDefault(&quot;__UNSEEN__&quot;, Math.log(ALPHA)));</span>
-<span class="fc" id="L186">            }</span>
+            }
 <span class="fc" id="L187">            scores[i] = score;</span>
         }
 <span class="fc" id="L189">        return scores;</span>
@@ -191,7 +191,7 @@ import java.util.*;
 
     private void ensureFitted() {
 <span class="pc bpc" id="L193" title="1 of 2 branches missed.">        if (!fitted) throw new IllegalStateException(</span>
-            &quot;Classifier not fitted — call finalizeFit() first.&quot;);
+<span class="nc" id="L194">            &quot;Classifier not fitted — call finalizeFit() first.&quot;);</span>
 <span class="fc" id="L195">    }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

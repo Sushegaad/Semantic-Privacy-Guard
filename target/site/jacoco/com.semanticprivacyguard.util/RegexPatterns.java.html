@@ -47,7 +47,7 @@ public final class RegexPatterns {
      */
 <span class="fc" id="L48">    public static final Pattern SSN =</span>
 <span class="fc" id="L49">        Pattern.compile(</span>
-            &quot;\\b(?!000|666|9\\d{2})\\d{3}&quot;   // area: 001–665, 667–899
+<span class="fc" id="L50">            &quot;\\b(?!000|666|9\\d{2})\\d{3}&quot;   // area: 001–665, 667–899</span>
           + &quot;-(?!00)\\d{2}&quot;                   // group: 01–99
           + &quot;-(?!0000)\\d{4}\\b&quot;              // serial: 0001–9999
         );
@@ -67,7 +67,7 @@ public final class RegexPatterns {
      */
 <span class="fc" id="L68">    public static final Pattern CREDIT_CARD =</span>
 <span class="fc" id="L69">        Pattern.compile(</span>
-            &quot;\\b(?:&quot;
+<span class="fc" id="L70">            &quot;\\b(?:&quot;</span>
           + &quot;4[0-9]{12}(?:[0-9]{3,6})?&quot;          // Visa 13/16/19
           + &quot;|(?:5[1-5][0-9]{2}|222[1-9]|&quot;       // Mastercard range 1
           +          &quot;22[3-9][0-9]|2[3-6][0-9]{2}|&quot;  // Mastercard range 2
@@ -94,7 +94,7 @@ public final class RegexPatterns {
      */
 <span class="fc" id="L95">    public static final Pattern EMAIL =</span>
 <span class="fc" id="L96">        Pattern.compile(</span>
-            &quot;\\b[a-zA-Z0-9._%+\\-]+@[a-zA-Z0-9.\\-]+\\.[a-zA-Z]{2,}\\b&quot;
+<span class="fc" id="L97">            &quot;\\b[a-zA-Z0-9._%+\\-]+@[a-zA-Z0-9.\\-]+\\.[a-zA-Z]{2,}\\b&quot;</span>
         );
 
     // ── Phone Numbers ─────────────────────────────────────────────────────────
@@ -113,7 +113,7 @@ public final class RegexPatterns {
      */
 <span class="fc" id="L114">    public static final Pattern PHONE =</span>
 <span class="fc" id="L115">        Pattern.compile(</span>
-            &quot;(?:&quot;
+<span class="fc" id="L116">            &quot;(?:&quot;</span>
           + &quot;\\+?1[-. ]?&quot;                         // optional US country code
           + &quot;)?&quot;
           + &quot;(?:\\(?([2-9][0-9]{2})\\)?[-. ]?)&quot;   // area code (no 0xx/1xx)
@@ -121,7 +121,7 @@ public final class RegexPatterns {
           + &quot;[-. ]?&quot;
           + &quot;([0-9]{4})&quot;                            // subscriber number
           + &quot;(?!\\d)&quot;,                              // not followed by more digits
-            Pattern.CASE_INSENSITIVE
+<span class="fc" id="L124">            Pattern.CASE_INSENSITIVE</span>
         );
 
     // ── IPv4 ──────────────────────────────────────────────────────────────────
@@ -135,7 +135,7 @@ public final class RegexPatterns {
      */
 <span class="fc" id="L136">    public static final Pattern IPV4 =</span>
 <span class="fc" id="L137">        Pattern.compile(</span>
-            &quot;(?&lt;![\\d.])&quot;
+<span class="fc" id="L138">            &quot;(?&lt;![\\d.])&quot;</span>
           + &quot;(?:(?:25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\.){3}&quot;
           + &quot;(?:25[0-5]|2[0-4]\\d|[01]?\\d\\d?)&quot;
           + &quot;(?![\\d.])&quot;
@@ -153,7 +153,7 @@ public final class RegexPatterns {
      */
 <span class="fc" id="L154">    public static final Pattern IPV6 =</span>
 <span class="fc" id="L155">        Pattern.compile(</span>
-            &quot;(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}&quot;          // full
+<span class="fc" id="L156">            &quot;(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}&quot;          // full</span>
           + &quot;|(?:[0-9a-fA-F]{1,4}:){1,7}:&quot;                        // trailing ::
           + &quot;|::(?:[0-9a-fA-F]{1,4}:){0,6}[0-9a-fA-F]{1,4}&quot;      // leading ::
           + &quot;|(?:[0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}&quot;       // one :: mid
@@ -162,7 +162,7 @@ public final class RegexPatterns {
           + &quot;|(?:[0-9a-fA-F]{1,4}:){1,3}(?::[0-9a-fA-F]{1,4}){1,4}&quot;
           + &quot;|(?:[0-9a-fA-F]{1,4}:){1,2}(?::[0-9a-fA-F]{1,4}){1,5}&quot;
           + &quot;|[0-9a-fA-F]{1,4}:(?::[0-9a-fA-F]{1,4}){1,6}&quot;,
-            Pattern.CASE_INSENSITIVE
+<span class="fc" id="L165">            Pattern.CASE_INSENSITIVE</span>
         );
 
     // ── API Keys / Tokens ─────────────────────────────────────────────────────
@@ -176,7 +176,7 @@ public final class RegexPatterns {
      */
 <span class="fc" id="L177">    public static final Pattern API_KEY =</span>
 <span class="fc" id="L178">        Pattern.compile(</span>
-            &quot;\\b(?:&quot;
+<span class="fc" id="L179">            &quot;\\b(?:&quot;</span>
           + &quot;(?:AKIA|ABIA|ACCA)[0-9A-Z]{16}&quot;         // AWS Access Key ID
           + &quot;|ghp_[0-9a-zA-Z]{36}&quot;                    // GitHub personal token (classic)
           + &quot;|github_pat_[0-9a-zA-Z_]{82}&quot;            // GitHub fine-grained token
@@ -185,7 +185,7 @@ public final class RegexPatterns {
           + &quot;|Bearer\\s+[a-zA-Z0-9\\-._~+/]{20,}&quot;    // OAuth2 Bearer
           + &quot;|[a-f0-9]{32,64}&quot;                        // generic hex secret
           + &quot;)\\b&quot;,
-            Pattern.CASE_INSENSITIVE
+<span class="fc" id="L188">            Pattern.CASE_INSENSITIVE</span>
         );
 
     // ── Passwords ─────────────────────────────────────────────────────────────
@@ -199,10 +199,10 @@ public final class RegexPatterns {
      */
 <span class="fc" id="L200">    public static final Pattern PASSWORD =</span>
 <span class="fc" id="L201">        Pattern.compile(</span>
-            &quot;(?:password|passwd|pwd|secret|passphrase|pass)&quot;
+<span class="fc" id="L202">            &quot;(?:password|passwd|pwd|secret|passphrase|pass)&quot;</span>
           + &quot;\\s*[:=]\\s*&quot;
           + &quot;([^\\s,;\&quot;'`]{4,})&quot;,
-            Pattern.CASE_INSENSITIVE
+<span class="fc" id="L205">            Pattern.CASE_INSENSITIVE</span>
         );
 
     // ── Date of Birth ─────────────────────────────────────────────────────────
@@ -216,12 +216,12 @@ public final class RegexPatterns {
      */
 <span class="fc" id="L217">    public static final Pattern DATE_OF_BIRTH =</span>
 <span class="fc" id="L218">        Pattern.compile(</span>
-            &quot;(?:dob|d\\.o\\.b\\.|born(?:\\s+on)?|date\\s+of\\s+birth)&quot;
+<span class="fc" id="L219">            &quot;(?:dob|d\\.o\\.b\\.|born(?:\\s+on)?|date\\s+of\\s+birth)&quot;</span>
           + &quot;\\s*[:=]?\\s*&quot;
           + &quot;(\\d{1,2}[/-]\\d{1,2}[/-]\\d{2,4}&quot;
           + &quot;|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)&quot;
           +   &quot;[a-z]*\\.?\\s+\\d{1,2},?\\s+\\d{4})&quot;,
-            Pattern.CASE_INSENSITIVE
+<span class="fc" id="L224">            Pattern.CASE_INSENSITIVE</span>
         );
 
     // ── Geographic Coordinates ────────────────────────────────────────────────
@@ -232,12 +232,12 @@ public final class RegexPatterns {
      */
 <span class="fc" id="L233">    public static final Pattern COORDINATES =</span>
 <span class="fc" id="L234">        Pattern.compile(</span>
-            &quot;(?:lat(?:itude)?\\s*[:=]?\\s*)?&quot;
+<span class="fc" id="L235">            &quot;(?:lat(?:itude)?\\s*[:=]?\\s*)?&quot;</span>
           + &quot;(-?(?:90(?:\\.0+)?|[0-8]?\\d(?:\\.\\d+)?))&quot;
           + &quot;\\s*[,/]\\s*&quot;
           + &quot;(?:lon(?:g(?:itude)?)?\\s*[:=]?\\s*)?&quot;
           + &quot;(-?(?:180(?:\\.0+)?|1[0-7]\\d(?:\\.\\d+)?|[0-9]{1,2}(?:\\.\\d+)?))&quot;,
-            Pattern.CASE_INSENSITIVE
+<span class="fc" id="L240">            Pattern.CASE_INSENSITIVE</span>
         );
 
     // ── Bank / Routing Numbers ─────────────────────────────────────────────────
@@ -248,10 +248,10 @@ public final class RegexPatterns {
      */
 <span class="fc" id="L249">    public static final Pattern BANK_ROUTING =</span>
 <span class="fc" id="L250">        Pattern.compile(</span>
-            &quot;(?:routing(?:\\s+number)?|aba|rtn)&quot;
+<span class="fc" id="L251">            &quot;(?:routing(?:\\s+number)?|aba|rtn)&quot;</span>
           + &quot;\\s*[:=]?\\s*&quot;
           + &quot;(\\d{9})&quot;,
-            Pattern.CASE_INSENSITIVE
+<span class="fc" id="L254">            Pattern.CASE_INSENSITIVE</span>
         );
 
     /**
@@ -260,7 +260,7 @@ public final class RegexPatterns {
      */
 <span class="fc" id="L261">    public static final Pattern IBAN =</span>
 <span class="fc" id="L262">        Pattern.compile(</span>
-            &quot;\\b[A-Z]{2}\\d{2}[A-Z0-9]{4,30}\\b&quot;
-        );
+<span class="fc" id="L263">            &quot;\\b[A-Z]{2}\\d{2}[A-Z0-9]{4,30}\\b&quot;</span>
+<span class="fc" id="L264">        );</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

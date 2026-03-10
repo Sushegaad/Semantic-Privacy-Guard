@@ -167,7 +167,7 @@ public final class StreamProcessor {
 <span class="fc" id="L167">            List&lt;PIIMatch&gt; filtered   = new ArrayList&lt;&gt;(allMatches.size());</span>
 <span class="fc bfc" id="L168" title="All 2 branches covered.">            for (PIIMatch m : allMatches) {</span>
 <span class="pc bpc" id="L169" title="1 of 2 branches missed.">                if (m.getType().getSeverity() &gt;= minSev) filtered.add(m);</span>
-<span class="fc" id="L170">            }</span>
+            }
 
             // ── Accumulate stats ─────────────────────────────────────────────
 <span class="fc bfc" id="L173" title="All 2 branches covered.">            if (!filtered.isEmpty()) {</span>
@@ -175,21 +175,21 @@ public final class StreamProcessor {
 <span class="fc" id="L175">                totalMatches += filtered.size();</span>
 <span class="fc bfc" id="L176" title="All 2 branches covered.">                for (PIIMatch m : filtered) {</span>
 <span class="fc" id="L177">                    matchCountByType.merge(m.getType(), 1L, Long::sum);</span>
-<span class="fc" id="L178">                }</span>
+                }
             }
 
             // ── Redact with shared counters, write immediately ────────────────
 <span class="fc" id="L182">            PIITokenizer.RedactionOutput output =</span>
 <span class="fc" id="L183">                tokenizer.redact(rawLine, filtered, globalCounters);</span>
 <span class="fc" id="L184">            bw.write(output.redactedText());</span>
-<span class="fc" id="L185">        }</span>
+        }
 
 <span class="fc" id="L187">        bw.flush();</span>
 
 <span class="fc" id="L189">        return new StreamRedactionSummary(</span>
-            totalLines, linesWithPII, totalMatches,
+<span class="fc" id="L190">            totalLines, linesWithPII, totalMatches,</span>
 <span class="fc" id="L191">            System.currentTimeMillis() - start,</span>
-            matchCountByType);
+<span class="fc" id="L192">            matchCountByType);</span>
     }
 
     // ── InputStream / OutputStream ────────────────────────────────────────────
@@ -211,8 +211,8 @@ public final class StreamProcessor {
 <span class="fc" id="L211">        Objects.requireNonNull(out,     &quot;out must not be null&quot;);</span>
 <span class="fc" id="L212">        Objects.requireNonNull(charset, &quot;charset must not be null&quot;);</span>
 <span class="fc" id="L213">        return redact(</span>
-            new InputStreamReader(in,  charset),
-            new OutputStreamWriter(out, charset));
+<span class="fc" id="L214">            new InputStreamReader(in,  charset),</span>
+<span class="fc" id="L215">            new OutputStreamWriter(out, charset));</span>
     }
 
     /**
@@ -296,7 +296,7 @@ public final class StreamProcessor {
 <span class="fc" id="L296">        Objects.requireNonNull(lines, &quot;lines must not be null&quot;);</span>
 <span class="fc bfc" id="L297" title="All 2 branches covered.">        if (lines.isParallel()) {</span>
 <span class="fc" id="L298">            throw new IllegalArgumentException(</span>
-                &quot;redactLines() requires a sequential stream — call lines.sequential() first. &quot;
+<span class="fc" id="L299">                &quot;redactLines() requires a sequential stream — call lines.sequential() first. &quot;</span>
               + &quot;Parallel processing would produce non-deterministic token numbers.&quot;);
         }
 
@@ -312,7 +312,7 @@ public final class StreamProcessor {
 <span class="fc" id="L312">            List&lt;PIIMatch&gt; filtered   = new ArrayList&lt;&gt;(allMatches.size());</span>
 <span class="fc bfc" id="L313" title="All 2 branches covered.">            for (PIIMatch m : allMatches) {</span>
 <span class="pc bpc" id="L314" title="1 of 2 branches missed.">                if (m.getType().getSeverity() &gt;= minSev) filtered.add(m);</span>
-<span class="fc" id="L315">            }</span>
+            }
 <span class="fc" id="L316">            return tokenizer.redact(line, filtered, globalCounters).redactedText();</span>
         });
     }
@@ -328,24 +328,24 @@ public final class StreamProcessor {
 <span class="pc bpc" id="L328" title="1 of 2 branches missed.">        if (cfg.isMlEnabled()) {</span>
 <span class="fc" id="L329">            detectors.add(new MLDetector(</span>
 <span class="fc" id="L330">                TrainingData.buildDefaultClassifier(),</span>
-                new FeatureExtractor(),
+<span class="fc" id="L331">                new FeatureExtractor(),</span>
 <span class="fc" id="L332">                cfg.getMlConfidenceThreshold()</span>
             ));
         }
 <span class="pc bpc" id="L335" title="1 of 2 branches missed.">        if (cfg.isNlpEnabled()) {</span>
             try {
-                NLPModelLoader.LoadedModels models =
+<span class="nc" id="L337">                NLPModelLoader.LoadedModels models =</span>
 <span class="nc bnc" id="L338" title="All 2 branches missed.">                    (cfg.getNlpModelsDirectory() != null)</span>
 <span class="nc" id="L339">                        ? NLPModelLoader.fromDirectory(cfg.getNlpModelsDirectory())</span>
 <span class="nc" id="L340">                        : NLPModelLoader.fromClasspath();</span>
 <span class="nc" id="L341">                detectors.add(new NLPDetector(models, cfg.getNlpConfidenceThreshold()));</span>
 <span class="nc" id="L342">            } catch (NLPModelException e) {</span>
 <span class="nc" id="L343">                throw new IllegalStateException(</span>
-                    &quot;NLP is enabled but models could not be loaded — &quot;
+<span class="nc" id="L344">                    &quot;NLP is enabled but models could not be loaded — &quot;</span>
 <span class="nc" id="L345">                  + e.getMessage()</span>
                   + &quot;. See README.md#nlp-setup for model download instructions.&quot;,
-                    e);
-<span class="nc" id="L348">            }</span>
+<span class="nc" id="L347">                    e);</span>
+            }
         }
 
 <span class="fc" id="L351">        return new CompositeDetector(detectors);</span>

@@ -121,7 +121,7 @@ public final class NLPDetector implements PIIDetector {
 <span class="nc bnc" id="L121" title="All 2 branches missed.">        if (useWhitespaceTokenizer) {</span>
 <span class="nc" id="L122">            tokenPositions = WhitespaceTokenizer.INSTANCE.tokenizePos(text);</span>
 <span class="nc" id="L123">            tokens         = Span.spansToStrings(tokenPositions, text);</span>
-        } else {
+<span class="nc" id="L124">        } else {</span>
 <span class="nc" id="L125">            TokenizerME tok = tokenizerME.get();</span>
 <span class="nc" id="L126">            tokenPositions  = tok.tokenizePos(text);</span>
 <span class="nc" id="L127">            tokens          = Span.spansToStrings(tokenPositions, text);</span>
@@ -136,7 +136,7 @@ public final class NLPDetector implements PIIDetector {
         try {
 <span class="nc" id="L137">            Span[] personSpans = pf.find(tokens);</span>
 <span class="nc" id="L138">            collectMatches(personSpans, tokenPositions, text, PIIType.PERSON_NAME, matches);</span>
-        } finally {
+<span class="nc" id="L139">        } finally {</span>
 <span class="nc" id="L140">            pf.clearAdaptiveData();</span>
         }
 
@@ -146,7 +146,7 @@ public final class NLPDetector implements PIIDetector {
             try {
 <span class="nc" id="L147">                Span[] orgSpans = of.find(tokens);</span>
 <span class="nc" id="L148">                collectMatches(orgSpans, tokenPositions, text, PIIType.ORGANIZATION, matches);</span>
-            } finally {
+<span class="nc" id="L149">            } finally {</span>
 <span class="nc" id="L150">                of.clearAdaptiveData();</span>
             }
         }
@@ -182,11 +182,11 @@ public final class NLPDetector implements PIIDetector {
 <span class="nc bnc" id="L182" title="All 2 branches missed.">            if (value.isEmpty()) continue;</span>
 
 <span class="nc" id="L184">            out.add(new PIIMatch(</span>
-                type,
-                value,
-                charStart,
-                charEnd,
-                PIIMatch.DetectionSource.NLP,
+<span class="nc" id="L185">                type,</span>
+<span class="nc" id="L186">                value,</span>
+<span class="nc" id="L187">                charStart,</span>
+<span class="nc" id="L188">                charEnd,</span>
+<span class="nc" id="L189">                PIIMatch.DetectionSource.NLP,</span>
 <span class="nc" id="L190">                Math.min(entity.getProb(), 1.0)</span>
             ));
         }
