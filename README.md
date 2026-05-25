@@ -8,10 +8,9 @@
 [![Security Policy](https://img.shields.io/badge/security-policy-orange)](SECURITY.md)
 [![Live Playground](https://img.shields.io/badge/playground-live-brightgreen)](https://sushegaad.github.io/Semantic-Privacy-Guard/docs/index.html)
 
-> **A Java middleware that intercepts text, identifies PII using a three-layer hybrid pipeline
-> (Regex + Naive Bayes ML + Apache OpenNLP NER), and redacts it before it reaches
-> an LLM or leaves the corporate network — with stream-based processing for
-> memory-efficient handling of large files and log streams.**
+> **Open-source privacy firewall for AI applications.**
+>
+> Prevent sensitive data from reaching LLMs — without breaking prompts. SPG intercepts text, identifies PII using a three-layer hybrid pipeline (Regex + Naive Bayes ML + Apache OpenNLP NER), and replaces it with structured tokens before it leaves your network — with stream-based processing for memory-efficient handling of large files and log streams.
 
 ---
 
@@ -62,14 +61,14 @@ Paste any text, choose a redaction mode, and see instant results — 100% client
 <dependency>
   <groupId>io.github.sushegaad</groupId>
   <artifactId>semantic-privacy-guard</artifactId>
-  <version>1.4.0</version>
+  <version>1.5.0</version>
 </dependency>
 ```
 
 ### Gradle
 
 ```groovy
-implementation 'io.github.sushegaad:semantic-privacy-guard:1.4.0'
+implementation 'io.github.sushegaad:semantic-privacy-guard:1.5.0'
 ```
 
 ### One-liner usage
@@ -391,6 +390,111 @@ System.out.println(out.getRedactedContent());
 
 ---
 
+## Spring AI Integration
+
+The `semantic-privacy-guard-spring-ai` adapter registers a Spring AI `CallAroundAdvisor` that automatically redacts PII from every prompt before it reaches the LLM — and stores the reverse map in the advisor context so the response can be de-tokenized later.
+
+### Maven dependency
+
+```xml
+<dependency>
+  <groupId>io.github.sushegaad</groupId>
+  <artifactId>semantic-privacy-guard-spring-ai</artifactId>
+  <version>1.5.0</version>
+</dependency>
+```
+
+### Three-line usage
+
+```java
+import com.semanticprivacyguard.SemanticPrivacyGuard;
+import com.semanticprivacyguard.springai.SPGAdvisor;
+import org.springframework.ai.chat.client.ChatClient;
+
+ChatClient client = ChatClient.builder(chatModel)
+    .defaultAdvisors(new SPGAdvisor(SemanticPrivacyGuard.create()))
+    .build();
+
+// PII is now automatically redacted before every call
+String reply = client.prompt()
+    .user("My SSN is 123-45-6789, can you help?")
+    .call()
+    .content();
+```
+
+### Auto-configuration (Spring Boot)
+
+Drop the dependency on the classpath and Spring Boot wires everything automatically. No code changes required. Tune behaviour via `application.properties`:
+
+```properties
+# Enable / disable the advisor entirely (default: true)
+spg.enabled=true
+
+# Redaction mode: TOKEN (default), MASK, or BLANK
+spg.redaction-mode=TOKEN
+
+# Naive Bayes confidence threshold (default: 0.65)
+spg.ml-confidence-threshold=0.65
+
+# Minimum PII severity to redact (1–10; default: 1 = all types)
+# Use 6 to focus on email, phone, SSN, credit card and skip IP / org
+spg.minimum-severity=1
+
+# Whether to also redact the system prompt (default: false)
+spg.redact-system-prompt=false
+
+# Spring advisor chain order — lower = earlier (default: Integer.MIN_VALUE + 100)
+spg.advisor-order=-2147483548
+```
+
+### Overriding the bean for custom configuration
+
+Declare your own `SemanticPrivacyGuard` or `SPGAdvisor` bean and the auto-configuration backs off automatically:
+
+```java
+@Configuration
+public class MyPrivacyConfig {
+
+    /**
+     * Custom guard: NLP enabled, employee-ID pattern, high-severity only.
+     * Auto-configuration backs off because this bean is present.
+     */
+    @Bean
+    public SemanticPrivacyGuard semanticPrivacyGuard() {
+        SPGConfig config = SPGConfig.builder()
+            .redactionMode(RedactionMode.TOKEN)
+            .nlpEnabled(true)
+            .minimumSeverity(6)
+            .addPattern(PIIType.GENERIC_PII, "EMP-\\d{6}", 0.99, "Employee ID")
+            .build();
+        return SemanticPrivacyGuard.create(config);
+    }
+
+    /**
+     * Custom advisor: also redact the system prompt, run first in chain.
+     */
+    @Bean
+    public SPGAdvisor spgAdvisor(SemanticPrivacyGuard spg) {
+        return new SPGAdvisor(spg, /* redactSystemPrompt= */ true, Ordered.HIGHEST_PRECEDENCE);
+    }
+}
+```
+
+### Accessing the reverse map
+
+The advisor stores the token-to-original-value reverse map in the advisor context under the key `"spg.reverseMap"` so downstream components can de-tokenize LLM responses:
+
+```java
+// Retrieve from the advised context after the call completes
+@SuppressWarnings("unchecked")
+Map<String, String> reverseMap =
+    (Map<String, String>) advisedRequest.adviseContext().get(SPGAdvisor.REVERSE_MAP_CONTEXT_KEY);
+```
+
+Full response de-tokenization via `SemanticPrivacyGuard.detokenize()` is planned for v1.5.0.
+
+---
+
 ## Architecture
 
 ```
@@ -464,7 +568,7 @@ try (var exec = Executors.newVirtualThreadPerTaskExecutor()) {
 | **SPG Full (H + ML)** | **206,000 sentences/s** | **0%** |
 | SPG Full + NLP | ~45,000 sentences/s* | 0% |
 
-\* NLP throughput depends on model size and JVM warmup. Stream processing throughput is I/O-bound rather than CPU-bound. See the [CI benchmark runs](https://github.com/Sushegaad/Semantic-Privacy-Guard/actions) for latest numbers.
+\* NLP throughput depends on model size and JVM warmup. Stream processing throughput is I/O-bound rather than CPU-bound. See the **[live benchmark page](https://sushegaad.github.io/Semantic-Privacy-Guard/docs/benchmarks.html)** for full precision/recall/F1 numbers, or run `mvn test -P benchmark` to regenerate against your own hardware.
 
 ---
 

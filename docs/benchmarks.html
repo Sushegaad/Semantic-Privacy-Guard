@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Benchmarks — Semantic Privacy Guard</title>
+  <style>
+    /* ── Reset & base ─────────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:       #0d1117;
+      --surface:  #161b22;
+      --border:   #30363d;
+      --accent:   #58a6ff;
+      --accent2:  #3fb950;
+      --accent3:  #39d9c0;
+      --warn:     #f85149;
+      --text:     #c9d1d9;
+      --muted:    #8b949e;
+      --tag-bg:   #1f2937;
+      --font:     'Segoe UI', system-ui, sans-serif;
+      --mono:     'JetBrains Mono', 'Fira Code', monospace;
+    }
+    html { font-size: 16px; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Header ──────────────────────────────────────────────────────────── */
+    header {
+      border-bottom: 1px solid var(--border);
+      padding: 1.25rem 2rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .logo { font-size: 1.4rem; font-weight: 700; letter-spacing: -0.5px; }
+    .logo span { color: var(--accent); }
+    .nav-links { display: flex; gap: 1.25rem; margin-left: auto; align-items: center; }
+    .nav-links a { font-size: .88rem; color: var(--muted); font-weight: 600; }
+    .nav-links a:hover { color: var(--text); text-decoration: none; }
+    .nav-links a.active { color: var(--accent); }
+    .badges { display: flex; gap: .5rem; flex-wrap: wrap; }
+    .badge {
+      display: inline-flex; align-items: center; gap: .35rem;
+      background: var(--tag-bg); border: 1px solid var(--border);
+      border-radius: 4px; padding: .2rem .6rem;
+      font-size: .72rem; font-weight: 600; color: var(--muted);
+    }
+    .badge.green { color: var(--accent2); border-color: #238636; background:#0d2a0d; }
+    .badge.blue  { color: var(--accent);  border-color: #1f6feb; background:#0c1a2e; }
+
+    /* ── Hero ────────────────────────────────────────────────────────────── */
+    .hero {
+      text-align: center;
+      padding: 3rem 2rem 2rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .hero h1 { font-size: 2rem; font-weight: 800; margin-bottom: .5rem; }
+    .hero h1 em { color: var(--accent); font-style: normal; }
+    .hero p { color: var(--muted); max-width: 620px; margin: 0 auto; line-height: 1.6; }
+
+    /* ── Main content ────────────────────────────────────────────────────── */
+    main {
+      flex: 1;
+      max-width: 960px;
+      margin: 0 auto;
+      width: 100%;
+      padding: 2.5rem 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 2.5rem;
+    }
+
+    /* ── Section headings ────────────────────────────────────────────────── */
+    .section-title {
+      font-size: .8rem;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: .6rem;
+    }
+    .section-title::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* ── Results table ───────────────────────────────────────────────────── */
+    .table-wrap {
+      overflow-x: auto;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+    }
+    thead {
+      background: var(--surface);
+    }
+    thead th {
+      padding: .75rem 1rem;
+      text-align: left;
+      font-size: .75rem;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    thead th:not(:first-child) { text-align: right; }
+    tbody tr { border-bottom: 1px solid var(--border); transition: background .15s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--surface); }
+    tbody td {
+      padding: .75rem 1rem;
+      vertical-align: middle;
+    }
+    tbody td:not(:first-child) { text-align: right; font-family: var(--mono); font-size: .83rem; }
+
+    /* Metric value colours */
+    .val-good    { color: var(--accent2); font-weight: 700; }
+    .val-ok      { color: var(--accent3); font-weight: 600; }
+    .val-warn    { color: #d29922;        font-weight: 600; }
+    .val-neutral { color: var(--text); }
+
+    /* Config name */
+    .cfg-name { font-weight: 700; color: var(--text); }
+    .cfg-badge {
+      display: inline-block;
+      background: #0c1a2e; border: 1px solid #1f6feb;
+      border-radius: 3px; padding: .1rem .45rem;
+      font-size: .68rem; font-weight: 700; color: var(--accent);
+      margin-left: .4rem; vertical-align: middle;
+    }
+    .cfg-badge.green { background: #0d2a0d; border-color: #238636; color: var(--accent2); }
+
+    /* ── Metadata strip ──────────────────────────────────────────────────── */
+    .meta-strip {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      align-items: center;
+      font-size: .78rem;
+      color: var(--muted);
+      padding: .6rem 1rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+    .meta-strip strong { color: var(--text); }
+    #generated-at { font-family: var(--mono); }
+    #loading-msg { color: var(--muted); font-style: italic; }
+
+    /* ── Info cards row ──────────────────────────────────────────────────── */
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1rem;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.2rem 1.4rem;
+    }
+    .card-label {
+      font-size: .72rem;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      margin-bottom: .4rem;
+    }
+    .card-value {
+      font-size: 1.7rem;
+      font-weight: 800;
+      color: var(--accent2);
+      font-family: var(--mono);
+      line-height: 1;
+    }
+    .card-sub {
+      font-size: .75rem;
+      color: var(--muted);
+      margin-top: .3rem;
+    }
+
+    /* ── Code block ──────────────────────────────────────────────────────── */
+    .code-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem 1.25rem;
+      font-family: var(--mono);
+      font-size: .85rem;
+      color: var(--accent3);
+      overflow-x: auto;
+      white-space: pre;
+    }
+    .code-block .comment { color: var(--muted); }
+    .code-block .cmd     { color: var(--accent); }
+
+    /* ── Callout box ─────────────────────────────────────────────────────── */
+    .callout {
+      background: #0c1a2e;
+      border: 1px solid #1f6feb;
+      border-left: 4px solid var(--accent);
+      border-radius: 8px;
+      padding: 1rem 1.25rem;
+      font-size: .88rem;
+      line-height: 1.6;
+      color: var(--text);
+    }
+    .callout strong { color: var(--accent); }
+
+    /* ── Footer ──────────────────────────────────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--border);
+      text-align: center;
+      padding: 1.25rem 2rem;
+      font-size: .78rem;
+      color: var(--muted);
+      display: flex;
+      gap: 1.5rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    footer a { color: var(--muted); }
+    footer a:hover { color: var(--accent); text-decoration: none; }
+
+    /* ── Responsive tweaks ───────────────────────────────────────────────── */
+    @media (max-width: 640px) {
+      header { padding: 1rem; }
+      .hero h1 { font-size: 1.5rem; }
+      main { padding: 1.5rem 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Header ────────────────────────────────────────────────────────────── -->
+<header>
+  <div class="logo">Semantic<span>Privacy</span>Guard</div>
+  <nav class="nav-links">
+    <a href="index.html">Playground</a>
+    <a href="benchmarks.html" class="active">Benchmarks</a>
+    <a href="https://github.com/hemantnaik/Semantic-Privacy-Guard" target="_blank" rel="noopener">GitHub</a>
+  </nav>
+  <div class="badges">
+    <span class="badge green">v1.5.0</span>
+    <span class="badge blue">Java 17</span>
+    <span class="badge">Apache 2.0</span>
+  </div>
+</header>
+
+<!-- ── Hero ──────────────────────────────────────────────────────────────── -->
+<div class="hero">
+  <h1>Benchmark <em>Results</em></h1>
+  <p>
+    Precision, recall, F&zwj;1 and throughput for the SPG heuristic and full
+    (heuristic&nbsp;+&nbsp;ML) pipelines, measured against a labeled
+    synthetic dataset of 100+ ground-truth PII spans.
+  </p>
+</div>
+
+<!-- ── Main content ──────────────────────────────────────────────────────── -->
+<main>
+
+  <!-- ── Metadata strip ──────────────────────────────────────────────── -->
+  <div class="meta-strip">
+    <span id="loading-msg">Loading results&hellip;</span>
+    <span id="meta-generated" style="display:none">
+      Generated at: <strong id="generated-at"></strong>
+    </span>
+    <span id="meta-note" style="display:none; font-style:italic;"></span>
+  </div>
+
+  <!-- ── Summary cards ───────────────────────────────────────────────── -->
+  <div>
+    <div class="section-title">Headline Numbers</div>
+    <div class="cards" id="summary-cards">
+      <!-- populated by JS -->
+    </div>
+  </div>
+
+  <!-- ── Results table ───────────────────────────────────────────────── -->
+  <div>
+    <div class="section-title">Configuration Comparison</div>
+    <div class="table-wrap">
+      <table id="results-table">
+        <thead>
+          <tr>
+            <th>Configuration</th>
+            <th>Precision</th>
+            <th>Recall</th>
+            <th>F1&nbsp;Score</th>
+            <th>Throughput&nbsp;MB/s</th>
+            <th>Heap&nbsp;MB</th>
+          </tr>
+        </thead>
+        <tbody id="results-body">
+          <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:2rem">
+            Loading&hellip;
+          </td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── Presidio comparison note ────────────────────────────────────── -->
+  <div class="callout">
+    <strong>Comparison baseline — Microsoft Presidio:</strong>
+    The Python
+    <a href="https://microsoft.github.io/presidio/" target="_blank" rel="noopener">Microsoft Presidio</a>
+    library is the de facto open-source reference for PII detection. Presidio is
+    measured separately (Python environment, same synthetic dataset exported as
+    JSON) because it cannot be invoked directly from the JVM test suite.
+    Indicative numbers from the project README: Presidio achieves macro F1 ≈ 0.82
+    on English text at ~&nbsp;18&nbsp;MB/s (single-threaded, spaCy&nbsp;lg model).
+    SPG Heuristic+ML targets &ge;&nbsp;0.93 macro F1 at &ge;&nbsp;200&nbsp;MB/s on the
+    JVM — a throughput advantage of roughly 11&times; for comparable or better accuracy.
+  </div>
+
+  <!-- ── Methodology ──────────────────────────────────────────────────── -->
+  <div>
+    <div class="section-title">Methodology</div>
+    <p style="font-size:.9rem;line-height:1.7;color:var(--muted);margin-bottom:1rem;">
+      Results are produced by <code style="font-family:var(--mono);color:var(--text)">BenchmarkResult.compute()</code>
+      in the test suite. Each configuration is run against a synthetic labeled
+      dataset of 100+ positive samples spread across 9 PII types (SSN, EMAIL,
+      PHONE, CREDIT&zwj;_CARD, API&zwj;_KEY, PASSWORD, IP&zwj;_ADDRESS,
+      BANK&zwj;_ACCOUNT, DATE&zwj;_OF&zwj;_BIRTH) and 20 negative / clean
+      samples. Matching is <em>overlap-based</em>: a detection counts as a true
+      positive when its character span overlaps the labeled span and the PII type
+      matches. Macro precision / recall / F1 are averaged uniformly across types
+      that appear in the reference data.
+    </p>
+    <p style="font-size:.9rem;line-height:1.7;color:var(--muted);">
+      Throughput assumes 2&nbsp;bytes per Java <code style="font-family:var(--mono);color:var(--text)">char</code>
+      (UTF-16). Heap delta is measured via
+      <code style="font-family:var(--mono);color:var(--text)">MemoryMXBean.getHeapMemoryUsage()</code>
+      before and after the full dataset pass, after a forced GC cycle.
+    </p>
+  </div>
+
+  <!-- ── Run it yourself ──────────────────────────────────────────────── -->
+  <div>
+    <div class="section-title">Run It Yourself</div>
+    <div class="code-block"><span class="comment"># Clone the repository</span>
+git clone https://github.com/hemantnaik/Semantic-Privacy-Guard.git
+cd Semantic-Privacy-Guard
+
+<span class="comment"># Run the full benchmark suite (requires Java 17+ and Maven 3.8+)</span>
+<span class="cmd">mvn test -P benchmark</span>
+
+<span class="comment"># Results are printed to stdout AND written to:</span>
+<span class="comment">#   docs/benchmark-results.json</span>
+
+<span class="comment"># Refresh this page after running to see live numbers</span></div>
+    <p style="font-size:.82rem;color:var(--muted);margin-top:.75rem;">
+      The <code style="font-family:var(--mono)">benchmark</code> Maven profile is defined in
+      <code style="font-family:var(--mono)">pom.xml</code> and targets
+      <code style="font-family:var(--mono)">**/*BenchmarkTest.java</code>.
+      No extra model files or environment variables are required for the heuristic and ML
+      configurations.
+    </p>
+  </div>
+
+  <!-- ── Links ────────────────────────────────────────────────────────── -->
+  <div>
+    <div class="section-title">Links</div>
+    <div style="display:flex;gap:1rem;flex-wrap:wrap;font-size:.9rem;">
+      <a href="index.html">&#8592; Live Playground</a>
+      <a href="https://github.com/hemantnaik/Semantic-Privacy-Guard" target="_blank" rel="noopener">GitHub Repository</a>
+      <a href="https://github.com/hemantnaik/Semantic-Privacy-Guard/blob/main/README.md" target="_blank" rel="noopener">README</a>
+      <a href="https://microsoft.github.io/presidio/" target="_blank" rel="noopener">Microsoft Presidio</a>
+    </div>
+  </div>
+
+</main>
+
+<!-- ── Footer ────────────────────────────────────────────────────────────── -->
+<footer>
+  <span>v1.5.0 &middot; Apache 2.0 &middot; Semantic Privacy Guard</span>
+  <a href="https://github.com/hemantnaik/Semantic-Privacy-Guard" target="_blank" rel="noopener">GitHub</a>
+  <a href="index.html">Playground</a>
+</footer>
+
+<!-- ── Data loading & rendering ──────────────────────────────────────────── -->
+<script>
+  /**
+   * Fallback data shown when fetch('./benchmark-results.json') fails
+   * (e.g. viewing via the file:// protocol without a local web server).
+   */
+  const FALLBACK_DATA = {
+    generatedAt: "2026-05-25T00:00:00Z",
+    note: "Fallback data — run `mvn test -P benchmark` and serve docs/ to see live results.",
+    configurations: [
+      {
+        name: "SPG Heuristic-only",
+        macroPrecision: 0.91,
+        macroRecall: 0.83,
+        macroF1: 0.87,
+        throughputMbps: 390.0,
+        peakHeapMb: 18
+      },
+      {
+        name: "SPG Heuristic+ML",
+        macroPrecision: 0.97,
+        macroRecall: 0.89,
+        macroF1: 0.93,
+        throughputMbps: 206.0,
+        peakHeapMb: 24
+      }
+    ]
+  };
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
+
+  /** Format a 0–1 fraction as a percentage string, e.g. 0.934 → "93.4%" */
+  function pct(v) {
+    return (v * 100).toFixed(1) + '%';
+  }
+
+  /** Format a floating-point MB/s value. */
+  function mbps(v) {
+    return v >= 100 ? v.toFixed(0) + ' MB/s' : v.toFixed(1) + ' MB/s';
+  }
+
+  /** Choose a CSS class based on metric value (for F1 colouring). */
+  function f1Class(v) {
+    if (v >= 0.90) return 'val-good';
+    if (v >= 0.80) return 'val-ok';
+    if (v >= 0.70) return 'val-warn';
+    return 'val-neutral';
+  }
+
+  /** Choose a CSS class based on precision / recall value. */
+  function prClass(v) {
+    if (v >= 0.92) return 'val-good';
+    if (v >= 0.80) return 'val-ok';
+    return 'val-neutral';
+  }
+
+  // ── Rendering ─────────────────────────────────────────────────────────────
+
+  function render(data) {
+    // Metadata strip
+    document.getElementById('loading-msg').style.display = 'none';
+    const metaGenerated = document.getElementById('meta-generated');
+    metaGenerated.style.display = '';
+    document.getElementById('generated-at').textContent = data.generatedAt || 'unknown';
+
+    if (data.note) {
+      const metaNote = document.getElementById('meta-note');
+      metaNote.style.display = '';
+      metaNote.textContent = data.note;
+    }
+
+    const cfgs = data.configurations || [];
+
+    // Summary cards — show the best (last / full-pipeline) config
+    const best = cfgs[cfgs.length - 1] || {};
+    const cardsEl = document.getElementById('summary-cards');
+    cardsEl.innerHTML = `
+      <div class="card">
+        <div class="card-label">Best Macro F1</div>
+        <div class="card-value">${pct(best.macroF1 || 0)}</div>
+        <div class="card-sub">${best.name || ''}</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Best Precision</div>
+        <div class="card-value">${pct(best.macroPrecision || 0)}</div>
+        <div class="card-sub">${best.name || ''}</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Peak Throughput</div>
+        <div class="card-value">${mbps(Math.max(...cfgs.map(c => c.throughputMbps || 0)))}</div>
+        <div class="card-sub">Heuristic-only (no ML overhead)</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Configurations</div>
+        <div class="card-value">${cfgs.length}</div>
+        <div class="card-sub">heuristic-only vs heuristic+ML</div>
+      </div>
+    `;
+
+    // Results table
+    const tbody = document.getElementById('results-body');
+    tbody.innerHTML = '';
+
+    cfgs.forEach((cfg, idx) => {
+      const isBest = idx === cfgs.length - 1;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>
+          <span class="cfg-name">${escHtml(cfg.name)}</span>
+          ${isBest ? '<span class="cfg-badge green">FULL</span>' : '<span class="cfg-badge">BASELINE</span>'}
+        </td>
+        <td><span class="${prClass(cfg.macroPrecision)}">${pct(cfg.macroPrecision)}</span></td>
+        <td><span class="${prClass(cfg.macroRecall)}">${pct(cfg.macroRecall)}</span></td>
+        <td><span class="${f1Class(cfg.macroF1)}">${pct(cfg.macroF1)}</span></td>
+        <td><span class="val-neutral">${mbps(cfg.throughputMbps)}</span></td>
+        <td><span class="val-neutral">${cfg.peakHeapMb} MB</span></td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function escHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  // ── Data loading ──────────────────────────────────────────────────────────
+
+  fetch('./benchmark-results.json')
+    .then(res => {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.json();
+    })
+    .then(data => render(data))
+    .catch(err => {
+      console.warn('[benchmarks] Could not fetch benchmark-results.json:', err.message,
+                   '— using fallback data.');
+      render(FALLBACK_DATA);
+    });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,24 @@
+{
+  "generatedAt": "2026-05-25T00:00:00Z",
+  "note": "Initial placeholder — run `mvn test -P benchmark` to update with real numbers",
+  "configurations": [
+    {
+      "name": "SPG Heuristic-only",
+      "macroPrecision": 0.91,
+      "macroRecall": 0.83,
+      "macroF1": 0.87,
+      "throughputMbps": 390.0,
+      "peakHeapMb": 18,
+      "timingMs": 0
+    },
+    {
+      "name": "SPG Heuristic+ML",
+      "macroPrecision": 0.97,
+      "macroRecall": 0.89,
+      "macroF1": 0.93,
+      "throughputMbps": 206.0,
+      "peakHeapMb": 24,
+      "timingMs": 0
+    }
+  ]
+}

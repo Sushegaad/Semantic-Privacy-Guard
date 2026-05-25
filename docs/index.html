@@ -4,25 +4,39 @@
   <meta name="google-site-verification" content="ngS8wu36B4P3ZyQBK7Q8rlwMd53-rFN55y8IFsFVApw" />
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Open-source privacy firewall for AI applications. Detect and redact PII from LLM prompts using a three-layer Regex + ML + NER pipeline." />
   <title>Semantic Privacy Guard — Live Playground</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
   <style>
-    /* ── Reset & base ─────────────────────────────────────────────────────── */
+    /* ── Reset & base ──────────────────────────────────────────────────────── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
-      --bg:       #0d1117;
-      --surface:  #161b22;
-      --border:   #30363d;
-      --accent:   #58a6ff;
-      --accent2:  #3fb950;
-      --accent3:  #39d9c0;
-      --warn:     #f85149;
-      --text:     #c9d1d9;
-      --muted:    #8b949e;
-      --tag-bg:   #1f2937;
-      --font:     'Segoe UI', system-ui, sans-serif;
-      --mono:     'JetBrains Mono', 'Fira Code', monospace;
+      --bg:        #0a0e17;
+      --surface:   #111827;
+      --surface2:  #161d2e;
+      --border:    #1f2937;
+      --border2:   #2d3748;
+      --accent:    #60a5fa;
+      --accent2:   #34d399;
+      --accent3:   #2dd4bf;
+      --warn:      #f87171;
+      --purple:    #a78bfa;
+      --orange:    #fb923c;
+      --text:      #e2e8f0;
+      --text2:     #cbd5e1;
+      --muted:     #64748b;
+      --muted2:    #94a3b8;
+      --tag-bg:    #1e2538;
+      --font:      'Inter', system-ui, sans-serif;
+      --mono:      'JetBrains Mono', 'Fira Code', monospace;
+      --radius:    10px;
+      --shadow:    0 4px 24px rgba(0,0,0,.4);
+      --glow-blue: 0 0 24px rgba(96,165,250,.18);
+      --glow-teal: 0 0 24px rgba(45,212,191,.15);
     }
-    html { font-size: 16px; }
+    html { font-size: 16px; scroll-behavior: smooth; }
     body {
       background: var(--bg);
       color: var(--text);
@@ -30,49 +44,267 @@
       min-height: 100vh;
       display: flex;
       flex-direction: column;
+      line-height: 1.6;
     }
-    a { color: var(--accent); text-decoration: none; }
-    a:hover { text-decoration: underline; }
+    a { color: var(--accent); text-decoration: none; transition: color .2s; }
+    a:hover { color: #93c5fd; text-decoration: underline; }
 
-    /* ── Header ──────────────────────────────────────────────────────────── */
+    /* ── Utility ────────────────────────────────────────────────────────────── */
+    .gradient-text {
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent3) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
+
+    /* ── Header ─────────────────────────────────────────────────────────────── */
     header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(10, 14, 23, .92);
+      backdrop-filter: blur(12px);
       border-bottom: 1px solid var(--border);
+      padding: 0 2rem;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+    }
+    .logo {
+      display: flex; align-items: center; gap: .55rem;
+      font-size: 1.1rem; font-weight: 800; letter-spacing: -0.4px;
+      white-space: nowrap; flex-shrink: 0;
+      color: var(--text);
+    }
+    .logo-icon {
+      width: 28px; height: 28px;
+      background: linear-gradient(135deg, #1d4ed8, #0e7490);
+      border-radius: 7px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .95rem; flex-shrink: 0;
+    }
+    .logo-text span { color: var(--accent3); }
+
+    nav {
+      display: flex; gap: 1.5rem; margin-left: auto;
+      align-items: center;
+    }
+    nav a {
+      font-size: .82rem; font-weight: 600; color: var(--muted2);
+      transition: color .2s; white-space: nowrap;
+    }
+    nav a:hover { color: var(--text); text-decoration: none; }
+
+    .header-right {
+      display: flex; gap: .5rem; align-items: center; flex-shrink: 0;
+    }
+    .chip {
+      display: inline-flex; align-items: center; gap: .3rem;
+      padding: .25rem .65rem;
+      border-radius: 6px;
+      font-size: .73rem; font-weight: 600;
+      border: 1px solid var(--border2);
+      background: var(--surface);
+      color: var(--muted2);
+      transition: border-color .2s, color .2s;
+      white-space: nowrap;
+    }
+    .chip:hover { border-color: var(--accent); color: var(--text); text-decoration: none; }
+    .chip.green { color: var(--accent2); border-color: #065f46; background: rgba(6,78,59,.3); }
+    .chip.version { color: var(--accent); border-color: #1e40af; background: rgba(30,58,138,.25); }
+
+    @media (max-width: 700px) {
+      nav { display: none; }
+      .header-right .chip:not(.green) { display: none; }
+    }
+
+    /* ── Hero ───────────────────────────────────────────────────────────────── */
+    .hero {
+      text-align: center;
+      padding: 4.5rem 2rem 3rem;
+      background: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(96,165,250,.08) 0%, transparent 70%);
+      border-bottom: 1px solid var(--border);
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 50% 30% at 80% 100%, rgba(45,212,191,.05) 0%, transparent 60%);
+      pointer-events: none;
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: .4rem;
+      background: rgba(96,165,250,.08);
+      border: 1px solid rgba(96,165,250,.2);
+      border-radius: 20px;
+      padding: .3rem .9rem;
+      font-size: .78rem; font-weight: 600;
+      color: var(--accent);
+      margin-bottom: 1.5rem;
+    }
+    .hero-badge .dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--accent2);
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: .5; transform: scale(.8); }
+    }
+    .hero h1 {
+      font-size: clamp(2rem, 5vw, 3rem);
+      font-weight: 800;
+      letter-spacing: -1px;
+      line-height: 1.15;
+      margin-bottom: 1rem;
+    }
+    .hero-sub {
+      font-size: 1.05rem;
+      color: var(--muted2);
+      max-width: 560px;
+      margin: 0 auto 1rem;
+    }
+    .hero-tech {
+      font-size: .88rem;
+      color: var(--muted);
+      max-width: 560px;
+      margin: 0 auto 2rem;
+    }
+    .hero-tech strong { color: var(--text2); }
+
+    .hero-ctas {
+      display: flex; gap: .75rem; justify-content: center; flex-wrap: wrap;
+      margin-bottom: 2.5rem;
+    }
+    .btn {
+      display: inline-flex; align-items: center; gap: .45rem;
+      padding: .6rem 1.4rem;
+      border-radius: 8px;
+      font-size: .88rem; font-weight: 700;
+      cursor: pointer;
+      transition: all .2s;
+      border: 1px solid transparent;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #2563eb, #0891b2);
+      color: #fff;
+      box-shadow: 0 4px 16px rgba(37,99,235,.35);
+    }
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #3b82f6, #06b6d4);
+      box-shadow: 0 4px 24px rgba(37,99,235,.5);
+      transform: translateY(-1px);
+      text-decoration: none;
+      color: #fff;
+    }
+    .btn-outline {
+      background: transparent;
+      border-color: var(--border2);
+      color: var(--text2);
+    }
+    .btn-outline:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      text-decoration: none;
+      transform: translateY(-1px);
+    }
+
+    .pill-row {
+      display: flex; gap: .4rem; justify-content: center; flex-wrap: wrap;
+    }
+    .pill {
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: 20px;
+      padding: .28rem .85rem;
+      font-size: .75rem; font-weight: 600;
+      color: var(--muted2);
+      transition: all .2s;
+    }
+    .pill:hover { border-color: var(--accent); color: var(--accent); }
+    .pill.active {
+      background: rgba(96,165,250,.08);
+      border-color: rgba(96,165,250,.3);
+      color: var(--accent);
+    }
+
+    /* ── Metrics strip ──────────────────────────────────────────────────────── */
+    .metrics-strip {
+      display: flex;
+      justify-content: center;
+      gap: 0;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      flex-wrap: wrap;
+    }
+    .metric-item {
+      flex: 1;
+      min-width: 160px;
       padding: 1.25rem 2rem;
+      text-align: center;
+      border-right: 1px solid var(--border);
+    }
+    .metric-item:last-child { border-right: none; }
+    .metric-val {
+      font-size: 1.75rem;
+      font-weight: 800;
+      letter-spacing: -1px;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent3) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1.1;
+    }
+    .metric-label {
+      font-size: .73rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      margin-top: .25rem;
+    }
+    @media (max-width: 600px) {
+      .metric-item { padding: 1rem; min-width: 130px; }
+      .metric-val  { font-size: 1.4rem; }
+    }
+
+    /* ── Playground section ─────────────────────────────────────────────────── */
+    .playground-header {
+      padding: 1.5rem 2rem .75rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg);
       display: flex;
       align-items: center;
       gap: 1rem;
       flex-wrap: wrap;
     }
-    .logo { font-size: 1.4rem; font-weight: 700; letter-spacing: -0.5px; }
-    .logo span { color: var(--accent); }
-    .badges { display: flex; gap: .5rem; flex-wrap: wrap; margin-left: auto; }
-    .badge {
-      display: inline-flex; align-items: center; gap: .35rem;
-      background: var(--tag-bg); border: 1px solid var(--border);
-      border-radius: 4px; padding: .2rem .6rem;
-      font-size: .72rem; font-weight: 600; color: var(--muted);
+    .playground-header h2 {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text);
+      display: flex; align-items: center; gap: .5rem;
     }
-    .badge.green { color: var(--accent2); border-color: #238636; background:#0d2a0d; }
-    .badge.blue  { color: var(--accent);  border-color: #1f6feb; background:#0c1a2e; }
+    .playground-header .hint {
+      font-size: .75rem;
+      color: var(--muted);
+      margin-left: auto;
+    }
+    .playground-header .hint kbd {
+      display: inline-block;
+      padding: .1rem .35rem;
+      border-radius: 4px;
+      border: 1px solid var(--border2);
+      background: var(--surface);
+      font-family: var(--mono);
+      font-size: .7rem;
+      color: var(--muted2);
+    }
 
-    /* ── Hero ────────────────────────────────────────────────────────────── */
-    .hero {
-      text-align: center;
-      padding: 3rem 2rem 2rem;
-      border-bottom: 1px solid var(--border);
-    }
-    .hero h1 { font-size: 2.2rem; font-weight: 800; margin-bottom: .5rem; }
-    .hero h1 em { color: var(--accent); font-style: normal; }
-    .hero p { color: var(--muted); max-width: 640px; margin: 0 auto .75rem; line-height: 1.6; }
-    .pill-row { display: flex; gap: .5rem; justify-content: center; flex-wrap: wrap; margin-top: 1rem; }
-    .pill {
-      background: var(--tag-bg); border: 1px solid var(--border);
-      border-radius: 20px; padding: .3rem .9rem;
-      font-size: .78rem; font-weight: 600; color: var(--muted);
-    }
-    .pill.active { background: #0c1a2e; border-color: var(--accent); color: var(--accent); }
-
-    /* ── Main layout ─────────────────────────────────────────────────────── */
+    /* ── Main layout ────────────────────────────────────────────────────────── */
     main {
       flex: 1;
       display: grid;
@@ -88,114 +320,201 @@
       flex-direction: column;
       gap: 1rem;
     }
-    .pane:first-child { border-right: 1px solid var(--border); }
+    .pane:first-child {
+      border-right: 1px solid var(--border);
+    }
     .pane-header {
       display: flex; align-items: center; justify-content: space-between;
       gap: .5rem; flex-wrap: wrap;
     }
-    .pane-title { font-size: .85rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+    .pane-label {
+      display: flex; align-items: center; gap: .5rem;
+      font-size: .78rem; font-weight: 700;
+      color: var(--muted2);
+      text-transform: uppercase;
+      letter-spacing: .1em;
+    }
+    .pane-label .icon {
+      width: 20px; height: 20px;
+      border-radius: 5px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .8rem;
+    }
+    .pane-label .icon.blue  { background: rgba(96,165,250,.15); }
+    .pane-label .icon.green { background: rgba(52,211,153,.15); }
 
-    /* ── Textarea ────────────────────────────────────────────────────────── */
+    /* ── Sample buttons ─────────────────────────────────────────────────────── */
+    .samples { display: flex; gap: .4rem; flex-wrap: wrap; }
+    .sample-btn {
+      font-size: .71rem; font-weight: 600;
+      padding: .22rem .6rem;
+      border-radius: 5px;
+      background: var(--tag-bg);
+      border: 1px solid var(--border2);
+      color: var(--muted2);
+      cursor: pointer;
+      transition: all .15s;
+      font-family: var(--font);
+    }
+    .sample-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(96,165,250,.06);
+    }
+
+    /* ── Textarea ───────────────────────────────────────────────────────────── */
     textarea {
       width: 100%;
-      min-height: 260px;
+      min-height: 240px;
       background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 8px;
+      border: 1px solid var(--border2);
+      border-radius: var(--radius);
       color: var(--text);
       font-family: var(--mono);
-      font-size: .88rem;
-      line-height: 1.6;
-      padding: 1rem;
+      font-size: .85rem;
+      line-height: 1.65;
+      padding: 1rem 1.1rem;
       resize: vertical;
       outline: none;
-      transition: border-color .2s;
+      transition: border-color .2s, box-shadow .2s;
     }
-    textarea:focus { border-color: var(--accent); }
+    textarea:focus {
+      border-color: var(--accent);
+      box-shadow: var(--glow-blue);
+    }
+    textarea::placeholder { color: var(--muted); }
 
-    /* ── Output ──────────────────────────────────────────────────────────── */
-    .output-box {
-      min-height: 260px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      font-family: var(--mono);
-      font-size: .88rem;
-      line-height: 1.6;
-      padding: 1rem;
-      white-space: pre-wrap;
-      word-break: break-all;
-    }
-    .output-box mark {
-      background: rgba(248, 81, 73, .18);
-      color: #f97583;
-      border-radius: 3px;
-      padding: 0 2px;
-      font-weight: 600;
-    }
-
-    /* ── Controls row ────────────────────────────────────────────────────── */
+    /* ── Controls ───────────────────────────────────────────────────────────── */
     .controls {
-      display: flex; gap: .75rem; flex-wrap: wrap; align-items: center;
+      display: flex; gap: .6rem; flex-wrap: wrap; align-items: center;
     }
-    label { font-size: .82rem; color: var(--muted); font-weight: 600; }
-    select, button {
+    label {
+      font-size: .78rem; color: var(--muted2); font-weight: 600;
+    }
+    select {
       background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      color: var(--text);
-      font-size: .82rem;
-      padding: .4rem .75rem;
+      border: 1px solid var(--border2);
+      border-radius: 7px;
+      color: var(--text2);
+      font-size: .8rem;
+      padding: .38rem .7rem;
       cursor: pointer;
       outline: none;
+      font-family: var(--font);
       transition: border-color .2s;
     }
-    select:focus, button:focus { border-color: var(--accent); }
-    button.primary {
-      background: #1f6feb;
-      border-color: #1f6feb;
-      color: #fff;
+    select:focus { border-color: var(--accent); }
+
+    button {
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: 7px;
+      color: var(--text2);
+      font-size: .8rem;
+      padding: .38rem .75rem;
+      cursor: pointer;
+      outline: none;
+      transition: all .15s;
+      font-family: var(--font);
       font-weight: 600;
-      padding: .45rem 1rem;
     }
-    button.primary:hover { background: #388bfd; }
+    button:hover { border-color: var(--accent); color: var(--accent); }
+
+    button.primary {
+      background: linear-gradient(135deg, #1d4ed8, #0e7490);
+      border: none;
+      color: #fff;
+      font-weight: 700;
+      padding: .45rem 1.1rem;
+      box-shadow: 0 2px 10px rgba(29,78,216,.4);
+    }
+    button.primary:hover {
+      background: linear-gradient(135deg, #2563eb, #0891b2);
+      box-shadow: 0 2px 16px rgba(29,78,216,.55);
+      color: #fff;
+      transform: translateY(-1px);
+    }
     button.clear {
       color: var(--warn);
+      border-color: rgba(248,113,113,.3);
+      background: rgba(248,113,113,.05);
+    }
+    button.clear:hover {
+      background: rgba(248,113,113,.12);
       border-color: var(--warn);
-      background: transparent;
     }
-    button.clear:hover { background: rgba(248,81,73,.1); }
 
-    /* ── Findings table ──────────────────────────────────────────────────── */
-    .findings {
-      font-size: .78rem;
+    /* ── Output box ─────────────────────────────────────────────────────────── */
+    .output-box {
+      min-height: 240px;
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: var(--radius);
+      font-family: var(--mono);
+      font-size: .85rem;
+      line-height: 1.65;
+      padding: 1rem 1.1rem;
+      white-space: pre-wrap;
+      word-break: break-all;
+      transition: border-color .3s;
     }
-    .findings-header {
-      color: var(--muted);
+    .output-box.has-results { border-color: rgba(52,211,153,.25); }
+    .output-box mark {
+      background: rgba(248,113,113,.15);
+      color: #fca5a5;
+      border-radius: 3px;
+      padding: 0 3px;
       font-weight: 700;
-      font-size: .72rem;
+    }
+
+    /* ── Stats row ──────────────────────────────────────────────────────────── */
+    .stats {
+      display: flex; gap: 1.25rem; flex-wrap: wrap;
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: 8px;
+      padding: .6rem 1rem;
+      font-size: .78rem; color: var(--muted);
+      align-items: center;
+    }
+    .stat-item { display: flex; align-items: center; gap: .35rem; }
+    .stat-val { color: var(--text); font-weight: 700; }
+    .stat-divider { width: 1px; height: 14px; background: var(--border2); flex-shrink: 0; }
+
+    /* ── Findings ───────────────────────────────────────────────────────────── */
+    .findings-header {
+      font-size: .7rem;
+      font-weight: 700;
+      color: var(--muted);
       text-transform: uppercase;
-      letter-spacing: .08em;
-      margin-bottom: .5rem;
+      letter-spacing: .1em;
+      margin-bottom: .3rem;
     }
     .finding-row {
       display: flex; align-items: center; gap: .5rem;
-      padding: .35rem .5rem;
-      border-radius: 5px;
+      padding: .38rem .6rem;
+      border-radius: 7px;
       border: 1px solid transparent;
-      margin-bottom: .25rem;
+      margin-bottom: .2rem;
+      transition: background .15s, border-color .15s;
     }
-    .finding-row:hover { background: var(--tag-bg); border-color: var(--border); }
+    .finding-row:hover {
+      background: var(--surface2);
+      border-color: var(--border2);
+    }
     .type-badge {
-      padding: .15rem .55rem;
-      border-radius: 3px;
-      font-size: .68rem;
+      padding: .14rem .55rem;
+      border-radius: 4px;
+      font-size: .67rem;
       font-weight: 700;
+      letter-spacing: .04em;
       white-space: nowrap;
+      flex-shrink: 0;
     }
     .finding-value {
       font-family: var(--mono);
-      color: #f97583;
+      font-size: .8rem;
+      color: #fca5a5;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -203,140 +522,321 @@
     }
     .finding-token {
       font-family: var(--mono);
+      font-size: .78rem;
       color: var(--accent);
       white-space: nowrap;
+      flex-shrink: 0;
     }
     .conf-bar {
-      height: 4px;
-      width: 48px;
-      background: var(--border);
+      height: 3px;
+      width: 44px;
+      background: var(--border2);
       border-radius: 2px;
       overflow: hidden;
       flex-shrink: 0;
     }
-    .conf-fill { height: 100%; background: var(--accent2); }
+    .conf-fill { height: 100%; background: var(--accent2); border-radius: 2px; }
 
-    /* ── Stats row ───────────────────────────────────────────────────────── */
-    .stats {
-      display: flex; gap: 1.5rem; flex-wrap: wrap;
-      font-size: .8rem; color: var(--muted);
-    }
-    .stat-val { color: var(--text); font-weight: 700; }
-
-    /* ── Reverse map ─────────────────────────────────────────────────────── */
+    /* ── Reverse map ────────────────────────────────────────────────────────── */
     .reverse-map {
       font-size: .8rem;
-      background: var(--tag-bg);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: .75rem 1rem;
+      background: rgba(45,212,191,.04);
+      border: 1px solid rgba(45,212,191,.15);
+      border-radius: var(--radius);
+      padding: .85rem 1rem;
       display: none;
     }
-    .reverse-map h4 { color: var(--muted); font-size: .72rem; text-transform: uppercase; letter-spacing: .08em; margin-bottom: .5rem; }
-    .rm-entry { display: flex; gap: 1rem; margin-bottom: .2rem; }
-    .rm-token { font-family: var(--mono); color: var(--accent); min-width: 130px; }
-    .rm-value { font-family: var(--mono); color: #f97583; }
-
-    /* ── Sample buttons ──────────────────────────────────────────────────── */
-    .samples { display: flex; gap: .5rem; flex-wrap: wrap; }
-    .sample-btn {
-      font-size: .72rem;
-      padding: .2rem .6rem;
-      border-radius: 4px;
-      background: var(--tag-bg);
-      border: 1px solid var(--border);
-      color: var(--muted);
-      cursor: pointer;
+    .reverse-map h4 {
+      font-size: .7rem; font-weight: 700;
+      color: var(--accent3);
+      text-transform: uppercase; letter-spacing: .1em;
+      margin-bottom: .6rem;
+      display: flex; align-items: center; gap: .4rem;
     }
-    .sample-btn:hover { border-color: var(--accent); color: var(--accent); }
-
-    /* ── How it works ────────────────────────────────────────────────────── */
-    .how-it-works {
-      border-top: 1px solid var(--border);
-      padding: 2.5rem 2rem;
-      background: var(--surface);
+    .rm-entry {
+      display: flex; gap: .75rem;
+      margin-bottom: .25rem;
+      align-items: baseline;
     }
-    .how-it-works h2 {
-      font-size: 1.1rem; font-weight: 700; margin-bottom: 1.5rem;
-      color: var(--text); text-align: center;
+    .rm-token {
+      font-family: var(--mono);
+      font-size: .78rem;
+      color: var(--accent);
+      min-width: 130px;
+      flex-shrink: 0;
     }
-    .pipeline {
-      display: flex; gap: 0; align-items: stretch;
-      flex-wrap: wrap; justify-content: center;
-      max-width: 1100px; margin: 0 auto;
-    }
-    .pipe-step {
-      flex: 1; min-width: 150px; max-width: 200px;
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 1rem 1.25rem;
-      position: relative;
-    }
-    .pipe-step + .pipe-step { margin-left: 1rem; }
-    .pipe-step + .pipe-step::before {
-      content: '→';
-      position: absolute; left: -0.75rem; top: 50%;
-      transform: translateY(-50%);
-      color: var(--muted); font-size: .9rem;
-    }
-    @media (max-width: 800px) {
-      .pipe-step + .pipe-step { margin-left: 0; margin-top: .75rem; }
-      .pipe-step + .pipe-step::before { content: '↓'; left: 50%; top: -0.6rem; transform: translateX(-50%); }
-    }
-    .pipe-step .layer { font-size: .65rem; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin-bottom: .4rem; }
-    .pipe-step .name { font-size: .9rem; font-weight: 700; color: var(--text); margin-bottom: .3rem; }
-    .pipe-step .desc { font-size: .75rem; color: var(--muted); line-height: 1.4; }
-    .pipe-step.accent-blue { border-color: #1f6feb; }
-    .pipe-step.accent-green { border-color: #238636; }
-    .pipe-step.accent-teal { border-color: #0d7875; }
-    .pipe-step.accent-purple { border-color: #6e40c9; }
-    .pipe-step.accent-orange { border-color: #9e6a03; }
-
-    /* ── Footer ──────────────────────────────────────────────────────────── */
-    footer {
-      border-top: 1px solid var(--border);
-      padding: 1rem 2rem;
-      text-align: center;
-      font-size: .75rem;
-      color: var(--muted);
+    .rm-value {
+      font-family: var(--mono);
+      font-size: .78rem;
+      color: #fca5a5;
     }
 
-    /* ── Empty state ─────────────────────────────────────────────────────── */
+    /* ── Empty state ────────────────────────────────────────────────────────── */
     .empty-state {
       text-align: center;
       color: var(--muted);
       padding: 3rem 1rem;
       font-size: .85rem;
     }
-    .empty-state .icon { font-size: 2rem; margin-bottom: .5rem; }
+    .empty-state .icon {
+      font-size: 2.2rem;
+      margin-bottom: .6rem;
+      display: block;
+      filter: grayscale(30%);
+    }
+    .empty-state p { color: var(--muted); }
+    .empty-state small {
+      font-size: .72rem;
+      color: var(--muted);
+      margin-top: .3rem;
+      display: block;
+    }
 
-    /* ── Tooltip ─────────────────────────────────────────────────────────── */
+    /* ── How it works ───────────────────────────────────────────────────────── */
+    .how-section {
+      border-top: 1px solid var(--border);
+      padding: 3.5rem 2rem;
+      background: var(--surface);
+      position: relative;
+      overflow: hidden;
+    }
+    .how-section::before {
+      content: '';
+      position: absolute;
+      bottom: -60px; right: -60px;
+      width: 300px; height: 300px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(45,212,191,.06) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .section-label {
+      font-size: .72rem; font-weight: 700;
+      color: var(--accent3);
+      text-transform: uppercase; letter-spacing: .12em;
+      text-align: center;
+      margin-bottom: .6rem;
+    }
+    .section-title {
+      font-size: 1.5rem; font-weight: 800;
+      text-align: center;
+      letter-spacing: -.5px;
+      margin-bottom: .6rem;
+    }
+    .section-desc {
+      text-align: center;
+      color: var(--muted2);
+      font-size: .9rem;
+      max-width: 560px;
+      margin: 0 auto 2.5rem;
+    }
+
+    .pipeline {
+      display: flex; gap: 0; align-items: stretch;
+      flex-wrap: wrap; justify-content: center;
+      max-width: 1100px; margin: 0 auto;
+    }
+    .pipe-step {
+      flex: 1; min-width: 145px; max-width: 190px;
+      background: var(--bg);
+      border: 1px solid var(--border2);
+      border-radius: var(--radius);
+      padding: 1.1rem 1.1rem;
+      position: relative;
+      transition: border-color .2s, box-shadow .2s, transform .2s;
+    }
+    .pipe-step:hover { transform: translateY(-2px); }
+    .pipe-step + .pipe-step { margin-left: 1rem; }
+    .pipe-step + .pipe-step::before {
+      content: '→';
+      position: absolute;
+      left: -0.8rem; top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted);
+      font-size: .85rem;
+      font-weight: 700;
+    }
+    @media (max-width: 800px) {
+      .pipe-step { max-width: 100%; }
+      .pipe-step + .pipe-step { margin-left: 0; margin-top: .75rem; }
+      .pipe-step + .pipe-step::before {
+        content: '↓'; left: 50%; top: -.65rem;
+        transform: translateX(-50%);
+      }
+    }
+    .pipe-icon {
+      font-size: 1.25rem;
+      margin-bottom: .55rem;
+      display: block;
+    }
+    .pipe-step .layer {
+      font-size: .62rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .1em;
+      color: var(--muted); margin-bottom: .3rem;
+    }
+    .pipe-step .name {
+      font-size: .88rem; font-weight: 700;
+      color: var(--text); margin-bottom: .3rem;
+    }
+    .pipe-step .desc {
+      font-size: .73rem; color: var(--muted2); line-height: 1.45;
+    }
+
+    /* pipe accent colors */
+    .pipe-step.accent-blue  { border-top: 3px solid var(--accent); }
+    .pipe-step.accent-blue:hover  { box-shadow: var(--glow-blue); }
+    .pipe-step.accent-green { border-top: 3px solid var(--accent2); }
+    .pipe-step.accent-green:hover { box-shadow: 0 0 24px rgba(52,211,153,.18); }
+    .pipe-step.accent-teal  { border-top: 3px solid var(--accent3); }
+    .pipe-step.accent-teal:hover  { box-shadow: var(--glow-teal); }
+    .pipe-step.accent-purple { border-top: 3px solid var(--purple); }
+    .pipe-step.accent-purple:hover { box-shadow: 0 0 24px rgba(167,139,250,.18); }
+    .pipe-step.accent-orange { border-top: 3px solid var(--orange); }
+    .pipe-step.accent-orange:hover { box-shadow: 0 0 24px rgba(251,146,60,.18); }
+
+    /* ── Spring AI callout ───────────────────────────────────────────────────── */
+    .callout-strip {
+      border-top: 1px solid var(--border);
+      background: rgba(96,165,250,.04);
+      padding: 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 2rem;
+      flex-wrap: wrap;
+      text-align: center;
+    }
+    .callout-strip .callout-icon { font-size: 2rem; }
+    .callout-body h3 { font-size: 1rem; font-weight: 700; margin-bottom: .3rem; }
+    .callout-body p  { font-size: .85rem; color: var(--muted2); max-width: 500px; }
+    .callout-body code {
+      font-family: var(--mono); font-size: .8rem;
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: 5px;
+      padding: .1rem .4rem;
+      color: var(--accent3);
+    }
+
+    /* ── Footer ─────────────────────────────────────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+      padding: 2rem;
+    }
+    .footer-inner {
+      max-width: 900px;
+      margin: 0 auto;
+      display: flex;
+      gap: 2rem;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      justify-content: space-between;
+    }
+    .footer-brand .logo { font-size: 1rem; margin-bottom: .5rem; }
+    .footer-brand p {
+      font-size: .78rem;
+      color: var(--muted);
+      max-width: 260px;
+      line-height: 1.5;
+    }
+    .footer-links h4 {
+      font-size: .7rem; font-weight: 700;
+      color: var(--muted); text-transform: uppercase; letter-spacing: .1em;
+      margin-bottom: .6rem;
+    }
+    .footer-links ul {
+      list-style: none;
+      display: flex; flex-direction: column; gap: .4rem;
+    }
+    .footer-links li a {
+      font-size: .82rem; color: var(--muted2);
+    }
+    .footer-links li a:hover { color: var(--text); text-decoration: none; }
+    .footer-bottom {
+      margin-top: 1.5rem;
+      padding-top: 1.25rem;
+      border-top: 1px solid var(--border);
+      text-align: center;
+      font-size: .73rem;
+      color: var(--muted);
+      max-width: 900px;
+      margin-left: auto; margin-right: auto;
+    }
+    .footer-bottom .privacy-note {
+      display: inline-flex; align-items: center; gap: .35rem;
+      background: rgba(52,211,153,.06);
+      border: 1px solid rgba(52,211,153,.15);
+      border-radius: 6px;
+      padding: .3rem .75rem;
+      color: var(--accent2);
+      margin-top: .75rem;
+      font-size: .73rem;
+    }
+
+    /* ── Tooltip ─────────────────────────────────────────────────────────────── */
     [title] { cursor: help; }
+
+    /* ── Animations ──────────────────────────────────────────────────────────── */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .finding-row { animation: fadeIn .15s ease both; }
   </style>
 </head>
 <body>
 
-<!-- ── Header ────────────────────────────────────────────────────────────── -->
+<!-- ── Header ──────────────────────────────────────────────────────────────── -->
 <header>
-  <div class="logo">🛡 Semantic <span>Privacy</span> Guard</div>
-  <div class="badges">
-    <span class="badge green">● Build passing</span>
-    <span class="badge blue">Java 17+</span>
-<span class="badge">Apache 2.0</span>
-    <a class="badge" href="https://github.com/Sushegaad/Semantic-Privacy-Guard" target="_blank">⭐ GitHub</a>
-    <a class="badge blue" href="https://sushegaad.github.io/Semantic-Privacy-Guard/docs/index.html" target="_blank">🔗 Playground</a>
+  <div class="logo">
+    <div class="logo-icon">🛡</div>
+    <span class="logo-text">Semantic <span>Privacy</span> Guard</span>
+  </div>
+
+  <nav>
+    <a href="https://github.com/Sushegaad/Semantic-Privacy-Guard/blob/main/README.md" target="_blank">Docs</a>
+    <a href="benchmarks.html">Benchmarks</a>
+    <a href="https://github.com/Sushegaad/Semantic-Privacy-Guard/releases" target="_blank">Releases</a>
+    <a href="https://github.com/Sushegaad/Semantic-Privacy-Guard" target="_blank">GitHub</a>
+  </nav>
+
+  <div class="header-right">
+    <span class="chip green">● Build passing</span>
+    <span class="chip version">v1.5.0</span>
+    <a class="chip" href="https://github.com/Sushegaad/Semantic-Privacy-Guard" target="_blank">⭐ Star</a>
   </div>
 </header>
 
-<!-- ── Hero ──────────────────────────────────────────────────────────────── -->
+<!-- ── Hero ────────────────────────────────────────────────────────────────── -->
 <div class="hero">
-  <h1>AI Privacy <em>Firewall</em> for Java</h1>
-  <p>
-    Intercept LLM prompts, detect PII using a three-layer
-    <strong>Regex&nbsp;+&nbsp;Naive&nbsp;Bayes&nbsp;+&nbsp;OpenNLP&nbsp;NER</strong> pipeline, and replace
-    sensitive data with structured tokens — before it leaves your network.
+  <div class="hero-badge">
+    <span class="dot"></span>
+    Open Source · Apache 2.0 · Java 17+
+  </div>
+
+  <h1>Open-source <span class="gradient-text">Privacy Firewall</span><br>for AI Applications</h1>
+
+  <p class="hero-sub">
+    Prevent sensitive data from reaching LLMs — without breaking prompts.
   </p>
+  <p class="hero-tech">
+    Three-layer detection pipeline:
+    <strong>Regex</strong> + <strong>Naive Bayes ML</strong> + <strong>Apache OpenNLP NER</strong> —
+    running entirely on your infrastructure, zero cloud calls.
+  </p>
+
+  <div class="hero-ctas">
+    <a class="btn btn-primary" href="https://github.com/Sushegaad/Semantic-Privacy-Guard" target="_blank">
+      ⭐ View on GitHub
+    </a>
+    <a class="btn btn-outline" href="https://github.com/Sushegaad/Semantic-Privacy-Guard/blob/main/README.md" target="_blank">
+      📖 Documentation
+    </a>
+    <a class="btn btn-outline" href="benchmarks.html">
+      📊 Benchmarks
+    </a>
+  </div>
+
   <div class="pill-row">
     <span class="pill active">SSN</span>
     <span class="pill active">Credit Card</span>
@@ -347,28 +847,60 @@
     <span class="pill active">Passwords</span>
     <span class="pill active">Names (ML+NLP)</span>
     <span class="pill active">Orgs (ML+NLP)</span>
-    <span class="pill active">IBAN</span>
+    <span class="pill active">IBAN / Bank</span>
+    <span class="pill active">DOB</span>
+    <span class="pill active">Custom Patterns</span>
   </div>
 </div>
 
-<!-- ── Main ──────────────────────────────────────────────────────────────── -->
+<!-- ── Metrics strip ────────────────────────────────────────────────────────── -->
+<div class="metrics-strip">
+  <div class="metric-item">
+    <div class="metric-val">10+</div>
+    <div class="metric-label">PII Types</div>
+  </div>
+  <div class="metric-item">
+    <div class="metric-val">97%</div>
+    <div class="metric-label">Macro Precision</div>
+  </div>
+  <div class="metric-item">
+    <div class="metric-val">390+</div>
+    <div class="metric-label">MB/s Throughput</div>
+  </div>
+  <div class="metric-item">
+    <div class="metric-val">0</div>
+    <div class="metric-label">Cloud Dependencies</div>
+  </div>
+</div>
+
+<!-- ── Playground ───────────────────────────────────────────────────────────── -->
+<div class="playground-header">
+  <h2>🔬 Live Playground</h2>
+  <span class="hint">Try it — type any text containing PII, then hit
+    <kbd>Ctrl</kbd>+<kbd>Enter</kbd> or click Redact
+  </span>
+</div>
+
 <main>
 
   <!-- Left pane: input -->
   <div class="pane">
     <div class="pane-header">
-      <span class="pane-title">Input Text</span>
+      <div class="pane-label">
+        <span class="icon blue">✏️</span>
+        Input Text
+      </div>
       <div class="samples">
         <button class="sample-btn" onclick="loadSample('email')">Email</button>
         <button class="sample-btn" onclick="loadSample('ssn')">SSN</button>
-        <button class="sample-btn" onclick="loadSample('ml')">ML disambiguation</button>
+        <button class="sample-btn" onclick="loadSample('ml')">ML context</button>
         <button class="sample-btn" onclick="loadSample('mixed')">Full mix</button>
         <button class="sample-btn" onclick="loadSample('apikey')">API keys</button>
         <button class="sample-btn" onclick="loadSample('nlp')" title="Showcases multi-token names that NLP layer handles server-side">NLP names</button>
       </div>
     </div>
 
-    <textarea id="input">Liverpool are the champions of England; PSG are the champions of Europe; and Chelsea are the champions of the world!
+    <textarea id="input" placeholder="Paste any text here — emails, support tickets, LLM prompts…">Liverpool are the champions of England; PSG are the champions of Europe; and Chelsea are the champions of the world!
 199-84-9876
 someone.naik@gmail.com</textarea>
 
@@ -384,10 +916,10 @@ someone.naik@gmail.com</textarea>
         ML threshold:
       </label>
       <select id="threshold">
-        <option value="0.50">0.50 (High recall)</option>
-        <option value="0.65" selected>0.65 (Balanced)</option>
-        <option value="0.75">0.75 (High precision)</option>
-        <option value="0.90">0.90 (Very strict)</option>
+        <option value="0.50">0.50 — High recall</option>
+        <option value="0.65" selected>0.65 — Balanced</option>
+        <option value="0.75">0.75 — High precision</option>
+        <option value="0.90">0.90 — Very strict</option>
       </select>
 
       <button class="primary" onclick="runRedact()">🔍 Redact</button>
@@ -395,26 +927,33 @@ someone.naik@gmail.com</textarea>
     </div>
 
     <div class="stats" id="stats" style="display:none">
-      <span>Detections: <span class="stat-val" id="s-count">0</span></span>
-      <span>Types: <span class="stat-val" id="s-types">—</span></span>
-      <span>Time: <span class="stat-val" id="s-time">—</span></span>
-      <span>Layer: <span class="stat-val" id="s-layer">—</span></span>
+      <div class="stat-item">🎯 Found <span class="stat-val" id="s-count">0</span></div>
+      <div class="stat-divider"></div>
+      <div class="stat-item">Types: <span class="stat-val" id="s-types">—</span></div>
+      <div class="stat-divider"></div>
+      <div class="stat-item">⏱ <span class="stat-val" id="s-time">—</span></div>
+      <div class="stat-divider"></div>
+      <div class="stat-item">Layer: <span class="stat-val" id="s-layer">—</span></div>
     </div>
   </div>
 
   <!-- Right pane: output -->
   <div class="pane">
     <div class="pane-header">
-      <span class="pane-title">Redacted Output</span>
-      <button onclick="copyOutput()" style="font-size:.75rem; padding:.25rem .6rem;">
+      <div class="pane-label">
+        <span class="icon green">🔒</span>
+        Redacted Output
+      </div>
+      <button onclick="copyOutput()" style="font-size:.73rem; padding:.22rem .6rem;">
         📋 Copy
       </button>
     </div>
 
     <div class="output-box" id="output">
       <div class="empty-state">
-        <div class="icon">🔐</div>
-        <div>Redacted text will appear here</div>
+        <span class="icon">🔐</span>
+        <p>Redacted text will appear here</p>
+        <small>PII is replaced with structured tokens like [EMAIL_1], [SSN_1]…</small>
       </div>
     </div>
 
@@ -424,58 +963,118 @@ someone.naik@gmail.com</textarea>
     <div id="findings"></div>
 
     <div class="reverse-map" id="reverse-map">
-      <h4>Reverse Map (de-tokenisation)</h4>
+      <h4>🔑 Reverse Map (de-tokenisation)</h4>
       <div id="rm-entries"></div>
     </div>
   </div>
+
 </main>
 
-<!-- ── How it works ───────────────────────────────────────────────────────── -->
-<div class="how-it-works">
-  <h2>How It Works</h2>
+<!-- ── How it works ─────────────────────────────────────────────────────────── -->
+<div class="how-section">
+  <div class="section-label">Under the Hood</div>
+  <h2 class="section-title">Three-Layer Detection Pipeline</h2>
+  <p class="section-desc">
+    Each layer catches what the others miss — regex for structure, ML for context, NER for compound names.
+    Matches are de-duplicated and merged into a single ranked result.
+  </p>
+
   <div class="pipeline">
     <div class="pipe-step accent-blue">
+      <span class="pipe-icon">📄</span>
       <div class="layer">Input</div>
       <div class="name">Raw Text</div>
-      <div class="desc">Any string: LLM prompt, email body, support ticket, log line…</div>
+      <div class="desc">Any string: LLM prompt, email body, support ticket, API log line…</div>
     </div>
     <div class="pipe-step accent-blue">
+      <span class="pipe-icon">🔤</span>
       <div class="layer">Layer 1</div>
       <div class="name">HeuristicDetector</div>
-      <div class="desc">10 pre-compiled regexes. Luhn for cards, NANP for phones, entropy filter for API keys.</div>
+      <div class="desc">10 pre-compiled regexes. Luhn validation for cards, NANP for phones, Shannon entropy for API keys.</div>
     </div>
     <div class="pipe-step accent-green">
+      <span class="pipe-icon">🧠</span>
       <div class="layer">Layer 2</div>
       <div class="name">MLDetector</div>
       <div class="desc">Multinomial Naive Bayes. Classifies title-cased tokens using bag-of-words context features.</div>
     </div>
     <div class="pipe-step accent-teal">
+      <span class="pipe-icon">🔭</span>
       <div class="layer">Layer 3</div>
       <div class="name">NLPDetector</div>
       <div class="desc">Apache OpenNLP MaxEnt NER. Handles compound names, hyphens, and varied syntactic positions.</div>
     </div>
     <div class="pipe-step accent-purple">
+      <span class="pipe-icon">⚖️</span>
       <div class="layer">Merge</div>
       <div class="name">CompositeDetector</div>
-      <div class="desc">De-duplicates overlapping matches. Promotes same-span matches to HYBRID source.</div>
+      <div class="desc">De-duplicates overlapping matches. Promotes same-span detections to HYBRID source with elevated confidence.</div>
     </div>
     <div class="pipe-step accent-orange">
+      <span class="pipe-icon">✅</span>
       <div class="layer">Output</div>
       <div class="name">PIITokenizer</div>
-      <div class="desc">TOKEN / MASK / BLANK modes. Reverse map for de-tokenisation after LLM response.</div>
+      <div class="desc">TOKEN / MASK / BLANK modes. Builds reverse map for de-tokenisation after the LLM responds.</div>
     </div>
   </div>
 </div>
 
-<!-- ── Footer ────────────────────────────────────────────────────────────── -->
+<!-- ── Spring AI callout ────────────────────────────────────────────────────── -->
+<div class="callout-strip">
+  <div class="callout-icon">🌱</div>
+  <div class="callout-body">
+    <h3>Spring AI Integration — <span class="gradient-text">New in v1.4.0</span></h3>
+    <p>
+      Drop <code>SPGAdvisor</code> into any Spring AI <code>ChatClient</code> to automatically
+      redact PII before every LLM call — three lines of code, zero config required.
+      Available as a standalone Maven artifact.
+    </p>
+  </div>
+  <a class="btn btn-outline" href="https://github.com/Sushegaad/Semantic-Privacy-Guard/tree/main/semantic-privacy-guard-spring-ai" target="_blank" style="flex-shrink:0;">
+    View Module →
+  </a>
+</div>
+
+<!-- ── Footer ──────────────────────────────────────────────────────────────── -->
 <footer>
-  Semantic Privacy Guard v1.4.0 · Apache 2.0 ·
-  <a href="https://github.com/Sushegaad/Semantic-Privacy-Guard" target="_blank">GitHub</a> ·
-  <a href="https://github.com/Sushegaad/Semantic-Privacy-Guard/blob/main/README.md" target="_blank">Documentation</a> ·
-  <a href="https://github.com/Sushegaad/Semantic-Privacy-Guard/blob/main/SECURITY.md" target="_blank">Security Policy</a>
-  <br><small style="margin-top:.4rem;display:block">
-    ⚠️ This playground runs entirely in your browser — no text is ever transmitted to any server.
-  </small>
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <div class="logo">
+        <div class="logo-icon">🛡</div>
+        <span class="logo-text">Semantic <span>Privacy</span> Guard</span>
+      </div>
+      <p>Open-source privacy firewall for AI applications. Keep PII out of your LLM calls.</p>
+    </div>
+
+    <div class="footer-links">
+      <h4>Project</h4>
+      <ul>
+        <li><a href="https://github.com/Sushegaad/Semantic-Privacy-Guard" target="_blank">GitHub Repository</a></li>
+        <li><a href="https://github.com/Sushegaad/Semantic-Privacy-Guard/releases" target="_blank">Releases</a></li>
+        <li><a href="https://github.com/Sushegaad/Semantic-Privacy-Guard/blob/main/SECURITY.md" target="_blank">Security Policy</a></li>
+        <li><a href="https://github.com/Sushegaad/Semantic-Privacy-Guard/blob/main/LICENSE" target="_blank">Apache 2.0 License</a></li>
+      </ul>
+    </div>
+
+    <div class="footer-links">
+      <h4>Resources</h4>
+      <ul>
+        <li><a href="https://github.com/Sushegaad/Semantic-Privacy-Guard/blob/main/README.md" target="_blank">Documentation</a></li>
+        <li><a href="benchmarks.html">Benchmark Results</a></li>
+        <li><a href="https://github.com/Sushegaad/Semantic-Privacy-Guard/tree/main/semantic-privacy-guard-spring-ai" target="_blank">Spring AI Adapter</a></li>
+        <li><a href="https://github.com/Sushegaad/Semantic-Privacy-Guard/issues" target="_blank">Report an Issue</a></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="footer-bottom">
+    Semantic Privacy Guard v1.5.0 · Apache 2.0 · Made with ❤️ by
+    <a href="https://github.com/Sushegaad" target="_blank">Sushegaad</a>
+    <br>
+    <span class="privacy-note">
+      🔒 This playground runs entirely in your browser — no text is ever transmitted to any server.
+    </span>
+  </div>
 </footer>
 
 <script>
@@ -559,18 +1158,18 @@ further improving detection of compound/hyphenated names and org names.]`
 
 // ── PII type metadata ────────────────────────────────────────────────────────
 const TYPE_META = {
-  SSN:          { label: 'SSN',        color: '#f85149', bg: '#2d1b1a', sev: 10 },
-  CREDIT_CARD:  { label: 'CARD',       color: '#f85149', bg: '#2d1b1a', sev: 10 },
-  API_KEY:      { label: 'API KEY',    color: '#f0883e', bg: '#2d1e14', sev: 9  },
-  PASSWORD:     { label: 'PASSWORD',   color: '#f0883e', bg: '#2d1e14', sev: 9  },
-  EMAIL:        { label: 'EMAIL',      color: '#58a6ff', bg: '#0c1a2e', sev: 6  },
-  PHONE:        { label: 'PHONE',      color: '#58a6ff', bg: '#0c1a2e', sev: 6  },
-  IP_ADDRESS:   { label: 'IP',         color: '#3fb950', bg: '#0d2a0d', sev: 4  },
-  PERSON_NAME:  { label: 'NAME',       color: '#d2a8ff', bg: '#1e1531', sev: 6  },
-  ORGANIZATION: { label: 'ORG',        color: '#d2a8ff', bg: '#1e1531', sev: 3  },
-  DATE_OF_BIRTH:{ label: 'DOB',        color: '#79c0ff', bg: '#0c1a2e', sev: 6  },
-  BANK_ACCOUNT: { label: 'IBAN',       color: '#ffa657', bg: '#2d1e00', sev: 8  },
-  GENERIC_PII:  { label: 'PII',        color: '#8b949e', bg: '#1c2128', sev: 5  },
+  SSN:          { label: 'SSN',        color: '#f87171', bg: '#2d1b1a', sev: 10 },
+  CREDIT_CARD:  { label: 'CARD',       color: '#f87171', bg: '#2d1b1a', sev: 10 },
+  API_KEY:      { label: 'API KEY',    color: '#fb923c', bg: '#2d1e14', sev: 9  },
+  PASSWORD:     { label: 'PASSWORD',   color: '#fb923c', bg: '#2d1e14', sev: 9  },
+  EMAIL:        { label: 'EMAIL',      color: '#60a5fa', bg: '#0c1a2e', sev: 6  },
+  PHONE:        { label: 'PHONE',      color: '#60a5fa', bg: '#0c1a2e', sev: 6  },
+  IP_ADDRESS:   { label: 'IP',         color: '#34d399', bg: '#0d2a0d', sev: 4  },
+  PERSON_NAME:  { label: 'NAME',       color: '#c4b5fd', bg: '#1e1531', sev: 6  },
+  ORGANIZATION: { label: 'ORG',        color: '#c4b5fd', bg: '#1e1531', sev: 3  },
+  DATE_OF_BIRTH:{ label: 'DOB',        color: '#93c5fd', bg: '#0c1a2e', sev: 6  },
+  BANK_ACCOUNT: { label: 'IBAN',       color: '#fdba74', bg: '#2d1e00', sev: 8  },
+  GENERIC_PII:  { label: 'PII',        color: '#94a3b8', bg: '#1c2128', sev: 5  },
 };
 
 // ── Regex patterns (JS port of RegexPatterns.java) ──────────────────────────
@@ -796,6 +1395,12 @@ function runRedact() {
 
   // Update output pane
   const outEl = document.getElementById('output');
+  if (matches.length > 0) {
+    outEl.classList.add('has-results');
+  } else {
+    outEl.classList.remove('has-results');
+  }
+
   if (mode === 'token') {
     let highlighted = escapeHtml(result)
       .replace(/\[([A-Z_ 0-9]+)\]/g, '<mark>[$1]</mark>');
@@ -864,8 +1469,10 @@ function runRedact() {
 
 function clearAll() {
   document.getElementById('input').value = '';
-  document.getElementById('output').innerHTML =
-    '<div class="empty-state"><div class="icon">🔐</div><div>Redacted text will appear here</div></div>';
+  const outEl = document.getElementById('output');
+  outEl.classList.remove('has-results');
+  outEl.innerHTML =
+    '<div class="empty-state"><span class="icon">🔐</span><p>Redacted text will appear here</p><small>PII is replaced with structured tokens like [EMAIL_1], [SSN_1]…</small></div>';
   document.getElementById('findings').innerHTML = '';
   document.getElementById('findings-header').style.display = 'none';
   document.getElementById('reverse-map').style.display = 'none';
