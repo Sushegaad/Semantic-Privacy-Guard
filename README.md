@@ -124,20 +124,20 @@ Most regex-based approaches fire on every title-cased word. SPG uses a three-lay
 
 ### SPG vs. alternatives
 
-| | **SPG** | Microsoft Presidio | AWS Comprehend | Regex only |
-|---|:---:|:---:|:---:|:---:|
-| Runs fully offline | ✅ | ✅ | ❌ | ✅ |
-| Zero cloud cost | ✅ | ✅ | ❌ | ✅ |
-| Context-aware disambiguation | ✅ | ✅ | ✅ | ❌ |
-| Zero runtime dependencies | ✅ | ❌ | ❌ | ✅ |
-| Spring AI native adapter | ✅ | ❌ | ❌ | ❌ |
-| Stream / log file API | ✅ | ❌ | ❌ | ❌ |
-| Reverse map for de-tokenization | ✅ | ❌ | ❌ | ❌ |
-| Language | Java | Python | Any | Any |
+| | **SPG** | Microsoft Presidio | Regex only |
+|---|:---:|:---:|:---:|
+| Runs fully offline | ✅ | ✅ | ✅ |
+| Zero cloud cost | ✅ | ✅ | ✅ |
+| Context-aware disambiguation | ✅ | ✅ | ❌ |
+| Zero runtime dependencies | ✅ | ❌ | ✅ |
+| Spring AI native adapter | ✅ | ❌ | ❌ |
+| Stream / log file API | ✅ | ❌ | ❌ |
+| Reverse map for de-tokenization | ✅ | ❌ | ❌ |
+| Language | Java | Python | Any |
 
 ### Why not just use a cloud PII API?
 
-Cloud PII APIs (AWS Comprehend, Google DLP, Azure AI) cost ~$0.001 per call. At 1 million prompts/day that is $1,000/day — and you are sending user data off-premise to perform the privacy check. SPG processes everything in-process, at $0/call, with no data leaving your network.
+Cloud PII APIs cost ~$0.001 per call. At 1 million prompts/day that is $1,000/day — and you are sending user data off-premise to perform the privacy check. SPG processes everything in-process, at $0/call, with no data leaving your network.
 
 ---
 
