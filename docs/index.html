@@ -109,14 +109,13 @@
       .header-right .chip:not(.green) { display: none; }
     }
 
-    /* ── Hero ───────────────────────────────────────────────────────────────── */
+    /* ── Hero (compact) ─────────────────────────────────────────────────────── */
     .hero {
       text-align: center;
-      padding: 4rem 2rem 2.75rem;
+      padding: 1.1rem 2rem .9rem;
       background: linear-gradient(180deg, #eff6ff 0%, #f8fafc 100%);
       border-bottom: 1px solid var(--border);
-      position: relative;
-      overflow: hidden;
+      position: relative; overflow: hidden;
     }
     .hero::before {
       content: '';
@@ -127,9 +126,9 @@
     .hero-badge {
       display: inline-flex; align-items: center; gap: .4rem;
       background: #eff6ff; border: 1px solid #bfdbfe;
-      border-radius: 20px; padding: .28rem .9rem;
-      font-size: .76rem; font-weight: 600; color: #1d4ed8;
-      margin-bottom: 1.4rem;
+      border-radius: 20px; padding: .22rem .8rem;
+      font-size: .72rem; font-weight: 600; color: #1d4ed8;
+      margin-bottom: .55rem;
     }
     .hero-badge .dot {
       width: 6px; height: 6px; border-radius: 50%;
@@ -139,10 +138,15 @@
       0%, 100% { opacity: 1; transform: scale(1); }
       50%       { opacity: .4; transform: scale(.75); }
     }
+    .hero-top {
+      display: flex; align-items: center; justify-content: center;
+      gap: 1.5rem; flex-wrap: wrap; margin-bottom: .6rem;
+    }
+    .hero-copy { text-align: left; }
     .hero h1 {
-      font-size: clamp(1.9rem, 4.5vw, 2.8rem);
-      font-weight: 800; letter-spacing: -1px; line-height: 1.15;
-      color: var(--text); margin-bottom: 1rem;
+      font-size: clamp(1.1rem, 2.8vw, 1.55rem);
+      font-weight: 800; letter-spacing: -.5px; line-height: 1.2;
+      color: var(--text); margin-bottom: .2rem;
     }
     .gradient-text {
       background: linear-gradient(135deg, #2563eb 0%, #0891b2 100%);
@@ -150,32 +154,27 @@
       background-clip: text;
     }
     .hero-sub {
-      font-size: 1.05rem; color: var(--muted2);
-      max-width: 540px; margin: 0 auto .85rem;
+      font-size: .82rem; color: var(--muted2);
     }
-    .hero-tech {
-      font-size: .875rem; color: var(--muted);
-      max-width: 540px; margin: 0 auto 2rem;
-    }
-    .hero-tech strong { color: var(--text2); }
     .hero-ctas {
-      display: flex; gap: .65rem; justify-content: center;
-      flex-wrap: wrap; margin-bottom: 2.25rem;
+      display: flex; gap: .45rem; align-items: center; flex-wrap: wrap;
+      flex-shrink: 0;
     }
     .btn {
-      display: inline-flex; align-items: center; gap: .4rem;
-      padding: .55rem 1.25rem; border-radius: 8px;
-      font-size: .85rem; font-weight: 700;
+      display: inline-flex; align-items: center; gap: .35rem;
+      padding: .38rem .85rem; border-radius: 7px;
+      font-size: .78rem; font-weight: 700;
       cursor: pointer; transition: all .15s;
       border: 1px solid transparent; font-family: var(--font);
+      white-space: nowrap;
     }
     .btn-primary {
       background: linear-gradient(135deg, #2563eb, #0891b2);
-      color: #fff; box-shadow: 0 2px 10px rgba(37,99,235,.3);
+      color: #fff; box-shadow: 0 2px 8px rgba(37,99,235,.3);
     }
     .btn-primary:hover {
       background: linear-gradient(135deg, #1d4ed8, #0e7490);
-      box-shadow: 0 4px 18px rgba(37,99,235,.4);
+      box-shadow: 0 4px 14px rgba(37,99,235,.4);
       transform: translateY(-1px); text-decoration: none; color: #fff;
     }
     .btn-outline {
@@ -188,17 +187,51 @@
       box-shadow: var(--shadow);
     }
     .pill-row {
-      display: flex; gap: .35rem; justify-content: center; flex-wrap: wrap;
+      display: flex; gap: .25rem; justify-content: center; flex-wrap: wrap;
+      margin-top: .5rem;
     }
     .pill {
       background: var(--surface); border: 1px solid var(--border2);
-      border-radius: 20px; padding: .25rem .8rem;
-      font-size: .73rem; font-weight: 600; color: var(--muted2);
+      border-radius: 20px; padding: .15rem .6rem;
+      font-size: .66rem; font-weight: 600; color: var(--muted2);
       transition: all .15s;
     }
     .pill:hover { border-color: var(--accent); color: var(--accent); }
     .pill.active {
       background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8;
+    }
+
+    /* ── Category filter ─────────────────────────────────────────────────────── */
+    .cat-filter {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 8px; padding: .65rem .9rem;
+    }
+    .cat-filter-head {
+      display: flex; align-items: center; gap: .5rem; margin-bottom: .45rem; flex-wrap: wrap;
+    }
+    .cat-filter-label {
+      font-size: .68rem; font-weight: 700; color: var(--muted);
+      text-transform: uppercase; letter-spacing: .09em; flex: 1;
+    }
+    .cat-filter-head button {
+      font-size: .65rem; padding: .15rem .45rem;
+      border-radius: 4px; background: var(--surface);
+      border: 1px solid var(--border2); color: var(--muted2);
+      cursor: pointer; font-family: var(--font); font-weight: 600;
+    }
+    .cat-filter-head button:hover { border-color: var(--accent); color: var(--accent); background: #eff6ff; }
+    .cat-pills { display: flex; flex-wrap: wrap; gap: .3rem; }
+    .cat-pill {
+      display: inline-flex; align-items: center; gap: .25rem;
+      padding: .2rem .6rem; border-radius: 14px;
+      font-size: .68rem; font-weight: 700;
+      cursor: pointer; user-select: none;
+      border: 1px solid; transition: all .12s;
+    }
+    .cat-pill .check { font-size: .6rem; }
+    .cat-pill.off {
+      background: var(--surface); border-color: var(--border2) !important;
+      color: var(--muted) !important; opacity: .55; text-decoration: line-through;
     }
 
     /* ── Metrics strip ──────────────────────────────────────────────────────── */
@@ -558,19 +591,18 @@
 <div class="hero">
   <div class="hero-badge">
     <span class="dot"></span>
-    Open Source · Apache 2.0 · Java 17+
+    Open Source · Apache 2.0 · Java 17+ · Regex + Naive Bayes ML + Apache OpenNLP NER
   </div>
-  <h1>Open-source <span class="gradient-text">Privacy Firewall</span><br>for AI Applications</h1>
-  <p class="hero-sub">Prevent sensitive data from reaching LLMs — without breaking prompts.</p>
-  <p class="hero-tech">
-    Three-layer detection:
-    <strong>Regex</strong> + <strong>Naive Bayes ML</strong> + <strong>Apache OpenNLP NER</strong> —
-    runs fully on your infrastructure, zero cloud calls.
-  </p>
-  <div class="hero-ctas">
-    <a class="btn btn-primary" href="https://github.com/Sushegaad/Semantic-Privacy-Guard" target="_blank">⭐ View on GitHub</a>
-    <a class="btn btn-outline" href="https://github.com/Sushegaad/Semantic-Privacy-Guard/blob/main/README.md" target="_blank">📖 Documentation</a>
-    <a class="btn btn-outline" href="benchmarks.html">📊 Benchmarks</a>
+  <div class="hero-top">
+    <div class="hero-copy">
+      <h1>Open-source <span class="gradient-text">Privacy Firewall</span> for AI Applications</h1>
+      <p class="hero-sub">Prevent sensitive data from reaching LLMs — without breaking prompts.</p>
+    </div>
+    <div class="hero-ctas">
+      <a class="btn btn-primary" href="https://github.com/Sushegaad/Semantic-Privacy-Guard" target="_blank">⭐ GitHub</a>
+      <a class="btn btn-outline" href="https://github.com/Sushegaad/Semantic-Privacy-Guard/blob/main/README.md" target="_blank">📖 Docs</a>
+      <a class="btn btn-outline" href="benchmarks.html">📊 Benchmarks</a>
+    </div>
   </div>
   <div class="pill-row">
     <span class="pill active">SSN</span>
@@ -622,11 +654,17 @@
     <div class="pane-header">
       <div class="pane-label">✏️ Input Text</div>
       <div class="samples">
+        <button class="sample-btn" onclick="loadSample('mixed')">Full mix</button>
         <button class="sample-btn" onclick="loadSample('email')">Email</button>
         <button class="sample-btn" onclick="loadSample('ssn')">SSN</button>
-        <button class="sample-btn" onclick="loadSample('ml')">ML context</button>
-        <button class="sample-btn" onclick="loadSample('mixed')">Full mix</button>
-        <button class="sample-btn" onclick="loadSample('apikey')">API keys</button>
+        <button class="sample-btn" onclick="loadSample('card')">Credit Card</button>
+        <button class="sample-btn" onclick="loadSample('phone')">Phone</button>
+        <button class="sample-btn" onclick="loadSample('ip')">IP / Network</button>
+        <button class="sample-btn" onclick="loadSample('apikey')">API Keys</button>
+        <button class="sample-btn" onclick="loadSample('password')">Passwords</button>
+        <button class="sample-btn" onclick="loadSample('names')">Names (ML)</button>
+        <button class="sample-btn" onclick="loadSample('iban')">IBAN / Bank</button>
+        <button class="sample-btn" onclick="loadSample('dob')">DOB</button>
         <button class="sample-btn" onclick="loadSample('nlp')" title="Showcases multi-token names that NLP layer handles server-side">NLP names</button>
       </div>
     </div>
@@ -634,6 +672,15 @@
     <textarea id="input" placeholder="Paste any text here — emails, support tickets, LLM prompts…">Liverpool are the champions of England; PSG are the champions of Europe; and Chelsea are the champions of the world!
 199-84-9876
 someone.naik@gmail.com</textarea>
+
+    <div class="cat-filter">
+      <div class="cat-filter-head">
+        <span class="cat-filter-label">🔧 PII Categories to Redact</span>
+        <button onclick="setAllCats(true)">✓ All on</button>
+        <button onclick="setAllCats(false)">✕ All off</button>
+      </div>
+      <div class="cat-pills" id="cat-pills"></div>
+    </div>
 
     <div class="controls">
       <label for="mode">Mode:</label>
@@ -792,26 +839,6 @@ someone.naik@gmail.com</textarea>
 // ────────────────────────────────────────────────────────────────────────────
 
 const SAMPLES = {
-  email: `Please send the Q4 report to alice.johnson@acme-corp.com by Friday.
-CC: bob.smith+reports@enterprise.org and the team lead at carol.white@startup.io.`,
-
-  ssn: `Patient intake form:
-  Full name: Jane Doe
-  Date of birth: dob: 03/15/1985
-  Social Security Number: 234-56-7890
-  Invalid reference: 900-12-3456 (ITIN — should NOT flag)
-  Also invalid: 000-00-0001 (reserved — should NOT flag)`,
-
-  ml: `ML disambiguation — same token, different context:
-
-1. "I ate an apple yesterday." → apple is a fruit, not PII
-2. "Contact Apple at (800) 275-2273 for support." → Apple is an organisation
-3. "The Gospel of John has 21 chapters." → John is a biblical reference
-4. "Dear John, your appointment is confirmed for Monday." → John is a person name
-5. "Hello Bob, please review the contract." → Bob is a person name
-
-Notice how the Naive Bayes layer uses surrounding context to disambiguate.`,
-
   mixed: `TO: alice.johnson@acme.com
 FROM: support@company.io
 RE: Account Security Alert
@@ -839,14 +866,82 @@ Transfer ref: GB29NWBK60161331926819
 Best regards,
 Security Team`,
 
+  email: `Please send the Q4 report to alice.johnson@acme-corp.com by Friday.
+CC: bob.smith+reports@enterprise.org and the team lead at carol.white@startup.io.
+The invoice should go to accounts@bigcorp.co.uk — mark it urgent.`,
+
+  ssn: `Patient intake form:
+  Full name: Jane Doe
+  Social Security Number: 234-56-7890
+  Secondary reference: 412-38-1122
+  Invalid reference: 900-12-3456 (ITIN — should NOT flag)
+  Also invalid: 000-00-0001 (reserved — should NOT flag)`,
+
+  card: `Payment details on file:
+  Visa:       4532 0151 1283 0366
+  Mastercard: 5425233430109903
+  Amex:       371449635398431
+  Discover:   6011111111111117
+
+  Note: These are test card numbers for Stripe / Luhn validation.`,
+
+  phone: `Contact directory:
+  Alice:   (555) 867-5309
+  Bob:     +1-800-555-0199
+  Carol:   555.234.5678
+  Support: 1 (888) 555-0100
+  UK line: +44 20 7946 0958`,
+
+  ip: `Server access log — 2024-03-15:
+  192.168.1.100  — internal NAT (should redact)
+  203.0.113.42   — external IP (should redact)
+  10.0.0.1       — gateway (should redact)
+  2001:db8::1    — IPv6 (pattern in Java lib; heuristic layer)
+  255.255.255.255 — broadcast (should redact)
+  Traffic source: fe80::1%eth0`,
+
   apikey: `Environment variables extracted from CI pipeline:
 
 GITHUB_TOKEN=ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZabcdef12
 OPENAI_API_KEY=sk-abcdefghijklmnopqrstuvwxyz123456
 AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE
 AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
-DB_PASSWORD=password=S3cureDB!Pass#2024
 HEX_SECRET=a3f8e2b1c9d4f05e6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9`,
+
+  password: `Credentials found in config dump:
+  password=MyS3cretP@ssw0rd!
+  passwd: hunter2
+  DB_PASSWORD=S3cureDB!Pass#2024
+  secret=xK9#mN2$vL7@qR5
+  passphrase: correct horse battery staple
+  pwd=admin123`,
+
+  names: `ML disambiguation — same token, different context:
+
+1. "I ate an apple yesterday." → apple is a fruit, not PII
+2. "Contact Apple at (800) 275-2273 for support." → Apple is an organisation
+3. "The Gospel of John has 21 chapters." → John is a biblical reference
+4. "Dear John, your appointment is confirmed for Monday." → John is a person name
+5. "Hello Bob, please review the contract." → Bob is a person name
+
+Notice how the Naive Bayes layer uses surrounding context to disambiguate.`,
+
+  iban: `International bank transfers pending clearance:
+
+  Account holder: Alice Johnson
+  IBAN (UK):  GB29NWBK60161331926819
+  IBAN (DE):  DE89370400440532013000
+  IBAN (FR):  FR7630006000011234567890189
+  IBAN (NL):  NL91ABNA0417164300
+  Reference:  Invoice #INV-2024-0042`,
+
+  dob: `Patient records — please verify identity:
+  Full name: Jane Doe
+  DOB: born on 03/15/1985
+  d.o.b.: 1990-07-22
+  Date of birth: January 5, 1978
+  Born: 12/31/1995
+  Registration dob: 08/19/2001`,
 
   nlp: `OpenNLP NER (Layer 3) — multi-token & compound name detection:
 
@@ -863,19 +958,66 @@ further improving detection of compound/hyphenated names and org names.]`
 
 // ── PII type metadata ────────────────────────────────────────────────────────
 const TYPE_META = {
-  SSN:          { label: 'SSN',      color: '#991b1b', bg: '#fee2e2', sev: 10 },
-  CREDIT_CARD:  { label: 'CARD',     color: '#991b1b', bg: '#fee2e2', sev: 10 },
-  API_KEY:      { label: 'API KEY',  color: '#9a3412', bg: '#fff7ed', sev: 9  },
-  PASSWORD:     { label: 'PASSWORD', color: '#9a3412', bg: '#fff7ed', sev: 9  },
-  EMAIL:        { label: 'EMAIL',    color: '#1e40af', bg: '#eff6ff', sev: 6  },
-  PHONE:        { label: 'PHONE',    color: '#1e40af', bg: '#eff6ff', sev: 6  },
-  IP_ADDRESS:   { label: 'IP',       color: '#166534', bg: '#f0fdf4', sev: 4  },
-  PERSON_NAME:  { label: 'NAME',     color: '#5b21b6', bg: '#f5f3ff', sev: 6  },
-  ORGANIZATION: { label: 'ORG',      color: '#5b21b6', bg: '#f5f3ff', sev: 3  },
-  DATE_OF_BIRTH:{ label: 'DOB',      color: '#1e40af', bg: '#eff6ff', sev: 6  },
-  BANK_ACCOUNT: { label: 'IBAN',     color: '#92400e', bg: '#fffbeb', sev: 8  },
-  GENERIC_PII:  { label: 'PII',      color: '#374151', bg: '#f9fafb', sev: 5  },
+  SSN:          { label: 'SSN',        color: '#991b1b', bg: '#fee2e2', sev: 10 },
+  CREDIT_CARD:  { label: 'CARD',       color: '#991b1b', bg: '#fee2e2', sev: 10 },
+  API_KEY:      { label: 'API KEY',    color: '#9a3412', bg: '#fff7ed', sev: 9  },
+  PASSWORD:     { label: 'PASSWORD',   color: '#9a3412', bg: '#fff7ed', sev: 9  },
+  EMAIL:        { label: 'EMAIL',      color: '#1e40af', bg: '#eff6ff', sev: 6  },
+  PHONE:        { label: 'PHONE',      color: '#1e40af', bg: '#eff6ff', sev: 6  },
+  IP_ADDRESS:   { label: 'IP',         color: '#166534', bg: '#f0fdf4', sev: 4  },
+  PERSON_NAME:  { label: 'NAME',       color: '#5b21b6', bg: '#f5f3ff', sev: 6  },
+  ORGANIZATION: { label: 'ORG',        color: '#5b21b6', bg: '#f5f3ff', sev: 3  },
+  DATE_OF_BIRTH:{ label: 'DOB',        color: '#1e40af', bg: '#eff6ff', sev: 6  },
+  BANK_ACCOUNT: { label: 'IBAN',       color: '#92400e', bg: '#fffbeb', sev: 8  },
+  GENERIC_PII:  { label: 'PII',        color: '#374151', bg: '#f9fafb', sev: 5  },
 };
+
+// ── Category filter state ────────────────────────────────────────────────────
+// All types enabled by default; user can toggle each on/off via the pill UI.
+const CAT_LABELS = {
+  SSN:          'SSN',
+  CREDIT_CARD:  'Credit Card',
+  EMAIL:        'Email',
+  PHONE:        'Phone',
+  IP_ADDRESS:   'IPv4 / IPv6',
+  API_KEY:      'API Keys',
+  PASSWORD:     'Passwords',
+  PERSON_NAME:  'Names (ML+NLP)',
+  ORGANIZATION: 'Orgs (ML+NLP)',
+  DATE_OF_BIRTH:'DOB',
+  BANK_ACCOUNT: 'IBAN / Bank',
+};
+const enabledTypes = new Set(Object.keys(CAT_LABELS));
+
+function renderCatPills() {
+  const container = document.getElementById('cat-pills');
+  container.innerHTML = '';
+  for (const [type, label] of Object.entries(CAT_LABELS)) {
+    const meta = TYPE_META[type];
+    const on   = enabledTypes.has(type);
+    const pill = document.createElement('span');
+    pill.className = 'cat-pill' + (on ? '' : ' off');
+    pill.title     = on ? 'Click to disable' : 'Click to enable';
+    if (on) {
+      pill.style.color       = meta.color;
+      pill.style.background  = meta.bg;
+      pill.style.borderColor = meta.color + '55';
+    }
+    pill.innerHTML = `<span class="check">${on ? '✓' : '✕'}</span> ${label}`;
+    pill.addEventListener('click', () => {
+      if (enabledTypes.has(type)) enabledTypes.delete(type);
+      else                         enabledTypes.add(type);
+      renderCatPills();
+    });
+    container.appendChild(pill);
+  }
+}
+
+function setAllCats(on) {
+  if (on) Object.keys(CAT_LABELS).forEach(t => enabledTypes.add(t));
+  else    enabledTypes.clear();
+  renderCatPills();
+}
 
 // ── Regex patterns (JS port of RegexPatterns.java) ──────────────────────────
 const PATTERNS = [
@@ -945,17 +1087,23 @@ function detect(text, threshold) {
   const matches = [], used = [];
   function overlaps(s, e) { return used.some(([a,b]) => s < b && a < e); }
   function addMatch(type, value, start, end, conf, source) {
+    if (!enabledTypes.has(type)) return;   // ← honour category filter
     if (overlaps(start, end)) return;
     used.push([start, end]);
     matches.push({ type, value, start, end, conf, source });
   }
-  const ccRx = new RegExp(CC_RE.source, CC_RE.flags.replace('g','') + 'g');
-  let ccm;
-  while ((ccm = ccRx.exec(text)) !== null) {
-    if (luhn(ccm[0]) && !overlaps(ccm.index, ccm.index + ccm[0].length))
-      addMatch('CREDIT_CARD', ccm[0], ccm.index, ccm.index + ccm[0].length, 1.0, 'HEURISTIC');
+  // Credit card (Luhn-validated)
+  if (enabledTypes.has('CREDIT_CARD')) {
+    const ccRx = new RegExp(CC_RE.source, CC_RE.flags.replace('g','') + 'g');
+    let ccm;
+    while ((ccm = ccRx.exec(text)) !== null) {
+      if (luhn(ccm[0]) && !overlaps(ccm.index, ccm.index + ccm[0].length))
+        addMatch('CREDIT_CARD', ccm[0], ccm.index, ccm.index + ccm[0].length, 1.0, 'HEURISTIC');
+    }
   }
+  // Regex patterns
   for (const { type, re, conf } of PATTERNS) {
+    if (!enabledTypes.has(type)) continue;  // ← honour category filter
     const rx = new RegExp(re.source, re.flags.replace('g','') + 'g');
     let m;
     while ((m = rx.exec(text)) !== null) {
@@ -968,23 +1116,27 @@ function detect(text, threshold) {
       addMatch(type, m[0], m.index, m.index + m[0].length, conf, 'HEURISTIC');
     }
   }
-  const words = text.split(/\s+/);
-  let cursor = 0;
-  for (let i = 0; i < words.length; i++) {
-    const w = words[i];
-    const clean = w.replace(/[^a-zA-Z0-9]+$/, '');
-    const start = text.indexOf(w, cursor);
-    if (start < 0) { cursor += w.length + 1; continue; }
-    const end = start + clean.length;
-    cursor = start + w.length;
-    if (!/^[A-Z][a-z]/.test(clean) || clean.length < 3) continue;
-    const ctx  = words.slice(Math.max(0,i-3), i).concat(words.slice(i+1, Math.min(words.length, i+4)));
-    const prev = i > 0 ? words[i-1] : '';
-    const { label, prob } = mlClassify(clean, ctx, prev);
-    if (label === 'PII' && prob >= threshold && !overlaps(start, end)) {
-      const ctxStr = ctx.join(' ').toLowerCase();
-      addMatch(/company|corp|inc|ltd|llc|firm|vendor/.test(ctxStr) ? 'ORGANIZATION' : 'PERSON_NAME',
-               clean, start, end, prob, 'ML');
+  // ML layer (names / orgs)
+  const mlActive = enabledTypes.has('PERSON_NAME') || enabledTypes.has('ORGANIZATION');
+  if (mlActive) {
+    const words = text.split(/\s+/);
+    let cursor = 0;
+    for (let i = 0; i < words.length; i++) {
+      const w = words[i];
+      const clean = w.replace(/[^a-zA-Z0-9]+$/, '');
+      const start = text.indexOf(w, cursor);
+      if (start < 0) { cursor += w.length + 1; continue; }
+      const end = start + clean.length;
+      cursor = start + w.length;
+      if (!/^[A-Z][a-z]/.test(clean) || clean.length < 3) continue;
+      const ctx  = words.slice(Math.max(0,i-3), i).concat(words.slice(i+1, Math.min(words.length, i+4)));
+      const prev = i > 0 ? words[i-1] : '';
+      const { label, prob } = mlClassify(clean, ctx, prev);
+      if (label === 'PII' && prob >= threshold && !overlaps(start, end)) {
+        const ctxStr = ctx.join(' ').toLowerCase();
+        const detType = /company|corp|inc|ltd|llc|firm|vendor/.test(ctxStr) ? 'ORGANIZATION' : 'PERSON_NAME';
+        addMatch(detType, clean, start, end, prob, 'ML');
+      }
     }
   }
   matches.sort((a,b) => a.start - b.start);
@@ -1107,7 +1259,7 @@ function truncate(s, n) { return s.length <= n ? s : s.slice(0, n) + '…'; }
 document.getElementById('input').addEventListener('keydown', e => {
   if (e.key === 'Enter' && e.ctrlKey) { e.preventDefault(); runRedact(); }
 });
-window.addEventListener('DOMContentLoaded', () => runRedact());
+window.addEventListener('DOMContentLoaded', () => { renderCatPills(); runRedact(); });
 </script>
 </body>
 </html>
