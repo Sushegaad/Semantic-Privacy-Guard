@@ -599,8 +599,8 @@ SemanticPrivacyGuard spg = SemanticPrivacyGuard.create(config);  // custom
 |---|---|---|---|
 | Naive regex (2 patterns) | 580,000 sentences/s | — | ~60% of clean sentences |
 | SPG Heuristic-only | 390,000 sentences/s | 0.87 | 20% |
-| **SPG Full (Heuristic + ML)** | **206,000 sentences/s** | **0.93** | **0%** |
-| SPG Full + NLP | ~45,000 sentences/s* | — | 0% |
+| **SPG Full (Heuristic + ML)** | **206,000 sentences/s** | **0.93** | **~0% on benchmark suite** |
+| SPG Full + NLP | ~45,000 sentences/s* | — | ~0% on benchmark suite |
 
 \* NLP throughput depends on model size and JVM warmup. Stream processing throughput is I/O-bound rather than CPU-bound.
 
