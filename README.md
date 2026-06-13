@@ -19,6 +19,8 @@ Output:  "Hi, I'm [PERSON_NAME_1]. My SSN is [SSN_1] and email is [EMAIL_1]."
 
 **[▶ Try it live in your browser →](https://sushegaad.github.io/Semantic-Privacy-Guard/docs/index.html)** — paste any text, see instant results, nothing sent to any server.
 
+![SPG Playground Demo](docs/playground-demo.gif)
+
 ---
 
 ## Table of Contents
@@ -34,6 +36,8 @@ Output:  "Hi, I'm [PERSON_NAME_1]. My SSN is [SSN_1] and email is [EMAIL_1]."
   - [JSON / XML Redaction](#json--xml-redaction)
   - [Stream-Based Processing](#stream-based-processing)
   - [Spring AI Integration](#spring-ai-integration)
+  - [Spring Boot HTTP Filter](#spring-boot-http-filter)
+  - [LLM Gateway Demo](#llm-gateway-demo)
   - [NLP Integration (Apache OpenNLP)](#nlp-integration-apache-opennlp)
 - [Configuration](#configuration)
 - [API Reference](#api-reference)
@@ -444,6 +448,99 @@ public class MyPrivacyConfig {
 ```
 
 </details>
+
+---
+
+### Spring Boot HTTP Filter
+
+The `semantic-privacy-guard-spring-boot-filter` module wraps SPG as a standard servlet `Filter`, automatically redacting PII from JSON request bodies and JSON response bodies on every HTTP call.
+
+#### Add the dependency
+
+```xml
+<dependency>
+  <groupId>io.github.sushegaad</groupId>
+  <artifactId>semantic-privacy-guard-spring-boot-filter</artifactId>
+  <version>1.5.0</version>
+</dependency>
+```
+
+Drop the JAR on the classpath — no code changes required. The filter auto-configures and covers all paths (`/**`) by default.
+
+#### Configuration
+
+```properties
+# application.properties
+
+# Enable / disable (default: true)
+spg.filter.enabled=true
+
+# What to redact (both default: true)
+spg.filter.redact-request-body=true
+spg.filter.redact-response-body=true
+
+# Also redact URL query parameters (default: false)
+spg.filter.redact-query-params=false
+
+# Path patterns to include / exclude (Ant-style)
+spg.filter.included-paths=/**
+spg.filter.excluded-paths=/actuator/**,/health,/metrics
+
+# Redaction mode: TOKEN (default), MASK, or BLANK
+spg.filter.redaction-mode=TOKEN
+
+# Only redact PII with severity ≥ this value (default: 1 = all)
+spg.filter.minimum-severity=1
+```
+
+#### Manual registration
+
+```java
+@Bean
+public FilterRegistrationBean<SPGRequestFilter> spgFilter(
+        SemanticPrivacyGuard spg, SPGFilterProperties props) {
+    var reg = new FilterRegistrationBean<>(new SPGRequestFilter(spg, props));
+    reg.addUrlPatterns("/api/*");
+    reg.setOrder(Ordered.HIGHEST_PRECEDENCE + 10);
+    return reg;
+}
+```
+
+---
+
+### LLM Gateway Demo
+
+The `examples/llm-gateway-demo` directory contains a self-contained Spring Boot application that demonstrates the full privacy-firewall round-trip:
+
+```
+Incoming prompt (with PII)
+        │
+        ▼ spg.redact()
+Sanitised prompt ([EMAIL_1], [SSN_1] …)
+        │
+        ▼ LLM API call
+Raw LLM response (tokens echoed verbatim)
+        │
+        ▼ de-tokenize reverse map
+Final response (original values restored)
+```
+
+#### Run it (no API key needed)
+
+```bash
+cd examples/llm-gateway-demo
+mvn spring-boot:run
+```
+
+```bash
+curl -s -X POST http://localhost:8080/api/chat \
+  -H "Content-Type: application/json" \
+  -d '{
+    "prompt": "My name is Alice Johnson and my email is alice@corp.com. Summarise my profile."
+  }' | python3 -m json.tool
+```
+
+The demo uses a built-in stub LLM by default — no account or API key required. To use a real OpenAI-compatible model, set `llm.api-key` in `application.properties`.
 
 ---
 

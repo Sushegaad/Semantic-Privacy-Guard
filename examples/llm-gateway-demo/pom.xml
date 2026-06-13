@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+                             https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>io.github.sushegaad.examples</groupId>
+  <artifactId>llm-gateway-demo</artifactId>
+  <version>1.5.0</version>
+  <packaging>jar</packaging>
+
+  <name>SPG LLM Gateway Demo</name>
+  <description>
+    Runnable Spring Boot demo showing how to use Semantic Privacy Guard as a
+    privacy firewall in front of an LLM API:
+      1. Redact PII from the incoming prompt → 2. Forward sanitised prompt to
+      the LLM → 3. De-tokenize the response before returning it to the caller.
+
+    Runs fully offline using a local stub LLM — no API keys required.
+  </description>
+
+  <properties>
+    <java.version>17</java.version>
+    <maven.compiler.source>17</maven.compiler.source>
+    <maven.compiler.target>17</maven.compiler.target>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <spg.version>1.5.0</spg.version>
+    <spring-boot.version>3.3.0</spring-boot.version>
+  </properties>
+
+  <dependencies>
+    <!-- SPG core -->
+    <dependency>
+      <groupId>io.github.sushegaad</groupId>
+      <artifactId>semantic-privacy-guard</artifactId>
+      <version>${spg.version}</version>
+    </dependency>
+
+    <!-- Spring Boot Web -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-web</artifactId>
+      <version>${spring-boot.version}</version>
+    </dependency>
+
+    <!-- Test -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <version>${spring-boot.version}</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-maven-plugin</artifactId>
+        <version>${spring-boot.version}</version>
+      </plugin>
+    </plugins>
+  </build>
+
+</project>
