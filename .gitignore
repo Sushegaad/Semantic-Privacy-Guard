@@ -35,3 +35,6 @@ replay_pid*
 *.iml
 .vscode/
 *.class
+
+# Claude AI
+CLAUDE.md
