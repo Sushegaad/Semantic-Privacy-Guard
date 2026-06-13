@@ -4,13 +4,13 @@
   <meta name="google-site-verification" content="ngS8wu36B4P3ZyQBK7Q8rlwMd53-rFN55y8IFsFVApw" />
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Open-source privacy firewall for AI applications. Detect and redact PII from LLM prompts using a three-layer Regex + ML + NER pipeline." />
-  <title>Semantic Privacy Guard — Live Playground</title>
+  <meta name="description" content="Semantic Privacy Guard — AI Privacy Firewall for Java. Detect and redact PII before it reaches ChatGPT, Claude, Gemini, MCP tools, or RAG pipelines." />
+  <title>Semantic Privacy Guard — AI Privacy Firewall for Java</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
   <style>
-    /* ── Reset & tokens ───────────────────────────────────────────────────── */
+    /* ── Design tokens ───────────────────────────────────────────────────────── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
       --bg:        #f8fafc;
@@ -23,10 +23,15 @@
       --accent-hov:#1d4ed8;
       --green:     #059669;
       --green-bg:  #f0fdf4;
+      --green-bdr: #6ee7b7;
       --red:       #dc2626;
-      --purple:    #7c3aed;
-      --teal:      #0891b2;
+      --red-bg:    #fef2f2;
       --amber:     #d97706;
+      --amber-bg:  #fffbeb;
+      --purple:    #7c3aed;
+      --purple-bg: #f5f3ff;
+      --teal:      #0891b2;
+      --teal-bg:   #f0fdfe;
       --text:      #0f172a;
       --text2:     #334155;
       --muted:     #64748b;
@@ -34,465 +39,302 @@
       --font:      'Inter', system-ui, sans-serif;
       --mono:      'JetBrains Mono', 'Fira Code', monospace;
       --radius:    8px;
-      --shadow-sm: 0 1px 3px rgba(0,0,0,.07), 0 1px 2px rgba(0,0,0,.04);
+      --radius-lg: 12px;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,.07);
       --shadow:    0 4px 12px rgba(0,0,0,.08), 0 2px 4px rgba(0,0,0,.04);
+      --shadow-lg: 0 8px 24px rgba(0,0,0,.1);
     }
     html { font-size: 16px; scroll-behavior: smooth; }
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: var(--font);
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      line-height: 1.6;
-    }
+    body { background: var(--bg); color: var(--text); font-family: var(--font); min-height: 100vh; display: flex; flex-direction: column; line-height: 1.6; }
     a { color: var(--accent); text-decoration: none; transition: color .15s; }
     a:hover { color: var(--accent-hov); text-decoration: underline; }
+    .gradient-text { background: linear-gradient(135deg, #60a5fa 0%, #38bdf8 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
 
-    /* ── Header ───────────────────────────────────────────────────────────── */
-    header {
-      position: sticky; top: 0; z-index: 100;
-      background: rgba(255,255,255,.96);
-      backdrop-filter: blur(8px);
-      border-bottom: 1px solid var(--border);
-      padding: 0 2rem;
-      height: 56px;
-      display: flex; align-items: center; gap: 2rem;
-    }
-    .logo {
-      display: flex; align-items: center;
-      flex-shrink: 0; text-decoration: none;
-    }
-    .logo:hover { text-decoration: none; opacity: .88; }
-    .logo img { height: 36px; width: auto; display: block; }
+    /* ── Header ──────────────────────────────────────────────────────────────── */
+    header { position: sticky; top: 0; z-index: 100; background: rgba(255,255,255,.96); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); padding: 0 2rem; height: 56px; display: flex; align-items: center; gap: 2rem; }
+    .logo { display: flex; align-items: center; flex-shrink: 0; text-decoration: none; }
+    .logo:hover { opacity: .85; text-decoration: none; }
+    .logo img { height: 34px; width: auto; display: block; }
     nav { display: flex; gap: 1.5rem; align-items: center; }
-    nav a {
-      font-size: .82rem; font-weight: 500;
-      color: var(--muted); transition: color .15s; white-space: nowrap;
-    }
+    nav a { font-size: .82rem; font-weight: 500; color: var(--muted); white-space: nowrap; }
     nav a:hover { color: var(--text); text-decoration: none; }
     nav a.active { color: var(--text); font-weight: 600; }
     .header-right { display: flex; gap: .4rem; align-items: center; margin-left: auto; }
-    .chip {
-      display: inline-flex; align-items: center; gap: .3rem;
-      padding: .2rem .6rem; border-radius: 5px;
-      font-size: .7rem; font-weight: 600;
-      border: 1px solid var(--border); background: var(--surface2);
-      color: var(--muted2); white-space: nowrap; transition: all .15s;
-    }
+    .chip { display: inline-flex; align-items: center; gap: .3rem; padding: .2rem .6rem; border-radius: 5px; font-size: .7rem; font-weight: 600; border: 1px solid var(--border); background: var(--surface2); color: var(--muted2); white-space: nowrap; transition: all .15s; }
     .chip:hover { border-color: var(--accent); color: var(--accent); text-decoration: none; }
     .chip.green  { color: #166534; border-color: #86efac; background: #f0fdf4; }
     .chip.version{ color: #1e40af; border-color: #bfdbfe; background: var(--accent-bg); }
     @media (max-width: 720px) { nav { display: none; } }
 
-    /* ── Hero ─────────────────────────────────────────────────────────────── */
+    /* ── Hero (dark) ─────────────────────────────────────────────────────────── */
     .hero {
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      padding: 4rem 2rem 3rem;
+      background: #0c1018;
+      background-image: radial-gradient(ellipse 70% 50% at 50% -10%, rgba(37,99,235,.25) 0%, transparent 60%),
+                        radial-gradient(ellipse 40% 30% at 80% 80%, rgba(8,145,178,.15) 0%, transparent 50%);
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      padding: 4.5rem 2rem 3.5rem;
       text-align: center;
+      position: relative; overflow: hidden;
     }
-    .hero-badge {
-      display: inline-flex; align-items: center; gap: .4rem;
-      background: var(--accent-bg); border: 1px solid #bfdbfe;
-      border-radius: 99px; padding: .28rem .9rem;
-      font-size: .72rem; font-weight: 600; color: #1e40af;
-      margin-bottom: 1.5rem; letter-spacing: .02em;
-    }
-    .hero-badge .dot {
-      width: 6px; height: 6px; border-radius: 50%;
-      background: var(--green); flex-shrink: 0;
-      animation: pulse 2s ease-in-out infinite;
-    }
-    @keyframes pulse {
-      0%,100% { opacity: 1; transform: scale(1); }
-      50%      { opacity: .35; transform: scale(.7); }
-    }
-    .hero h1 {
-      font-size: clamp(1.9rem, 4vw, 2.6rem);
-      font-weight: 800; letter-spacing: -.5px; line-height: 1.15;
-      color: var(--text); margin-bottom: .75rem;
-      max-width: 640px; margin-left: auto; margin-right: auto;
-    }
-    .gradient-text {
-      background: linear-gradient(135deg, #2563eb 0%, #0891b2 100%);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-    .hero-sub {
-      font-size: 1rem; color: var(--muted2); line-height: 1.6;
-      max-width: 440px; margin: 0 auto 2rem;
-    }
-    .hero-ctas {
-      display: flex; gap: .6rem; justify-content: center; flex-wrap: wrap;
-      margin-bottom: 1.75rem;
-    }
-    .hero-types {
-      font-size: .74rem; color: var(--muted);
-      max-width: 560px; margin: 0 auto; line-height: 1.8;
-    }
-    .hero-types em { font-style: normal; font-weight: 500; color: var(--muted2); }
+    .hero-logo { margin: 0 auto 2rem; display: block; height: 72px; width: auto; filter: drop-shadow(0 4px 24px rgba(37,99,235,.4)); }
+    .hero-badge { display: inline-flex; align-items: center; gap: .4rem; background: rgba(37,99,235,.15); border: 1px solid rgba(96,165,250,.3); border-radius: 99px; padding: .28rem .9rem; font-size: .72rem; font-weight: 600; color: #93c5fd; margin-bottom: 1.25rem; letter-spacing: .02em; }
+    .hero-badge .dot { width: 6px; height: 6px; border-radius: 50%; background: #34d399; flex-shrink: 0; animation: pulse 2s ease-in-out infinite; }
+    @keyframes pulse { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:.35; transform:scale(.7); } }
+    .hero h1 { font-size: clamp(2rem, 5vw, 3.25rem); font-weight: 800; letter-spacing: -.6px; line-height: 1.1; color: #ffffff; margin-bottom: .85rem; max-width: 700px; margin-left: auto; margin-right: auto; }
+    .hero-sub { font-size: clamp(.9rem, 2vw, 1.1rem); color: #94a3b8; line-height: 1.65; max-width: 580px; margin: 0 auto 2rem; }
+    .cap-badges { display: flex; flex-wrap: wrap; gap: .45rem; justify-content: center; margin-bottom: 2.25rem; }
+    .cap-badge { display: inline-flex; align-items: center; gap: .3rem; padding: .3rem .75rem; border-radius: 99px; font-size: .73rem; font-weight: 600; border: 1px solid rgba(148,163,184,.25); background: rgba(255,255,255,.05); color: #cbd5e1; }
+    .cap-badge::before { content: '✓'; color: #34d399; font-size: .65rem; }
+    .hero-ctas { display: flex; gap: .75rem; justify-content: center; flex-wrap: wrap; margin-bottom: 3rem; }
+    .btn-hero-primary { display: inline-flex; align-items: center; gap: .4rem; padding: .7rem 1.6rem; border-radius: 8px; font-size: .95rem; font-weight: 700; background: var(--accent); color: #fff; border: none; cursor: pointer; font-family: var(--font); transition: all .15s; box-shadow: 0 0 0 1px rgba(255,255,255,.1), 0 4px 16px rgba(37,99,235,.4); text-decoration: none; }
+    .btn-hero-primary:hover { background: #1d4ed8; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(37,99,235,.5); color: #fff; text-decoration: none; }
+    .btn-hero-secondary { display: inline-flex; align-items: center; gap: .4rem; padding: .7rem 1.4rem; border-radius: 8px; font-size: .9rem; font-weight: 600; background: rgba(255,255,255,.07); color: #e2e8f0; border: 1px solid rgba(255,255,255,.15); cursor: pointer; font-family: var(--font); transition: all .15s; text-decoration: none; }
+    .btn-hero-secondary:hover { background: rgba(255,255,255,.12); color: #fff; text-decoration: none; }
+    .hero-metrics { display: flex; justify-content: center; flex-wrap: wrap; gap: 0; border-top: 1px solid rgba(255,255,255,.07); padding-top: 2rem; }
+    .hero-metric { flex: 0 0 auto; padding: .5rem 2.5rem; border-right: 1px solid rgba(255,255,255,.07); text-align: center; }
+    .hero-metric:last-child { border-right: none; }
+    .hero-metric span { display: block; font-size: 1.65rem; font-weight: 800; color: #60a5fa; letter-spacing: -1px; line-height: 1.1; }
+    .hero-metric small { font-size: .68rem; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: .08em; }
+    @media (max-width: 500px) { .hero-metric { padding: .5rem 1.25rem; } .hero-metric span { font-size: 1.3rem; } }
 
-    /* ── Buttons ──────────────────────────────────────────────────────────── */
-    .btn {
-      display: inline-flex; align-items: center; gap: .35rem;
-      padding: .5rem 1.1rem; border-radius: 7px;
-      font-size: .85rem; font-weight: 600; cursor: pointer;
-      transition: all .15s; border: 1px solid transparent;
-      font-family: var(--font); white-space: nowrap; text-decoration: none;
-    }
-    .btn-primary {
-      background: var(--accent); color: #fff;
-      box-shadow: 0 1px 4px rgba(37,99,235,.25);
-    }
-    .btn-primary:hover {
-      background: var(--accent-hov); color: #fff;
-      box-shadow: 0 3px 10px rgba(37,99,235,.35);
-      transform: translateY(-1px); text-decoration: none;
-    }
-    .btn-outline {
-      background: var(--surface); border-color: var(--border2); color: var(--text2);
-      box-shadow: var(--shadow-sm);
-    }
-    .btn-outline:hover {
-      border-color: var(--accent); color: var(--accent);
-      text-decoration: none; transform: translateY(-1px); box-shadow: var(--shadow);
-    }
+    /* ── Shared section styles ───────────────────────────────────────────────── */
+    .section-wrap { max-width: 1100px; margin: 0 auto; padding: 0 1.5rem; }
+    .section-eyebrow { font-size: .68rem; font-weight: 700; color: var(--teal); text-transform: uppercase; letter-spacing: .12em; text-align: center; margin-bottom: .4rem; }
+    .section-title { font-size: 1.5rem; font-weight: 800; letter-spacing: -.3px; color: var(--text); text-align: center; margin-bottom: .45rem; }
+    .section-sub { font-size: .9rem; color: var(--muted2); text-align: center; max-width: 500px; margin: 0 auto 2.5rem; }
 
-    /* ── Metrics strip ────────────────────────────────────────────────────── */
-    .metrics-strip {
-      display: flex; justify-content: center;
-      border-bottom: 1px solid var(--border);
-      background: var(--surface2); flex-wrap: wrap;
-    }
-    .metric-item {
-      flex: 1; min-width: 140px; padding: 1.2rem 1.5rem;
-      text-align: center; border-right: 1px solid var(--border);
-    }
-    .metric-item:last-child { border-right: none; }
-    .metric-val {
-      font-size: 1.6rem; font-weight: 800; letter-spacing: -1px;
-      color: var(--accent); line-height: 1.1;
-    }
-    .metric-label {
-      font-size: .67rem; font-weight: 600; color: var(--muted);
-      text-transform: uppercase; letter-spacing: .08em; margin-top: .2rem;
-    }
-    @media (max-width: 600px) {
-      .metric-item { padding: .9rem 1rem; min-width: 120px; }
-      .metric-val  { font-size: 1.3rem; }
-    }
+    /* ── Generic buttons ─────────────────────────────────────────────────────── */
+    .btn { display: inline-flex; align-items: center; gap: .35rem; padding: .45rem 1rem; border-radius: 7px; font-size: .83rem; font-weight: 600; cursor: pointer; transition: all .15s; border: 1px solid transparent; font-family: var(--font); white-space: nowrap; text-decoration: none; }
+    .btn-primary { background: var(--accent); color: #fff; box-shadow: 0 1px 4px rgba(37,99,235,.25); }
+    .btn-primary:hover { background: var(--accent-hov); color: #fff; text-decoration: none; transform: translateY(-1px); }
+    .btn-outline { background: var(--surface); border-color: var(--border2); color: var(--text2); box-shadow: var(--shadow-sm); }
+    .btn-outline:hover { border-color: var(--accent); color: var(--accent); text-decoration: none; transform: translateY(-1px); }
+    .btn-ghost { background: transparent; border-color: transparent; color: var(--muted2); }
+    .btn-ghost:hover { background: var(--surface2); color: var(--text); }
 
-    /* ── Playground header ────────────────────────────────────────────────── */
-    .playground-header {
-      padding: 1.1rem 2rem .8rem;
-      border-bottom: 1px solid var(--border);
-      background: var(--surface);
-      display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;
-    }
-    .playground-header h2 {
-      font-size: .9rem; font-weight: 700; color: var(--text);
-      display: flex; align-items: center; gap: .4rem;
-    }
-    .playground-header .hint {
-      font-size: .74rem; color: var(--muted); margin-left: auto;
-    }
-    .playground-header .hint kbd {
-      display: inline-block; padding: .07rem .3rem;
-      border-radius: 3px; border: 1px solid var(--border2);
-      background: var(--surface2); font-family: var(--mono);
-      font-size: .65rem; color: var(--muted2);
-    }
+    /* ── Scenario section ────────────────────────────────────────────────────── */
+    .scenarios-section { padding: 4rem 0; background: var(--surface); border-bottom: 1px solid var(--border); }
+    .scenario-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
+    @media (max-width: 900px) { .scenario-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 500px) { .scenario-grid { grid-template-columns: 1fr; } }
+    .scenario-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.25rem 1.25rem 1rem; cursor: pointer; transition: all .18s; display: flex; flex-direction: column; gap: .5rem; }
+    .scenario-card:hover { border-color: var(--accent); box-shadow: var(--shadow); transform: translateY(-2px); }
+    .scenario-card:hover .scenario-load { color: var(--accent); }
+    .scenario-icon { font-size: 1.5rem; line-height: 1; }
+    .scenario-card h3 { font-size: .88rem; font-weight: 700; color: var(--text); }
+    .scenario-card p { font-size: .75rem; color: var(--muted); line-height: 1.5; flex: 1; }
+    .scenario-load { font-size: .75rem; font-weight: 700; color: var(--muted2); margin-top: .25rem; transition: color .12s; }
 
-    /* ── Main layout ──────────────────────────────────────────────────────── */
-    main {
-      flex: 1; display: grid; grid-template-columns: 1fr 1fr;
-    }
-    @media (max-width: 820px) { main { grid-template-columns: 1fr; } }
-    .pane {
-      padding: 1.25rem 1.5rem;
-      display: flex; flex-direction: column; gap: .8rem;
-      background: var(--surface);
-    }
-    .pane:first-child { border-right: 1px solid var(--border); }
-    .pane-header {
-      display: flex; align-items: center; justify-content: space-between;
-      gap: .5rem; flex-wrap: wrap;
-    }
-    .pane-label {
-      font-size: .7rem; font-weight: 700; color: var(--muted);
-      text-transform: uppercase; letter-spacing: .1em;
-    }
-
-    /* ── Samples ──────────────────────────────────────────────────────────── */
+    /* ── Playground section ──────────────────────────────────────────────────── */
+    .playground-section { padding: 3.5rem 0 2rem; border-bottom: 1px solid var(--border); }
+    .input-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow-sm); }
+    .input-card-header { padding: .75rem 1.25rem; background: var(--surface2); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .5rem; }
+    .input-card-label { font-size: .7rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; }
     .samples { display: flex; gap: .3rem; flex-wrap: wrap; }
-    .sample-btn {
-      font-size: .7rem; font-weight: 500; padding: .18rem .48rem;
-      border-radius: 4px; background: var(--surface2);
-      border: 1px solid var(--border2); color: var(--muted2);
-      cursor: pointer; transition: all .12s; font-family: var(--font);
-    }
+    .sample-btn { font-size: .68rem; font-weight: 500; padding: .17rem .46rem; border-radius: 4px; background: var(--surface); border: 1px solid var(--border2); color: var(--muted2); cursor: pointer; transition: all .12s; font-family: var(--font); }
     .sample-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); }
+    textarea#input { width: 100%; min-height: 180px; background: var(--surface); border: none; border-bottom: 1px solid var(--border); color: var(--text); font-family: var(--mono); font-size: .82rem; line-height: 1.7; padding: 1rem 1.25rem; resize: vertical; outline: none; }
+    textarea#input:focus { background: #fffef8; }
+    textarea#input::placeholder { color: var(--muted); }
+    .input-controls { padding: .7rem 1.25rem; display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; background: var(--surface2); }
+    button.analyze-btn { display: inline-flex; align-items: center; gap: .4rem; padding: .38rem 1.1rem; border-radius: 6px; font-size: .85rem; font-weight: 700; background: var(--accent); color: #fff; border: none; cursor: pointer; font-family: var(--font); transition: all .15s; box-shadow: 0 1px 4px rgba(37,99,235,.25); }
+    button.analyze-btn:hover { background: var(--accent-hov); transform: translateY(-1px); box-shadow: 0 3px 10px rgba(37,99,235,.3); }
+    button.clear-btn { display: inline-flex; align-items: center; gap: .3rem; padding: .38rem .75rem; border-radius: 6px; font-size: .82rem; font-weight: 500; background: var(--surface); color: var(--red); border: 1px solid #fca5a5; cursor: pointer; font-family: var(--font); transition: all .12s; }
+    button.clear-btn:hover { background: #fee2e2; border-color: var(--red); }
+    .ctrl-label { font-size: .74rem; color: var(--muted2); font-weight: 500; }
+    select { background: var(--surface); border: 1px solid var(--border2); border-radius: 6px; color: var(--text2); font-size: .77rem; padding: .28rem .55rem; cursor: pointer; outline: none; font-family: var(--font); }
+    select:focus { border-color: var(--accent); }
 
-    /* ── Textarea ─────────────────────────────────────────────────────────── */
-    textarea {
-      width: 100%; min-height: 200px;
-      background: var(--surface); border: 1px solid var(--border2);
-      border-radius: var(--radius); color: var(--text);
-      font-family: var(--mono); font-size: .82rem; line-height: 1.7;
-      padding: .85rem 1rem; resize: vertical; outline: none;
-      transition: border-color .15s, box-shadow .15s;
-    }
-    textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,.1); }
-    textarea::placeholder { color: var(--muted); }
-
-    /* ── Category filter (collapsible) ───────────────────────────────────── */
-    .cat-filter {
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      overflow: hidden;
-    }
-    .cat-filter summary {
-      padding: .55rem .85rem; cursor: pointer;
-      font-size: .74rem; font-weight: 600; color: var(--muted2);
-      display: flex; align-items: center; gap: .5rem;
-      list-style: none; user-select: none;
-      background: var(--surface2); transition: background .12s;
-    }
+    /* ── Category filter ─────────────────────────────────────────────────────── */
+    .cat-filter { border: 1px solid var(--border); border-radius: 6px; overflow: hidden; margin-left: auto; }
+    .cat-filter summary { padding: .28rem .65rem; cursor: pointer; font-size: .72rem; font-weight: 600; color: var(--muted2); display: flex; align-items: center; gap: .4rem; list-style: none; user-select: none; background: var(--surface); }
     .cat-filter summary::-webkit-details-marker { display: none; }
-    .cat-filter summary:hover { background: var(--border); color: var(--text2); }
-    .summary-chevron {
-      margin-left: auto; font-size: .6rem; color: var(--muted);
-      transition: transform .2s; display: inline-block;
-    }
-    .cat-filter[open] .summary-chevron { transform: rotate(90deg); }
-    .cat-filter-body {
-      padding: .7rem .85rem; border-top: 1px solid var(--border);
-    }
-    .cat-filter-actions { display: flex; gap: .4rem; margin-bottom: .55rem; }
-    .cat-filter-actions button {
-      font-size: .65rem; padding: .15rem .45rem; border-radius: 4px;
-      background: var(--surface); border: 1px solid var(--border2);
-      color: var(--muted2); cursor: pointer; font-family: var(--font); font-weight: 600;
-      transition: all .12s;
-    }
-    .cat-filter-actions button:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); }
+    .cat-filter summary:hover { background: var(--surface2); }
+    .cat-filter-chevron { margin-left: .2rem; font-size: .58rem; transition: transform .2s; }
+    .cat-filter[open] .cat-filter-chevron { transform: rotate(90deg); }
+    .cat-filter-body { padding: .6rem .75rem; border-top: 1px solid var(--border); background: var(--surface); }
+    .cat-filter-actions { display: flex; gap: .35rem; margin-bottom: .5rem; }
+    .cat-filter-actions button { font-size: .63rem; padding: .12rem .42rem; border-radius: 4px; background: var(--surface2); border: 1px solid var(--border2); color: var(--muted2); cursor: pointer; font-family: var(--font); font-weight: 600; transition: all .12s; }
+    .cat-filter-actions button:hover { border-color: var(--accent); color: var(--accent); }
     .cat-pills { display: flex; flex-wrap: wrap; gap: .28rem; }
-    .cat-pill {
-      display: inline-flex; align-items: center; gap: .22rem;
-      padding: .17rem .52rem; border-radius: 12px;
-      font-size: .67rem; font-weight: 600;
-      cursor: pointer; user-select: none;
-      border: 1px solid; transition: all .12s;
-    }
-    .cat-pill.off {
-      background: var(--surface) !important;
-      border-color: var(--border2) !important;
-      color: var(--muted) !important;
-      opacity: .5; text-decoration: line-through;
-    }
+    .cat-pill { display: inline-flex; align-items: center; gap: .2rem; padding: .15rem .48rem; border-radius: 10px; font-size: .65rem; font-weight: 600; cursor: pointer; user-select: none; border: 1px solid; transition: all .12s; }
+    .cat-pill.off { background: var(--surface) !important; border-color: var(--border2) !important; color: var(--muted) !important; opacity: .5; text-decoration: line-through; }
 
-    /* ── Controls ─────────────────────────────────────────────────────────── */
-    .controls { display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; }
-    label { font-size: .74rem; color: var(--muted2); font-weight: 500; }
-    select {
-      background: var(--surface); border: 1px solid var(--border2);
-      border-radius: 6px; color: var(--text2); font-size: .77rem;
-      padding: .28rem .55rem; cursor: pointer; outline: none;
-      font-family: var(--font); transition: border-color .15s;
-    }
-    select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,.1); }
-    button {
-      background: var(--surface2); border: 1px solid var(--border2);
-      border-radius: 6px; color: var(--text2); font-size: .77rem;
-      padding: .28rem .6rem; cursor: pointer; outline: none;
-      transition: all .12s; font-family: var(--font); font-weight: 500;
-    }
-    button:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); }
-    button.primary {
-      background: var(--accent); border-color: var(--accent);
-      color: #fff; font-weight: 600; padding: .32rem .95rem;
-      box-shadow: 0 1px 4px rgba(37,99,235,.25);
-    }
-    button.primary:hover {
-      background: var(--accent-hov); border-color: var(--accent-hov);
-      color: #fff; box-shadow: 0 2px 8px rgba(37,99,235,.3);
-    }
-    button.clear { color: var(--red); border-color: #fca5a5; background: #fff5f5; }
-    button.clear:hover { background: #fee2e2; border-color: var(--red); color: var(--red); }
+    /* ── Results grid ────────────────────────────────────────────────────────── */
+    .results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem; }
+    @media (max-width: 760px) { .results-grid { grid-template-columns: 1fr; } }
+    .result-pane { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; display: flex; flex-direction: column; box-shadow: var(--shadow-sm); }
+    .result-pane.safe-pane { border-color: var(--green-bdr); }
+    .pane-header { padding: .65rem 1rem; background: var(--surface2); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: .5rem; flex-wrap: wrap; }
+    .safe-pane .pane-header { background: #f0fdf4; border-bottom-color: var(--green-bdr); }
+    .pane-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; }
+    .safe-pane .pane-title { color: #166534; }
+    .text-display { font-family: var(--mono); font-size: .8rem; line-height: 1.75; white-space: pre-wrap; word-break: break-word; padding: 1rem 1.1rem; min-height: 200px; max-height: 340px; overflow-y: auto; flex: 1; color: var(--text); }
+    .safe-pane .text-display { background: #fafffe; }
 
-    /* ── Stats ────────────────────────────────────────────────────────────── */
-    .stats {
-      display: flex; gap: 1rem; flex-wrap: wrap;
-      background: var(--surface2); border: 1px solid var(--border);
-      border-radius: 6px; padding: .45rem .85rem;
-      font-size: .73rem; color: var(--muted); align-items: center;
-    }
-    .stat-item { display: flex; align-items: center; gap: .28rem; }
-    .stat-val { color: var(--text); font-weight: 700; }
-    .stat-divider { width: 1px; height: 12px; background: var(--border2); flex-shrink: 0; }
+    /* entity highlight marks */
+    .hl { border-radius: 3px; padding: 0 2px; font-weight: 600; }
+    .hl-name   { background: #f3e8ff; color: #6b21a8; }
+    .hl-email  { background: #dbeafe; color: #1e3a8a; }
+    .hl-phone  { background: #dcfce7; color: #14532d; }
+    .hl-ssn    { background: #fee2e2; color: #7f1d1d; }
+    .hl-card   { background: #fef3c7; color: #78350f; }
+    .hl-apikey { background: #ffedd5; color: #7c2d12; }
+    .hl-password{ background: #ffedd5; color: #7c2d12; }
+    .hl-ip     { background: #cffafe; color: #0c4a6e; }
+    .hl-bank   { background: #fef9c3; color: #713f12; }
+    .hl-dob    { background: #dbeafe; color: #1e3a8a; }
+    .hl-org    { background: #ede9fe; color: #4c1d95; }
 
-    /* ── Output box ───────────────────────────────────────────────────────── */
-    .output-box {
-      min-height: 200px; background: var(--surface2);
-      border: 1px solid var(--border2); border-radius: var(--radius);
-      font-family: var(--mono); font-size: .82rem; line-height: 1.7;
-      padding: .85rem 1rem; white-space: pre-wrap; word-break: break-all;
-      transition: border-color .2s, background .2s;
-    }
-    .output-box.has-results { border-color: #6ee7b7; background: #f0fdf4; }
-    .output-box mark {
-      background: #fee2e2; color: #991b1b;
-      border-radius: 3px; padding: 0 3px; font-weight: 700;
-    }
+    /* entity legend */
+    .entity-legend { display: flex; flex-wrap: wrap; gap: .3rem; padding: .5rem 1rem; border-bottom: 1px solid var(--border); }
+    .legend-item { display: inline-flex; align-items: center; gap: .25rem; font-size: .62rem; font-weight: 600; padding: .1rem .4rem; border-radius: 4px; }
 
-    /* ── Findings ─────────────────────────────────────────────────────────── */
-    .findings-header {
-      font-size: .67rem; font-weight: 700; color: var(--muted);
-      text-transform: uppercase; letter-spacing: .1em; margin-bottom: .2rem;
-    }
-    .finding-row {
-      display: flex; align-items: center; gap: .45rem;
-      padding: .28rem .45rem; border-radius: 6px;
-      border: 1px solid transparent; margin-bottom: .12rem;
-      transition: background .1s; animation: fadeIn .12s ease both;
-    }
-    .finding-row:hover { background: var(--surface2); border-color: var(--border); }
-    .type-badge {
-      padding: .1rem .42rem; border-radius: 4px;
-      font-size: .62rem; font-weight: 700; letter-spacing: .04em;
-      white-space: nowrap; flex-shrink: 0;
-    }
-    .finding-value {
-      font-family: var(--mono); font-size: .76rem; color: #b91c1c;
-      overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;
-    }
-    .finding-token {
-      font-family: var(--mono); font-size: .73rem;
-      color: var(--accent); white-space: nowrap; flex-shrink: 0;
-    }
-    .conf-bar { height: 3px; width: 36px; background: var(--border2); border-radius: 2px; overflow: hidden; flex-shrink: 0; }
+    /* redacted tokens in right pane */
+    .text-display mark { background: #fff8dd; color: #92400e; border-radius: 3px; padding: 0 3px; font-weight: 700; border: 1px solid #fde68a; }
+
+    /* LLM badges */
+    .llm-badges { display: flex; flex-wrap: wrap; gap: .35rem; padding: .65rem 1rem; border-top: 1px solid var(--green-bdr); background: #f0fdf4; }
+    .llm-badge { display: inline-flex; align-items: center; gap: .25rem; font-size: .66rem; font-weight: 700; padding: .18rem .5rem; border-radius: 99px; border: 1px solid #6ee7b7; color: #166534; background: #fff; }
+    .llm-badge::before { content: '✓'; font-size: .6rem; }
+    .pane-copy-btn { font-size: .68rem; padding: .18rem .5rem; border-radius: 4px; background: var(--surface); border: 1px solid var(--border2); color: var(--muted2); cursor: pointer; font-family: var(--font); font-weight: 600; transition: all .12s; }
+    .pane-copy-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .empty-pane { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .5rem; padding: 3rem 1rem; color: var(--muted); font-size: .84rem; text-align: center; min-height: 200px; }
+    .empty-pane .ep-icon { font-size: 2rem; opacity: .4; }
+    .empty-pane small { font-size: .7rem; color: var(--muted); }
+
+    /* ── Dashboard section ───────────────────────────────────────────────────── */
+    .dashboard-section { padding: 2rem 0 3rem; background: var(--bg); border-bottom: 1px solid var(--border); }
+    .dashboard-grid { display: grid; grid-template-columns: 1fr 1.5fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+    @media (max-width: 780px) { .dashboard-grid { grid-template-columns: 1fr; } }
+    .dash-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.25rem; box-shadow: var(--shadow-sm); }
+    .dash-card-title { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; margin-bottom: .85rem; }
+
+    /* Risk card */
+    .risk-indicator { display: flex; flex-direction: column; align-items: center; gap: .4rem; padding: .75rem; border-radius: var(--radius); margin-bottom: .65rem; }
+    .risk-indicator .risk-icon { font-size: 1.8rem; line-height: 1; }
+    .risk-indicator .risk-level { font-size: 1.5rem; font-weight: 800; letter-spacing: -.5px; }
+    .risk-indicator .risk-sub { font-size: .7rem; font-weight: 600; text-align: center; }
+    .risk-high { background: #fef2f2; border: 1px solid #fca5a5; }
+    .risk-high .risk-level { color: var(--red); }
+    .risk-high .risk-sub { color: #b91c1c; }
+    .risk-medium { background: #fffbeb; border: 1px solid #fcd34d; }
+    .risk-medium .risk-level { color: var(--amber); }
+    .risk-medium .risk-sub { color: #92400e; }
+    .risk-low { background: #f0fdf4; border: 1px solid #86efac; }
+    .risk-low .risk-level { color: var(--green); }
+    .risk-low .risk-sub { color: #166534; }
+    .risk-none { background: var(--surface2); border: 1px solid var(--border2); }
+    .risk-none .risk-level { color: var(--muted); }
+    .risk-note { font-size: .74rem; color: var(--muted2); text-align: center; line-height: 1.45; }
+
+    /* Entity counts */
+    .entity-count-list { display: flex; flex-direction: column; gap: .35rem; }
+    .ec-row { display: flex; align-items: center; gap: .5rem; padding: .28rem 0; border-bottom: 1px solid var(--border); }
+    .ec-row:last-child { border-bottom: none; }
+    .ec-badge { padding: .1rem .4rem; border-radius: 4px; font-size: .62rem; font-weight: 700; flex-shrink: 0; white-space: nowrap; }
+    .ec-label { font-size: .78rem; color: var(--text2); flex: 1; }
+    .ec-count { font-size: .78rem; font-weight: 700; color: var(--text); flex-shrink: 0; }
+    .ec-check { font-size: .7rem; color: var(--green); }
+
+    /* Performance */
+    .perf-stat { display: flex; justify-content: space-between; align-items: baseline; padding: .3rem 0; border-bottom: 1px solid var(--border); }
+    .perf-stat:last-child { border-bottom: none; }
+    .perf-label { font-size: .76rem; color: var(--muted2); }
+    .perf-val { font-size: .82rem; font-weight: 700; color: var(--text); font-family: var(--mono); }
+    .engine-tags { display: flex; flex-wrap: wrap; gap: .25rem; margin-top: .15rem; }
+    .engine-tag { font-size: .62rem; font-weight: 600; padding: .1rem .4rem; border-radius: 4px; background: var(--accent-bg); color: #1e40af; border: 1px solid #bfdbfe; }
+
+    /* Entity table */
+    .entity-table-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow-sm); }
+    .entity-table-header { padding: .75rem 1.25rem; background: var(--surface2); border-bottom: 1px solid var(--border); font-size: .7rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; }
+    .entity-table { width: 100%; border-collapse: collapse; font-size: .8rem; }
+    .entity-table th { padding: .55rem 1rem; text-align: left; font-size: .65rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; border-bottom: 1px solid var(--border); background: var(--surface2); }
+    .entity-table td { padding: .55rem 1rem; border-bottom: 1px solid var(--border); color: var(--text2); vertical-align: middle; }
+    .entity-table tr:last-child td { border-bottom: none; }
+    .entity-table tr:hover td { background: var(--surface2); }
+    .entity-val { font-family: var(--mono); font-size: .76rem; color: #b91c1c; }
+    .conf-bar-wrap { display: flex; align-items: center; gap: .5rem; }
+    .conf-bar { height: 4px; width: 60px; background: var(--border2); border-radius: 2px; overflow: hidden; }
     .conf-fill { height: 100%; background: var(--green); border-radius: 2px; }
+    .conf-pct { font-size: .72rem; font-weight: 700; color: var(--text2); }
 
-    /* ── Reverse map ──────────────────────────────────────────────────────── */
-    .reverse-map {
-      font-size: .77rem; background: #f0fdfa;
-      border: 1px solid #a5f3fc; border-radius: var(--radius);
-      padding: .75rem .95rem; display: none;
-    }
-    .reverse-map h4 {
-      font-size: .66rem; font-weight: 700; color: var(--teal);
-      text-transform: uppercase; letter-spacing: .1em; margin-bottom: .45rem;
-    }
-    .rm-entry { display: flex; gap: .75rem; margin-bottom: .18rem; }
-    .rm-token { font-family: var(--mono); font-size: .73rem; color: var(--accent); min-width: 120px; flex-shrink: 0; }
-    .rm-value { font-family: var(--mono); font-size: .73rem; color: #b91c1c; }
+    /* ── Try to Break It ─────────────────────────────────────────────────────── */
+    .break-section { padding: 4rem 0; background: var(--surface); border-bottom: 1px solid var(--border); }
+    .break-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+    @media (max-width: 700px) { .break-grid { grid-template-columns: 1fr; } }
+    .break-card { border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.1rem; background: var(--surface2); transition: border-color .15s; }
+    .break-card:hover { border-color: var(--border2); }
+    .break-card-label { font-size: .65rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; margin-bottom: .45rem; display: flex; align-items: center; gap: .35rem; }
+    .break-card-label .result-pill { font-size: .6rem; padding: .05rem .35rem; border-radius: 4px; font-weight: 700; }
+    .result-pill.catches { background: #d1fae5; color: #065f46; }
+    .result-pill.partial { background: #fef3c7; color: #78350f; }
+    .result-pill.limit { background: #fce7f3; color: #831843; }
+    .break-code { font-family: var(--mono); font-size: .77rem; color: var(--text2); background: var(--surface); border: 1px solid var(--border); border-radius: 5px; padding: .5rem .75rem; margin-bottom: .65rem; white-space: pre-wrap; line-height: 1.5; }
+    .break-desc { font-size: .72rem; color: var(--muted2); line-height: 1.5; margin-bottom: .65rem; }
+    .break-test-btn { font-size: .72rem; font-weight: 600; padding: .28rem .7rem; border-radius: 5px; background: var(--surface); border: 1px solid var(--border2); color: var(--muted2); cursor: pointer; font-family: var(--font); transition: all .12s; width: 100%; }
+    .break-test-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); }
+    .break-note { margin-top: 1.5rem; padding: .9rem 1.1rem; background: var(--accent-bg); border: 1px solid #bfdbfe; border-radius: var(--radius); font-size: .78rem; color: #1e40af; line-height: 1.55; text-align: center; }
 
-    /* ── Empty state ──────────────────────────────────────────────────────── */
-    .empty-state {
-      text-align: center; color: var(--muted);
-      padding: 2.5rem 1rem; font-size: .84rem;
-    }
-    .empty-state .icon { font-size: 1.75rem; margin-bottom: .45rem; display: block; }
-    .empty-state small { font-size: .68rem; color: var(--muted); margin-top: .25rem; display: block; }
-
-    /* ── How it works ─────────────────────────────────────────────────────── */
-    .how-section {
-      border-top: 1px solid var(--border);
-      padding: 3.5rem 2rem;
-      background: var(--surface2);
-    }
-    .section-eyebrow {
-      font-size: .68rem; font-weight: 700; color: var(--teal);
-      text-transform: uppercase; letter-spacing: .12em;
-      text-align: center; margin-bottom: .45rem;
-    }
-    .section-title {
-      font-size: 1.35rem; font-weight: 800; text-align: center;
-      letter-spacing: -.3px; margin-bottom: .45rem; color: var(--text);
-    }
-    .section-desc {
-      text-align: center; color: var(--muted2); font-size: .86rem;
-      max-width: 500px; margin: 0 auto 2.25rem;
-    }
-    .pipeline {
-      display: flex; gap: 1rem; align-items: stretch; flex-wrap: wrap;
-      justify-content: center; max-width: 1060px; margin: 0 auto;
-    }
-    .pipe-step {
-      flex: 1; min-width: 140px; max-width: 178px;
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: var(--radius); padding: 1rem;
-      transition: box-shadow .2s, transform .2s;
-    }
+    /* ── Pipeline section ────────────────────────────────────────────────────── */
+    .pipeline-section { padding: 4rem 0; background: var(--bg); border-bottom: 1px solid var(--border); }
+    .pipeline { display: flex; gap: 1rem; align-items: stretch; flex-wrap: wrap; justify-content: center; margin-top: 2rem; }
+    .pipe-step { flex: 1; min-width: 140px; max-width: 175px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; transition: box-shadow .2s, transform .2s; }
     .pipe-step:hover { transform: translateY(-3px); box-shadow: var(--shadow); }
     .pipe-icon { font-size: 1.1rem; margin-bottom: .4rem; display: block; }
-    .pipe-step .layer {
-      font-size: .58rem; font-weight: 700; text-transform: uppercase;
-      letter-spacing: .1em; color: var(--muted); margin-bottom: .22rem;
-    }
-    .pipe-step .name { font-size: .83rem; font-weight: 700; color: var(--text); margin-bottom: .22rem; }
-    .pipe-step .desc { font-size: .7rem; color: var(--muted2); line-height: 1.45; }
+    .pipe-layer { font-size: .58rem; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin-bottom: .22rem; }
+    .pipe-name { font-size: .83rem; font-weight: 700; color: var(--text); margin-bottom: .22rem; }
+    .pipe-desc { font-size: .7rem; color: var(--muted2); line-height: 1.45; }
     .pipe-step.b-blue   { border-top: 3px solid var(--accent); }
     .pipe-step.b-green  { border-top: 3px solid var(--green); }
     .pipe-step.b-teal   { border-top: 3px solid var(--teal); }
     .pipe-step.b-purple { border-top: 3px solid var(--purple); }
-    .pipe-step.b-amber  { border-top: 3px solid var(--amber); }
+    .pipe-step.b-amber  { border-top: 3px solid #d97706; }
     @media (max-width: 760px) { .pipe-step { max-width: 100%; min-width: 0; } }
 
-    /* ── Callout ──────────────────────────────────────────────────────────── */
-    .callout-strip {
-      border-top: 1px solid var(--border);
-      background: var(--accent-bg); border-bottom: 1px solid #bfdbfe;
-      padding: 1.75rem 2rem;
-      display: flex; align-items: center; justify-content: center;
-      gap: 2rem; flex-wrap: wrap; text-align: center;
-    }
-    .callout-icon { font-size: 1.75rem; }
-    .callout-body h3 { font-size: .92rem; font-weight: 700; color: var(--text); margin-bottom: .28rem; }
-    .callout-body p  { font-size: .82rem; color: var(--muted2); max-width: 460px; }
-    .callout-body code {
-      font-family: var(--mono); font-size: .74rem;
-      background: var(--surface); border: 1px solid var(--border2);
-      border-radius: 4px; padding: .08rem .32rem; color: var(--teal);
-    }
+    /* ── Get Started / CTA ───────────────────────────────────────────────────── */
+    .cta-section { padding: 4.5rem 0; background: var(--surface); border-bottom: 1px solid var(--border); }
+    .cta-grid { display: grid; grid-template-columns: 1.1fr 1fr; gap: 3rem; align-items: start; }
+    @media (max-width: 760px) { .cta-grid { grid-template-columns: 1fr; gap: 2rem; } }
+    .cta-maven h3 { font-size: 1.1rem; font-weight: 700; color: var(--text); margin-bottom: .35rem; }
+    .cta-maven p { font-size: .84rem; color: var(--muted2); margin-bottom: 1rem; }
+    .code-block { background: #0f1117; border-radius: var(--radius); overflow: hidden; }
+    .code-block-header { display: flex; align-items: center; justify-content: space-between; padding: .55rem 1rem; background: rgba(255,255,255,.06); border-bottom: 1px solid rgba(255,255,255,.06); }
+    .code-block-lang { font-size: .65rem; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: .08em; }
+    .copy-code-btn { font-size: .68rem; font-weight: 600; padding: .18rem .55rem; border-radius: 4px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.12); color: #94a3b8; cursor: pointer; font-family: var(--font); transition: all .12s; }
+    .copy-code-btn:hover { background: rgba(255,255,255,.14); color: #e2e8f0; }
+    .code-block pre { padding: 1rem 1.1rem; font-family: var(--mono); font-size: .78rem; line-height: 1.65; overflow-x: auto; }
+    .code-block .xml-tag { color: #f87171; }
+    .code-block .xml-val { color: #86efac; }
+    .code-block .xml-txt { color: #94a3b8; }
+    .cta-links { display: flex; flex-direction: column; gap: .5rem; margin-top: 1.1rem; }
+    .cta-link { display: inline-flex; align-items: center; gap: .45rem; font-size: .82rem; color: var(--muted2); transition: color .12s; }
+    .cta-link:hover { color: var(--accent); text-decoration: none; }
+    .cta-star { text-align: center; }
+    .cta-star .star-hero { font-size: 3.5rem; margin-bottom: .75rem; display: block; }
+    .cta-star h3 { font-size: 1.25rem; font-weight: 800; color: var(--text); margin-bottom: .5rem; letter-spacing: -.3px; }
+    .cta-star p { font-size: .87rem; color: var(--muted2); margin-bottom: 1.5rem; max-width: 320px; margin-left: auto; margin-right: auto; line-height: 1.6; }
+    .star-btn { display: inline-flex; align-items: center; gap: .5rem; padding: .75rem 2rem; border-radius: 8px; font-size: 1rem; font-weight: 700; background: #0f1117; color: #fff; border: 1px solid rgba(255,255,255,.12); cursor: pointer; font-family: var(--font); transition: all .2s; text-decoration: none; box-shadow: 0 2px 8px rgba(0,0,0,.3); }
+    .star-btn:hover { background: #1e293b; transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,.35); color: #fff; text-decoration: none; }
+    .star-stats { display: flex; gap: 2rem; justify-content: center; margin-top: 1.5rem; }
+    .star-stat { text-align: center; }
+    .star-stat span { display: block; font-size: 1.25rem; font-weight: 800; color: var(--text); }
+    .star-stat small { font-size: .68rem; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; font-weight: 600; }
 
-    /* ── Footer ───────────────────────────────────────────────────────────── */
-    footer {
-      border-top: 1px solid var(--border);
-      background: var(--surface); padding: 2.25rem 2rem;
-    }
-    .footer-inner {
-      max-width: 860px; margin: 0 auto;
-      display: flex; gap: 2rem; flex-wrap: wrap;
-      align-items: flex-start; justify-content: space-between;
-    }
-    .footer-brand p { font-size: .77rem; color: var(--muted); max-width: 220px; line-height: 1.6; margin-top: .45rem; }
-    .footer-links h4 {
-      font-size: .65rem; font-weight: 700; color: var(--muted);
-      text-transform: uppercase; letter-spacing: .1em; margin-bottom: .55rem;
-    }
-    .footer-links ul { list-style: none; display: flex; flex-direction: column; gap: .38rem; }
-    .footer-links li a { font-size: .79rem; color: var(--muted2); transition: color .12s; }
+    /* ── Footer ──────────────────────────────────────────────────────────────── */
+    footer { border-top: 1px solid var(--border); background: var(--surface); padding: 2.25rem 2rem; }
+    .footer-inner { max-width: 860px; margin: 0 auto; display: flex; gap: 2rem; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; }
+    .footer-brand p { font-size: .76rem; color: var(--muted); max-width: 200px; line-height: 1.6; margin-top: .4rem; }
+    .footer-links h4 { font-size: .64rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; margin-bottom: .5rem; }
+    .footer-links ul { list-style: none; display: flex; flex-direction: column; gap: .35rem; }
+    .footer-links li a { font-size: .78rem; color: var(--muted2); }
     .footer-links li a:hover { color: var(--text); text-decoration: none; }
-    .footer-bottom {
-      margin-top: 1.5rem; padding-top: 1.25rem;
-      border-top: 1px solid var(--border);
-      text-align: center; font-size: .71rem; color: var(--muted);
-      max-width: 860px; margin-left: auto; margin-right: auto;
-    }
-    .privacy-note {
-      display: inline-flex; align-items: center; gap: .3rem;
-      background: var(--green-bg); border: 1px solid #bbf7d0;
-      border-radius: 5px; padding: .25rem .65rem;
-      color: #166534; margin-top: .5rem; font-size: .7rem;
-    }
+    .footer-bottom { margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid var(--border); text-align: center; font-size: .7rem; color: var(--muted); max-width: 860px; margin-left: auto; margin-right: auto; }
+    .privacy-note { display: inline-flex; align-items: center; gap: .3rem; background: var(--green-bg); border: 1px solid #bbf7d0; border-radius: 5px; padding: .22rem .6rem; color: #166534; margin-top: .45rem; font-size: .68rem; }
 
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(4px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(5px); } to { opacity:1; transform:translateY(0); } }
+    .animate-in { animation: fadeIn .2s ease both; }
   </style>
 </head>
 <body>
@@ -517,205 +359,393 @@
 </header>
 
 <!-- ── Hero ───────────────────────────────────────────────────────────────── -->
-<div class="hero">
+<section class="hero" id="top">
+  <img src="spg-logo.png" alt="Semantic Privacy Guard" class="hero-logo" />
   <div class="hero-badge">
     <span class="dot"></span>
-    Open Source · Apache 2.0 · Java 17+ · Zero cloud dependencies
+    Open Source · Apache 2.0 · Java 17+ · Zero Cloud Dependencies
   </div>
-  <h1>Open-source <span class="gradient-text">Privacy Firewall</span><br>for AI Applications</h1>
-  <p class="hero-sub">Prevent sensitive data from reaching LLMs — without breaking prompts.</p>
+  <h1>AI Privacy Firewall<br><span class="gradient-text">for Java</span></h1>
+  <p class="hero-sub">Detect and redact sensitive information before it reaches ChatGPT, Claude, Gemini, MCP tools, RAG pipelines, or internal AI systems.</p>
+  <div class="cap-badges">
+    <span class="cap-badge">PII Detection</span>
+    <span class="cap-badge">PHI Detection</span>
+    <span class="cap-badge">Financial Data Detection</span>
+    <span class="cap-badge">AI Prompt Sanitization</span>
+    <span class="cap-badge">On-Prem Deployment</span>
+    <span class="cap-badge">Java Native</span>
+  </div>
   <div class="hero-ctas">
-    <a class="btn btn-primary" href="https://github.com/Sushegaad/Semantic-Privacy-Guard" target="_blank">⭐ GitHub</a>
-    <a class="btn btn-outline" href="https://github.com/Sushegaad/Semantic-Privacy-Guard/blob/main/README.md" target="_blank">📖 Docs</a>
-    <a class="btn btn-outline" href="benchmarks.html">📊 Benchmarks</a>
+    <button class="btn-hero-primary" onclick="document.getElementById('playground').scrollIntoView({behavior:'smooth'})">Try It Now →</button>
+    <a class="btn-hero-secondary" href="https://github.com/Sushegaad/Semantic-Privacy-Guard" target="_blank">⭐ Star on GitHub</a>
+    <a class="btn-hero-secondary" href="https://github.com/Sushegaad/Semantic-Privacy-Guard/blob/main/README.md" target="_blank">📖 Docs</a>
   </div>
-  <p class="hero-types">
-    Detects &amp; redacts &mdash; <em>SSN · Credit Card · Email · Phone · IPv4/IPv6 · API Keys · Passwords · Names · Orgs · IBAN · DOB</em>
-  </p>
-</div>
+  <div class="hero-metrics">
+    <div class="hero-metric"><span>12+</span><small>PII Types</small></div>
+    <div class="hero-metric"><span>97%</span><small>Precision</small></div>
+    <div class="hero-metric"><span>390+</span><small>MB/s</small></div>
+    <div class="hero-metric"><span>3</span><small>Detection Layers</small></div>
+    <div class="hero-metric"><span>0</span><small>Cloud Deps</small></div>
+  </div>
+</section>
 
-<!-- ── Metrics ─────────────────────────────────────────────────────────────── -->
-<div class="metrics-strip">
-  <div class="metric-item">
-    <div class="metric-val">12+</div>
-    <div class="metric-label">PII Types</div>
+<!-- ── Scenarios ──────────────────────────────────────────────────────────── -->
+<section class="scenarios-section">
+  <div class="section-wrap">
+    <div class="section-eyebrow">Try It Yourself</div>
+    <h2 class="section-title">Real-World AI Prompt Scenarios</h2>
+    <p class="section-sub">Click any example to instantly see SPG sanitize the prompt before it reaches an LLM</p>
+    <div class="scenario-grid">
+      <div class="scenario-card" onclick="loadScenario('support')">
+        <div class="scenario-icon">🎫</div>
+        <h3>Customer Support Ticket</h3>
+        <p>Customer PII sent alongside a support summary request to an AI agent.</p>
+        <div class="scenario-load">Load Example →</div>
+      </div>
+      <div class="scenario-card" onclick="loadScenario('healthcare')">
+        <div class="scenario-icon">🏥</div>
+        <h3>Healthcare Record</h3>
+        <p>Patient PHI in a prompt asking an LLM to summarise a medical record.</p>
+        <div class="scenario-load">Load Example →</div>
+      </div>
+      <div class="scenario-card" onclick="loadScenario('enterprise')">
+        <div class="scenario-icon">🏢</div>
+        <h3>Enterprise Employee Record</h3>
+        <p>HR data with salary, ID, and email sent to an internal AI assistant.</p>
+        <div class="scenario-load">Load Example →</div>
+      </div>
+      <div class="scenario-card" onclick="loadScenario('aiprompt')">
+        <div class="scenario-icon">🤖</div>
+        <h3>AI Prompt Example</h3>
+        <p>A management summary request containing several sensitive identifiers.</p>
+        <div class="scenario-load">Load Example →</div>
+      </div>
+    </div>
   </div>
-  <div class="metric-item">
-    <div class="metric-val">97%</div>
-    <div class="metric-label">Macro Precision</div>
-  </div>
-  <div class="metric-item">
-    <div class="metric-val">390+</div>
-    <div class="metric-label">MB/s Throughput</div>
-  </div>
-  <div class="metric-item">
-    <div class="metric-val">0</div>
-    <div class="metric-label">Cloud Dependencies</div>
-  </div>
-</div>
+</section>
 
 <!-- ── Playground ─────────────────────────────────────────────────────────── -->
-<div class="playground-header">
-  <h2>🔬 Live Playground</h2>
-  <span class="hint">Press <kbd>Ctrl</kbd>+<kbd>Enter</kbd> or click Redact to run</span>
-</div>
+<section id="playground" class="playground-section">
+  <div class="section-wrap">
+    <div class="section-eyebrow">Live Playground</div>
+    <h2 class="section-title">🔬 Try Semantic Privacy Guard</h2>
+    <p class="section-sub">Runs entirely in your browser — no text is ever sent to a server</p>
 
-<main>
-  <!-- Left pane: input -->
-  <div class="pane">
-    <div class="pane-header">
-      <div class="pane-label">✏️ Input Text</div>
-      <div class="samples">
-        <button class="sample-btn" onclick="loadSample('mixed')">Full mix</button>
-        <button class="sample-btn" onclick="loadSample('email')">Email</button>
-        <button class="sample-btn" onclick="loadSample('ssn')">SSN</button>
-        <button class="sample-btn" onclick="loadSample('card')">Credit Card</button>
-        <button class="sample-btn" onclick="loadSample('phone')">Phone</button>
-        <button class="sample-btn" onclick="loadSample('ip')">IP / Network</button>
-        <button class="sample-btn" onclick="loadSample('apikey')">API Keys</button>
-        <button class="sample-btn" onclick="loadSample('password')">Passwords</button>
-        <button class="sample-btn" onclick="loadSample('names')">Names (ML)</button>
-        <button class="sample-btn" onclick="loadSample('iban')">IBAN / Bank</button>
-        <button class="sample-btn" onclick="loadSample('dob')">DOB</button>
-        <button class="sample-btn" onclick="loadSample('nlp')" title="Showcases multi-token names that NLP layer handles server-side">NLP names</button>
-      </div>
-    </div>
-
-    <textarea id="input" placeholder="Paste any text here — emails, support tickets, LLM prompts…">Liverpool are the champions of England; PSG are the champions of Europe; and Chelsea are the champions of the world!
-199-84-9876
-someone.naik@gmail.com</textarea>
-
-    <details class="cat-filter">
-      <summary>
-        ⚙️ Filter PII categories
-        <span class="summary-chevron">▶</span>
-      </summary>
-      <div class="cat-filter-body">
-        <div class="cat-filter-actions">
-          <button onclick="setAllCats(true)">✓ All on</button>
-          <button onclick="setAllCats(false)">✕ All off</button>
+    <div class="input-card">
+      <div class="input-card-header">
+        <span class="input-card-label">✏️ Input Text</span>
+        <div class="samples">
+          <button class="sample-btn" onclick="loadSample('mixed')">Full mix</button>
+          <button class="sample-btn" onclick="loadSample('email')">Email</button>
+          <button class="sample-btn" onclick="loadSample('ssn')">SSN</button>
+          <button class="sample-btn" onclick="loadSample('card')">Credit Card</button>
+          <button class="sample-btn" onclick="loadSample('phone')">Phone</button>
+          <button class="sample-btn" onclick="loadSample('ip')">IP</button>
+          <button class="sample-btn" onclick="loadSample('apikey')">API Keys</button>
+          <button class="sample-btn" onclick="loadSample('password')">Passwords</button>
+          <button class="sample-btn" onclick="loadSample('names')">Names</button>
+          <button class="sample-btn" onclick="loadSample('iban')">IBAN</button>
+          <button class="sample-btn" onclick="loadSample('dob')">DOB</button>
+          <button class="sample-btn" onclick="loadSample('nlp')">NLP</button>
         </div>
-        <div class="cat-pills" id="cat-pills"></div>
       </div>
-    </details>
-
-    <div class="controls">
-      <label for="mode">Mode:</label>
-      <select id="mode">
-        <option value="token">TOKEN — [EMAIL_1]</option>
-        <option value="mask">MASK — ████████</option>
-        <option value="blank">BLANK — [REDACTED]</option>
-      </select>
-      <label for="threshold" title="ML Naive Bayes posterior probability cutoff">ML threshold:</label>
-      <select id="threshold">
-        <option value="0.50">0.50 — High recall</option>
-        <option value="0.65" selected>0.65 — Balanced</option>
-        <option value="0.75">0.75 — High precision</option>
-        <option value="0.90">0.90 — Very strict</option>
-      </select>
-      <button class="primary" onclick="runRedact()">🔍 Redact</button>
-      <button class="clear" onclick="clearAll()">✕ Clear</button>
-    </div>
-
-    <div class="stats" id="stats" style="display:none">
-      <div class="stat-item">🎯 Found <span class="stat-val" id="s-count">0</span></div>
-      <div class="stat-divider"></div>
-      <div class="stat-item">Types: <span class="stat-val" id="s-types">—</span></div>
-      <div class="stat-divider"></div>
-      <div class="stat-item">⏱ <span class="stat-val" id="s-time">—</span></div>
-      <div class="stat-divider"></div>
-      <div class="stat-item">Layer: <span class="stat-val" id="s-layer">—</span></div>
-    </div>
-  </div>
-
-  <!-- Right pane: output -->
-  <div class="pane">
-    <div class="pane-header">
-      <div class="pane-label">🔒 Redacted Output</div>
-      <button onclick="copyOutput()" style="font-size:.7rem; padding:.18rem .48rem;">📋 Copy</button>
-    </div>
-
-    <div class="output-box" id="output">
-      <div class="empty-state">
-        <span class="icon">🔐</span>
-        <p>Redacted text will appear here</p>
-        <small>PII is replaced with structured tokens like [EMAIL_1], [SSN_1]…</small>
+      <textarea id="input" placeholder="Paste any text — an LLM prompt, email, support ticket, log file… PII will be detected and redacted instantly."></textarea>
+      <div class="input-controls">
+        <button class="analyze-btn" onclick="runAnalysis()">🛡 Analyze &amp; Redact</button>
+        <button class="clear-btn" onclick="clearAll()">✕ Clear</button>
+        <span class="ctrl-label">Mode:</span>
+        <select id="mode">
+          <option value="token">TOKEN — [EMAIL_1]</option>
+          <option value="mask">MASK — ████████</option>
+          <option value="blank">BLANK — [REDACTED]</option>
+        </select>
+        <span class="ctrl-label" title="Naive Bayes posterior probability cutoff">ML threshold:</span>
+        <select id="threshold">
+          <option value="0.50">0.50 — High recall</option>
+          <option value="0.65" selected>0.65 — Balanced</option>
+          <option value="0.75">0.75 — High precision</option>
+          <option value="0.90">0.90 — Strict</option>
+        </select>
+        <details class="cat-filter">
+          <summary>⚙️ Filter categories <span class="cat-filter-chevron">▶</span></summary>
+          <div class="cat-filter-body">
+            <div class="cat-filter-actions">
+              <button onclick="setAllCats(true)">✓ All on</button>
+              <button onclick="setAllCats(false)">✕ All off</button>
+            </div>
+            <div class="cat-pills" id="cat-pills"></div>
+          </div>
+        </details>
       </div>
     </div>
 
-    <div class="findings-header" id="findings-header" style="display:none">Detections</div>
-    <div id="findings"></div>
-
-    <div class="reverse-map" id="reverse-map">
-      <h4>🔑 Reverse Map (de-tokenisation)</h4>
-      <div id="rm-entries"></div>
+    <!-- Results (shown after analysis) -->
+    <div class="results-grid" id="results-grid" style="display:none">
+      <!-- Left: original with highlights -->
+      <div class="result-pane">
+        <div class="pane-header">
+          <span class="pane-title">📄 Original Text</span>
+        </div>
+        <div class="entity-legend" id="entity-legend"></div>
+        <div class="text-display" id="highlighted-output"></div>
+      </div>
+      <!-- Right: redacted / AI-safe -->
+      <div class="result-pane safe-pane">
+        <div class="pane-header">
+          <span class="pane-title">🔒 AI-Safe Text</span>
+          <button class="pane-copy-btn" onclick="copyRedacted(event)">📋 Copy</button>
+        </div>
+        <div class="text-display" id="redacted-output"></div>
+        <div class="llm-badges">
+          <span class="llm-badge">OpenAI Ready</span>
+          <span class="llm-badge">Claude Ready</span>
+          <span class="llm-badge">Gemini Ready</span>
+          <span class="llm-badge">MCP Ready</span>
+          <span class="llm-badge">RAG Ready</span>
+        </div>
+      </div>
     </div>
   </div>
-</main>
+</section>
+
+<!-- ── Dashboard (shown after analysis) ──────────────────────────────────── -->
+<section id="dashboard" class="dashboard-section" style="display:none">
+  <div class="section-wrap">
+    <div class="dashboard-grid">
+      <!-- Risk Level -->
+      <div class="dash-card">
+        <div class="dash-card-title">Risk Assessment</div>
+        <div id="risk-indicator" class="risk-indicator risk-none">
+          <div class="risk-icon" id="risk-icon">—</div>
+          <div class="risk-level" id="risk-level">—</div>
+          <div class="risk-sub" id="risk-sub">No analysis yet</div>
+        </div>
+        <p class="risk-note" id="risk-note"></p>
+      </div>
+      <!-- Entity Counts -->
+      <div class="dash-card">
+        <div class="dash-card-title">Detected Entities</div>
+        <div class="entity-count-list" id="entity-count-list">
+          <div style="color:var(--muted);font-size:.8rem;text-align:center;padding:1rem 0">Run analysis to see results</div>
+        </div>
+      </div>
+      <!-- Performance -->
+      <div class="dash-card">
+        <div class="dash-card-title">Performance</div>
+        <div id="perf-stats">
+          <div style="color:var(--muted);font-size:.8rem;text-align:center;padding:1rem 0">Run analysis to see metrics</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Entity details table -->
+    <div class="entity-table-card" id="entity-table-card" style="display:none">
+      <div class="entity-table-header">Detection Details</div>
+      <div style="overflow-x:auto">
+        <table class="entity-table">
+          <thead>
+            <tr>
+              <th>Entity Value</th>
+              <th>Type</th>
+              <th>Detection Source</th>
+              <th>Confidence</th>
+            </tr>
+          </thead>
+          <tbody id="entity-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Try to Break It ────────────────────────────────────────────────────── -->
+<section class="break-section">
+  <div class="section-wrap">
+    <div class="section-eyebrow">Edge Cases</div>
+    <h2 class="section-title">Test the Limits</h2>
+    <p class="section-sub">These examples show where simple regex stops and where the full Java library with OpenNLP NER takes over</p>
+    <div class="break-grid">
+      <div class="break-card">
+        <div class="break-card-label">
+          Standard format
+          <span class="result-pill catches">Browser catches ✓</span>
+        </div>
+        <div class="break-code">Card: 4532 0151 1283 0366
+DOB: born on 03/15/1985
+AWS: AKIAIOSFODNN7EXAMPLE</div>
+        <div class="break-desc">Structured patterns — regex + Luhn validation catches cards, prefixed DOBs, and well-known API key formats instantly.</div>
+        <button class="break-test-btn" onclick="tryBreak('Card: 4532 0151 1283 0366\nDOB: born on 03/15/1985\nAWS: AKIAIOSFODNN7EXAMPLE')">→ Test this</button>
+      </div>
+      <div class="break-card">
+        <div class="break-card-label">
+          Obfuscated email
+          <span class="result-pill limit">Full Java lib needed</span>
+        </div>
+        <div class="break-code">john dot smith at gmail dot com</div>
+        <div class="break-desc">Spoken / obfuscated format. The browser regex engine won't match this — it requires the full Java library's contextual NLP layer.</div>
+        <button class="break-test-btn" onclick="tryBreak('john dot smith at gmail dot com')">→ Test this</button>
+      </div>
+      <div class="break-card">
+        <div class="break-card-label">
+          Spoken numbers
+          <span class="result-pill limit">Full Java lib needed</span>
+        </div>
+        <div class="break-code">call me at five five five
+one two three four
+SSN one two three dash
+four five dash six seven eight nine</div>
+        <div class="break-desc">Written-out digits. The NER layer in the full Java library identifies these using linguistic context, not pattern matching.</div>
+        <button class="break-test-btn" onclick="tryBreak('call me at five five five one two three four\nSSN one two three dash four five dash six seven eight nine')">→ Test this</button>
+      </div>
+      <div class="break-card">
+        <div class="break-card-label">
+          Compound names
+          <span class="result-pill partial">Partial — ML layer</span>
+        </div>
+        <div class="break-code">Dear Dr. Mary Elizabeth
+Watson-Jones, please sign
+the attached NDA.</div>
+        <div class="break-desc">Multi-token hyphenated names. The ML layer catches context-preceded names; the full Java NER catches compound forms like "Watson-Jones".</div>
+        <button class="break-test-btn" onclick="tryBreak('Dear Dr. Mary Elizabeth Watson-Jones, please sign the attached NDA.')">→ Test this</button>
+      </div>
+      <div class="break-card">
+        <div class="break-card-label">
+          IBAN variants
+          <span class="result-pill catches">Browser catches ✓</span>
+        </div>
+        <div class="break-code">IBAN: GB29NWBK60161331926819
+DE89370400440532013000
+FR7630006000011234567890189</div>
+        <div class="break-desc">International Bank Account Numbers. The regex pattern covers all ISO 13616 country codes — caught in the browser demo.</div>
+        <button class="break-test-btn" onclick="tryBreak('IBAN: GB29NWBK60161331926819\nDE89370400440532013000\nFR7630006000011234567890189')">→ Test this</button>
+      </div>
+      <div class="break-card">
+        <div class="break-card-label">
+          Password patterns
+          <span class="result-pill catches">Browser catches ✓</span>
+        </div>
+        <div class="break-code">password=MyS3cr3tP@ss!
+DB_PASSWORD=Secure#2024
+secret=xK9#mN2$vL7@qR5
+passphrase: correct horse</div>
+        <div class="break-desc">Key-value credential patterns. Keyword-prefix detection catches all standard config file formats, including dotenv and YAML.</div>
+        <button class="break-test-btn" onclick="tryBreak('password=MyS3cr3tP@ss!\nDB_PASSWORD=Secure#2024\nsecret=xK9#mN2\$vL7@qR5\npassphrase: correct horse')">→ Test this</button>
+      </div>
+    </div>
+    <div class="break-note">
+      💡 The browser playground runs Regex + Naive Bayes ML layers. The full Java library adds <strong>Apache OpenNLP NER</strong> as a third layer — handling compound names, obfuscated formats, and natural-language identifiers. <a href="https://github.com/Sushegaad/Semantic-Privacy-Guard" target="_blank">See the full library →</a>
+    </div>
+  </div>
+</section>
 
 <!-- ── How it works ───────────────────────────────────────────────────────── -->
-<div class="how-section">
-  <div class="section-eyebrow">Under the Hood</div>
-  <h2 class="section-title">Three-Layer Detection Pipeline</h2>
-  <p class="section-desc">Each layer catches what the others miss. Matches are de-duplicated and merged into a single ranked result.</p>
-  <div class="pipeline">
-    <div class="pipe-step b-blue">
-      <span class="pipe-icon">📄</span>
-      <div class="layer">Input</div>
-      <div class="name">Raw Text</div>
-      <div class="desc">Any string: LLM prompt, email body, support ticket, API log line…</div>
-    </div>
-    <div class="pipe-step b-blue">
-      <span class="pipe-icon">🔤</span>
-      <div class="layer">Layer 1</div>
-      <div class="name">HeuristicDetector</div>
-      <div class="desc">10 pre-compiled regexes. Luhn validation for cards, NANP for phones, Shannon entropy for API keys.</div>
-    </div>
-    <div class="pipe-step b-green">
-      <span class="pipe-icon">🧠</span>
-      <div class="layer">Layer 2</div>
-      <div class="name">MLDetector</div>
-      <div class="desc">Multinomial Naive Bayes. Classifies title-cased tokens using bag-of-words context features.</div>
-    </div>
-    <div class="pipe-step b-teal">
-      <span class="pipe-icon">🔭</span>
-      <div class="layer">Layer 3</div>
-      <div class="name">NLPDetector</div>
-      <div class="desc">Apache OpenNLP MaxEnt NER. Handles compound names, hyphens, and varied syntactic positions.</div>
-    </div>
-    <div class="pipe-step b-purple">
-      <span class="pipe-icon">⚖️</span>
-      <div class="layer">Merge</div>
-      <div class="name">CompositeDetector</div>
-      <div class="desc">De-duplicates overlapping matches. Promotes same-span detections to HYBRID with elevated confidence.</div>
-    </div>
-    <div class="pipe-step b-amber">
-      <span class="pipe-icon">✅</span>
-      <div class="layer">Output</div>
-      <div class="name">PIITokenizer</div>
-      <div class="desc">TOKEN / MASK / BLANK modes. Builds reverse map for de-tokenisation after the LLM responds.</div>
+<section class="pipeline-section">
+  <div class="section-wrap">
+    <div class="section-eyebrow">Under the Hood</div>
+    <h2 class="section-title">Three-Layer Detection Pipeline</h2>
+    <p class="section-sub">Each layer catches what the others miss. Matches are de-duplicated and merged into a single ranked result.</p>
+    <div class="pipeline">
+      <div class="pipe-step b-blue">
+        <span class="pipe-icon">📄</span>
+        <div class="pipe-layer">Input</div>
+        <div class="pipe-name">Raw Text</div>
+        <div class="pipe-desc">Any string: LLM prompt, email body, support ticket, API log line…</div>
+      </div>
+      <div class="pipe-step b-blue">
+        <span class="pipe-icon">🔤</span>
+        <div class="pipe-layer">Layer 1</div>
+        <div class="pipe-name">HeuristicDetector</div>
+        <div class="pipe-desc">10 pre-compiled regexes. Luhn validation for cards, NANP for phones, Shannon entropy for API keys.</div>
+      </div>
+      <div class="pipe-step b-green">
+        <span class="pipe-icon">🧠</span>
+        <div class="pipe-layer">Layer 2</div>
+        <div class="pipe-name">MLDetector</div>
+        <div class="pipe-desc">Multinomial Naive Bayes. Classifies title-cased tokens using bag-of-words context features.</div>
+      </div>
+      <div class="pipe-step b-teal">
+        <span class="pipe-icon">🔭</span>
+        <div class="pipe-layer">Layer 3</div>
+        <div class="pipe-name">NLPDetector</div>
+        <div class="pipe-desc">Apache OpenNLP MaxEnt NER. Handles compound names, hyphens, and varied syntactic positions.</div>
+      </div>
+      <div class="pipe-step b-purple">
+        <span class="pipe-icon">⚖️</span>
+        <div class="pipe-layer">Merge</div>
+        <div class="pipe-name">CompositeDetector</div>
+        <div class="pipe-desc">De-duplicates overlapping matches. Promotes same-span detections to HYBRID with elevated confidence.</div>
+      </div>
+      <div class="pipe-step b-amber">
+        <span class="pipe-icon">✅</span>
+        <div class="pipe-layer">Output</div>
+        <div class="pipe-name">PIITokenizer</div>
+        <div class="pipe-desc">TOKEN / MASK / BLANK modes. Builds reverse map for de-tokenisation after the LLM responds.</div>
+      </div>
     </div>
   </div>
-</div>
+</section>
 
-<!-- ── Spring AI callout ──────────────────────────────────────────────────── -->
-<div class="callout-strip">
-  <div class="callout-icon">🌱</div>
-  <div class="callout-body">
-    <h3>Spring AI Integration — <span class="gradient-text">New in v1.4.0</span></h3>
-    <p>Drop <code>SPGAdvisor</code> into any Spring AI <code>ChatClient</code> to automatically redact PII before every LLM call — three lines of code, zero config required.</p>
+<!-- ── Get Started ────────────────────────────────────────────────────────── -->
+<section class="cta-section" id="get-started">
+  <div class="section-wrap">
+    <div class="section-eyebrow">Get Started</div>
+    <h2 class="section-title">Add to Your Project in 30 Seconds</h2>
+    <p class="section-sub">Available on Maven Central. Works with Spring Boot, Quarkus, Micronaut, or plain Java 17+.</p>
+    <div class="cta-grid">
+      <div class="cta-maven">
+        <h3>Maven Dependency</h3>
+        <p>Add one dependency, zero configuration required.</p>
+        <div class="code-block">
+          <div class="code-block-header">
+            <span class="code-block-lang">pom.xml</span>
+            <button class="copy-code-btn" onclick="copyMaven(event)">📋 Copy</button>
+          </div>
+          <pre id="maven-snippet"><span class="xml-txt">&lt;</span><span class="xml-tag">dependency</span><span class="xml-txt">&gt;
+  &lt;</span><span class="xml-tag">groupId</span><span class="xml-txt">&gt;</span><span class="xml-val">io.github.sushegaad</span><span class="xml-txt">&lt;/</span><span class="xml-tag">groupId</span><span class="xml-txt">&gt;
+  &lt;</span><span class="xml-tag">artifactId</span><span class="xml-txt">&gt;</span><span class="xml-val">semantic-privacy-guard</span><span class="xml-txt">&lt;/</span><span class="xml-tag">artifactId</span><span class="xml-txt">&gt;
+  &lt;</span><span class="xml-tag">version</span><span class="xml-txt">&gt;</span><span class="xml-val">1.5.0</span><span class="xml-txt">&lt;/</span><span class="xml-tag">version</span><span class="xml-txt">&gt;
+&lt;/</span><span class="xml-tag">dependency</span><span class="xml-txt">&gt;</span></pre>
+        </div>
+        <div class="cta-links">
+          <a class="cta-link" href="https://github.com/Sushegaad/Semantic-Privacy-Guard" target="_blank">
+            <span>📦</span> GitHub Repository
+          </a>
+          <a class="cta-link" href="https://github.com/Sushegaad/Semantic-Privacy-Guard/blob/main/README.md" target="_blank">
+            <span>📖</span> Documentation
+          </a>
+          <a class="cta-link" href="https://central.sonatype.com/artifact/io.github.sushegaad/semantic-privacy-guard" target="_blank">
+            <span>🏛</span> Maven Central
+          </a>
+          <a class="cta-link" href="benchmarks.html">
+            <span>📊</span> Benchmark Results
+          </a>
+        </div>
+      </div>
+      <div class="cta-star">
+        <span class="star-hero">⭐</span>
+        <h3>If SPG saved your data, star the repo</h3>
+        <p>Help other Java developers discover an open-source AI privacy firewall that runs entirely on-prem — no cloud, no cost.</p>
+        <a class="star-btn" href="https://github.com/Sushegaad/Semantic-Privacy-Guard" target="_blank">
+          ⭐ Star on GitHub
+        </a>
+        <div class="star-stats">
+          <div class="star-stat"><span>v1.5.0</span><small>Latest</small></div>
+          <div class="star-stat"><span>Apache 2.0</span><small>License</small></div>
+          <div class="star-stat"><span>Java 17+</span><small>Requires</small></div>
+        </div>
+      </div>
+    </div>
   </div>
-  <a class="btn btn-outline" href="https://github.com/Sushegaad/Semantic-Privacy-Guard/tree/main/semantic-privacy-guard-spring-ai" target="_blank" style="flex-shrink:0;">View Module →</a>
-</div>
+</section>
 
 <!-- ── Footer ─────────────────────────────────────────────────────────────── -->
 <footer>
   <div class="footer-inner">
     <div class="footer-brand">
       <a class="logo" href="index.html">
-        <img src="spg-logo.png" alt="Semantic Privacy Guard" style="height:48px;" />
+        <img src="spg-logo.png" alt="Semantic Privacy Guard" style="height:44px;" />
       </a>
-      <p>Open-source privacy firewall for AI applications. Keep PII out of your LLM calls.</p>
+      <p>Open-source AI privacy firewall for Java. Keep PII out of your LLM calls.</p>
     </div>
     <div class="footer-links">
       <h4>Project</h4>
@@ -745,12 +775,42 @@ someone.naik@gmail.com</textarea>
 </footer>
 
 <script>
-// ────────────────────────────────────────────────────────────────────────────
-//  JavaScript port of the SPG Heuristic + simplified ML detection pipeline.
-//  This is a faithful browser-side translation of the Java logic.
+// ═══════════════════════════════════════════════════════════════════════════
+//  Semantic Privacy Guard — Browser Playground
+//  Detection engine: faithful JS port of the Java Heuristic + ML pipeline.
 //  Source: https://github.com/Sushegaad/Semantic-Privacy-Guard
-// ────────────────────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
 
+// ── Scenario sample prompts ─────────────────────────────────────────────────
+const SCENARIOS = {
+  support: `Summarize this support request.
+Customer: John Smith
+Email: john.smith@gmail.com
+Phone: 757-555-1234
+Account Number: 12345678
+Customer reports unauthorized account access.`,
+
+  healthcare: `Generate a patient summary.
+Patient: Jane Doe
+DOB: 04/15/1985
+SSN: 123-45-6789
+Diagnosis: Hypertension`,
+
+  enterprise: `Review employee information.
+Name: Sarah Johnson
+Employee ID: EMP-88273
+Salary: $145,000
+Email: sarah.johnson@company.com`,
+
+  aiprompt: `Summarize the following employee information for management:
+John Smith
+john.smith@gmail.com
+555-123-4567
+Employee ID 991827
+Salary $125,000`
+};
+
+// ── Legacy sample texts ──────────────────────────────────────────────────────
 const SAMPLES = {
   mixed: `TO: alice.johnson@acme.com
 FROM: support@company.io
@@ -766,13 +826,9 @@ Your profile on file:
   Phone: (555) 867-5309
   DOB: born on 03/15/1985
 
-If this wasn't you, contact Dr. Smith at dr.smith@hospital.org.
-
 API credentials in your config:
   AWS_ACCESS_KEY=AKIAIOSFODNN7EXAMPLE
   password=MyS3cretP@ssw0rd!
-
-Server logs show traffic from 192.168.1.100 and 2001:db8::1.
 
 Transfer ref: GB29NWBK60161331926819
 
@@ -780,7 +836,7 @@ Best regards,
 Security Team`,
 
   email: `Please send the Q4 report to alice.johnson@acme-corp.com by Friday.
-CC: bob.smith+reports@enterprise.org and the team lead at carol.white@startup.io.
+CC: bob.smith+reports@enterprise.org and carol.white@startup.io.
 The invoice should go to accounts@bigcorp.co.uk — mark it urgent.`,
 
   ssn: `Patient intake form:
@@ -794,110 +850,79 @@ The invoice should go to accounts@bigcorp.co.uk — mark it urgent.`,
   Visa:       4532 0151 1283 0366
   Mastercard: 5425233430109903
   Amex:       371449635398431
-  Discover:   6011111111111117
-
-  Note: These are test card numbers for Stripe / Luhn validation.`,
+  Discover:   6011111111111117`,
 
   phone: `Contact directory:
   Alice:   (555) 867-5309
   Bob:     +1-800-555-0199
   Carol:   555.234.5678
-  Support: 1 (888) 555-0100
-  UK line: +44 20 7946 0958`,
+  Support: 1 (888) 555-0100`,
 
-  ip: `Server access log — 2024-03-15:
-  192.168.1.100  — internal NAT (should redact)
-  203.0.113.42   — external IP (should redact)
-  10.0.0.1       — gateway (should redact)
-  2001:db8::1    — IPv6 (pattern in Java lib; heuristic layer)
-  255.255.255.255 — broadcast (should redact)
-  Traffic source: fe80::1%eth0`,
+  ip: `Server access log:
+  192.168.1.100  — internal NAT
+  203.0.113.42   — external IP
+  10.0.0.1       — gateway
+  255.255.255.255 — broadcast`,
 
-  apikey: `Environment variables extracted from CI pipeline:
-
+  apikey: `CI pipeline environment:
 GITHUB_TOKEN=ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZabcdef12
 OPENAI_API_KEY=sk-abcdefghijklmnopqrstuvwxyz123456
 AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE
-AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
-HEX_SECRET=a3f8e2b1c9d4f05e6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9`,
+AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY`,
 
-  password: `Credentials found in config dump:
+  password: `Credentials in config dump:
   password=MyS3cretP@ssw0rd!
   passwd: hunter2
   DB_PASSWORD=S3cureDB!Pass#2024
-  secret=xK9#mN2$vL7@qR5
-  passphrase: correct horse battery staple
-  pwd=admin123`,
+  secret=xK9#mN2$vL7@qR5`,
 
-  names: `ML disambiguation — same token, different context:
+  names: `ML disambiguation:
+1. "I ate an apple yesterday." → fruit, not PII
+2. "Contact Apple at (800) 275-2273." → organisation
+3. "Dear John, your appointment is confirmed." → person name
+4. "Hello Bob, please review the contract." → person name`,
 
-1. "I ate an apple yesterday." → apple is a fruit, not PII
-2. "Contact Apple at (800) 275-2273 for support." → Apple is an organisation
-3. "The Gospel of John has 21 chapters." → John is a biblical reference
-4. "Dear John, your appointment is confirmed for Monday." → John is a person name
-5. "Hello Bob, please review the contract." → Bob is a person name
-
-Notice how the Naive Bayes layer uses surrounding context to disambiguate.`,
-
-  iban: `International bank transfers pending clearance:
-
-  Account holder: Alice Johnson
+  iban: `Bank transfers pending:
   IBAN (UK):  GB29NWBK60161331926819
   IBAN (DE):  DE89370400440532013000
   IBAN (FR):  FR7630006000011234567890189
-  IBAN (NL):  NL91ABNA0417164300
-  Reference:  Invoice #INV-2024-0042`,
+  IBAN (NL):  NL91ABNA0417164300`,
 
-  dob: `Patient records — please verify identity:
-  Full name: Jane Doe
+  dob: `Patient records:
   DOB: born on 03/15/1985
   d.o.b.: 1990-07-22
   Date of birth: January 5, 1978
-  Born: 12/31/1995
-  Registration dob: 08/19/2001`,
+  Born: 12/31/1995`,
 
-  nlp: `OpenNLP NER (Layer 3) — multi-token & compound name detection:
-
+  nlp: `NLP layer demo:
 Dear Mary Elizabeth Watson-Jones, please review the attached proposal.
 CC: Dr. James O'Brien, Chief Medical Officer at Barclays Bank PLC.
-The contract was countersigned by Priya Krishnamurthy on 2024-03-15.
-Please forward to carol.whitfield@globaltech.io for final approval.
-Our vendor contact is Michael van der Berg from Deutsche Bank AG.
-
-[Note: This playground runs Heuristic + ML layers in-browser.
-The OpenNLP NER layer (Layer 3) runs server-side in the Java library,
-further improving detection of compound/hyphenated names and org names.]`
+The contract was countersigned by Priya Krishnamurthy.
+Please forward to carol.whitfield@globaltech.io for final approval.`
 };
 
 // ── PII type metadata ────────────────────────────────────────────────────────
 const TYPE_META = {
-  SSN:          { label: 'SSN',        color: '#991b1b', bg: '#fee2e2', sev: 10 },
-  CREDIT_CARD:  { label: 'CARD',       color: '#991b1b', bg: '#fee2e2', sev: 10 },
-  API_KEY:      { label: 'API KEY',    color: '#9a3412', bg: '#fff7ed', sev: 9  },
-  PASSWORD:     { label: 'PASSWORD',   color: '#9a3412', bg: '#fff7ed', sev: 9  },
-  EMAIL:        { label: 'EMAIL',      color: '#1e40af', bg: '#eff6ff', sev: 6  },
-  PHONE:        { label: 'PHONE',      color: '#1e40af', bg: '#eff6ff', sev: 6  },
-  IP_ADDRESS:   { label: 'IP',         color: '#166534', bg: '#f0fdf4', sev: 4  },
-  PERSON_NAME:  { label: 'NAME',       color: '#5b21b6', bg: '#f5f3ff', sev: 6  },
-  ORGANIZATION: { label: 'ORG',        color: '#5b21b6', bg: '#f5f3ff', sev: 3  },
-  DATE_OF_BIRTH:{ label: 'DOB',        color: '#1e40af', bg: '#eff6ff', sev: 6  },
-  BANK_ACCOUNT: { label: 'IBAN',       color: '#92400e', bg: '#fffbeb', sev: 8  },
-  GENERIC_PII:  { label: 'PII',        color: '#374151', bg: '#f9fafb', sev: 5  },
+  SSN:          { label:'SSN',      color:'#991b1b', bg:'#fee2e2', hlClass:'hl-ssn',      sev:10 },
+  CREDIT_CARD:  { label:'CARD',     color:'#92400e', bg:'#fffbeb', hlClass:'hl-card',      sev:10 },
+  API_KEY:      { label:'API KEY',  color:'#9a3412', bg:'#fff7ed', hlClass:'hl-apikey',    sev:9  },
+  PASSWORD:     { label:'PASSWORD', color:'#9a3412', bg:'#fff7ed', hlClass:'hl-password',  sev:9  },
+  EMAIL:        { label:'EMAIL',    color:'#1e40af', bg:'#eff6ff', hlClass:'hl-email',     sev:6  },
+  PHONE:        { label:'PHONE',    color:'#1e40af', bg:'#eff6ff', hlClass:'hl-phone',     sev:6  },
+  IP_ADDRESS:   { label:'IP',       color:'#0c4a6e', bg:'#cffafe', hlClass:'hl-ip',        sev:4  },
+  PERSON_NAME:  { label:'NAME',     color:'#6b21a8', bg:'#f3e8ff', hlClass:'hl-name',      sev:6  },
+  ORGANIZATION: { label:'ORG',      color:'#4c1d95', bg:'#ede9fe', hlClass:'hl-org',       sev:3  },
+  DATE_OF_BIRTH:{ label:'DOB',      color:'#1e40af', bg:'#dbeafe', hlClass:'hl-dob',       sev:6  },
+  BANK_ACCOUNT: { label:'IBAN',     color:'#78350f', bg:'#fef9c3', hlClass:'hl-bank',      sev:8  },
+  GENERIC_PII:  { label:'PII',      color:'#374151', bg:'#f9fafb', hlClass:'hl-name',      sev:5  },
 };
 
-// ── Category filter state ────────────────────────────────────────────────────
+// ── Category filter ──────────────────────────────────────────────────────────
 const CAT_LABELS = {
-  SSN:          'SSN',
-  CREDIT_CARD:  'Credit Card',
-  EMAIL:        'Email',
-  PHONE:        'Phone',
-  IP_ADDRESS:   'IPv4 / IPv6',
-  API_KEY:      'API Keys',
-  PASSWORD:     'Passwords',
-  PERSON_NAME:  'Names (ML+NLP)',
-  ORGANIZATION: 'Orgs (ML+NLP)',
-  DATE_OF_BIRTH:'DOB',
-  BANK_ACCOUNT: 'IBAN / Bank',
+  SSN:'SSN', CREDIT_CARD:'Credit Card', EMAIL:'Email', PHONE:'Phone',
+  IP_ADDRESS:'IPv4 / IPv6', API_KEY:'API Keys', PASSWORD:'Passwords',
+  PERSON_NAME:'Names (ML+NLP)', ORGANIZATION:'Orgs (ML+NLP)',
+  DATE_OF_BIRTH:'DOB', BANK_ACCOUNT:'IBAN / Bank',
 };
 const enabledTypes = new Set(Object.keys(CAT_LABELS));
 
@@ -910,268 +935,303 @@ function renderCatPills() {
     const pill = document.createElement('span');
     pill.className = 'cat-pill' + (on ? '' : ' off');
     pill.title     = on ? 'Click to disable' : 'Click to enable';
-    if (on) {
-      pill.style.color       = meta.color;
-      pill.style.background  = meta.bg;
-      pill.style.borderColor = meta.color + '55';
-    }
-    pill.innerHTML = `<span class="check">${on ? '✓' : '✕'}</span> ${label}`;
+    if (on) { pill.style.color = meta.color; pill.style.background = meta.bg; pill.style.borderColor = meta.color + '55'; }
+    pill.innerHTML = `<span>${on ? '✓' : '✕'}</span> ${label}`;
     pill.addEventListener('click', () => {
-      if (enabledTypes.has(type)) enabledTypes.delete(type);
-      else                         enabledTypes.add(type);
+      if (enabledTypes.has(type)) enabledTypes.delete(type); else enabledTypes.add(type);
       renderCatPills();
     });
     container.appendChild(pill);
   }
 }
-
 function setAllCats(on) {
-  if (on) Object.keys(CAT_LABELS).forEach(t => enabledTypes.add(t));
-  else    enabledTypes.clear();
+  if (on) Object.keys(CAT_LABELS).forEach(t => enabledTypes.add(t)); else enabledTypes.clear();
   renderCatPills();
 }
 
-// ── Regex patterns (JS port of RegexPatterns.java) ──────────────────────────
+// ── Detection engine ─────────────────────────────────────────────────────────
 const PATTERNS = [
-  { type: 'SSN',     re: /\b(?!000|666|9\d{2})\d{3}-(?!00)\d{2}-(?!0000)\d{4}\b/g, conf: 1.0 },
-  { type: 'EMAIL',   re: /\b[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}\b/g, conf: 0.97 },
-  { type: 'PHONE',   re: /(?:\+?1[-. ]?)?(?:\(?([2-9][0-9]{2})\)?[-. ]?)([2-9][0-9]{2})[-. ]?([0-9]{4})(?!\d)/g, conf: 0.90 },
-  { type: 'IP_ADDRESS', re: /(?<![.\d])(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?)(?![.\d])/g, conf: 0.95 },
-  { type: 'API_KEY', re: /\b(?:(?:AKIA|ABIA|ACCA)[0-9A-Z]{16}|ghp_[0-9a-zA-Z]{36}|github_pat_[0-9a-zA-Z_]{82}|ghs_[0-9a-zA-Z]{36}|sk-[a-zA-Z0-9]{20,}|Bearer\s+[a-zA-Z0-9\-._~+/]{20,}|[a-f0-9]{32,64})\b/gi, conf: 0.93 },
-  { type: 'PASSWORD', re: /(?:password|passwd|pwd|secret|passphrase|pass)\s*[:=]\s*([^\s,;"'`]{4,})/gi, conf: 0.88 },
-  { type: 'DATE_OF_BIRTH', re: /(?:dob|d\.o\.b\.|born(?:\s+on)?|date\s+of\s+birth)\s*[:=]?\s*(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+\d{1,2},?\s+\d{4})/gi, conf: 0.92 },
-  { type: 'BANK_ACCOUNT', re: /\b[A-Z]{2}\d{2}[A-Z0-9]{4,30}\b/g, conf: 0.90 },
+  { type:'SSN',          re:/\b(?!000|666|9\d{2})\d{3}-(?!00)\d{2}-(?!0000)\d{4}\b/g,                                                                     conf:1.0  },
+  { type:'EMAIL',        re:/\b[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}\b/g,                                                                      conf:0.97 },
+  { type:'PHONE',        re:/(?:\+?1[-. ]?)?(?:\(?([2-9][0-9]{2})\)?[-. ]?)([2-9][0-9]{2})[-. ]?([0-9]{4})(?!\d)/g,                                        conf:0.90 },
+  { type:'IP_ADDRESS',   re:/(?<![.\d])(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?)(?![.\d])/g,                                conf:0.95 },
+  { type:'API_KEY',      re:/\b(?:(?:AKIA|ABIA|ACCA)[0-9A-Z]{16}|ghp_[0-9a-zA-Z]{36}|github_pat_[0-9a-zA-Z_]{82}|ghs_[0-9a-zA-Z]{36}|sk-[a-zA-Z0-9]{20,}|Bearer\s+[a-zA-Z0-9\-._~+/]{20,}|[a-f0-9]{32,64})\b/gi, conf:0.93 },
+  { type:'PASSWORD',     re:/(?:password|passwd|pwd|secret|passphrase|pass)\s*[:=]\s*([^\s,;"'`]{4,})/gi,                                                   conf:0.88 },
+  { type:'DATE_OF_BIRTH',re:/(?:dob|d\.o\.b\.|born(?:\s+on)?|date\s+of\s+birth)\s*[:=]?\s*(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+\d{1,2},?\s+\d{4})/gi, conf:0.92 },
+  { type:'BANK_ACCOUNT', re:/\b[A-Z]{2}\d{2}[A-Z0-9]{4,30}\b/g,                                                                                            conf:0.90 },
 ];
-
 const CC_RE = /\b(?:4[0-9]{12}(?:[0-9]{3,6})?|(?:5[1-5][0-9]{2}|222[1-9]|2[3-6][0-9]{2}|27[01][0-9]|2720)[0-9]{12}|3[47][0-9]{13}|6(?:011|5[0-9]{2})[0-9]{12,15}|(?:2131|1800|35\d{3})\d{11})\b|\b(?:\d{4}[- ]){3}\d{4}\b/g;
 
 function luhn(digits) {
-  digits = digits.replace(/\D/g, '');
+  digits = digits.replace(/\D/g,'');
   if (!digits || digits.length < 13) return false;
   let sum = 0, alt = false;
-  for (let i = digits.length - 1; i >= 0; i--) {
-    let n = parseInt(digits[i]);
-    if (alt) { n *= 2; if (n > 9) n -= 9; }
-    sum += n; alt = !alt;
-  }
+  for (let i = digits.length-1; i >= 0; i--) { let n = parseInt(digits[i]); if (alt) { n*=2; if(n>9) n-=9; } sum+=n; alt=!alt; }
   return sum % 10 === 0;
 }
-
 function entropy(s) {
-  const freq = {};
-  for (const c of s) freq[c] = (freq[c] || 0) + 1;
-  let h = 0; const n = s.length;
-  for (const f of Object.values(freq)) { const p = f/n; h -= p * Math.log2(p); }
+  const freq = {}; for (const c of s) freq[c]=(freq[c]||0)+1;
+  let h=0; const n=s.length;
+  for (const f of Object.values(freq)) { const p=f/n; h-=p*Math.log2(p); }
   return h;
 }
+const PII_CONTEXT_WORDS = new Set(['contact','email','call','phone','dear','hello','hi','hey','mr','mrs','ms','dr','prof','sir','madam','manager','director','ceo','cto','cfo','president','officer','founder','head','patient','client','customer','employee','user','from','to','signed','sent','author','by','recipient','name','firstname','lastname','surname','fullname','company','corp','inc','ltd','llc','firm','vendor']);
+const BENIGN_CONTEXT_WORDS = new Set(['ate','drink','love','buy','sells','watched','read','fresh','ripe','sweet','snack','food','fruit','juice','product','store','market','novel','chapter','book','film','movie','fictional','biblical','verse','story','show','game']);
 
-const PII_CONTEXT_WORDS = new Set([
-  'contact','email','call','phone','dear','hello','hi','hey',
-  'mr','mrs','ms','dr','prof','sir','madam',
-  'manager','director','ceo','cto','cfo','president','officer','founder','head',
-  'patient','client','customer','employee','user',
-  'from','to','signed','sent','author','by','recipient',
-  'name','firstname','lastname','surname','fullname',
-  'company','corp','inc','ltd','llc','firm','vendor'
-]);
-const BENIGN_CONTEXT_WORDS = new Set([
-  'ate','drink','love','buy','sells','watched','read','fresh','ripe','sweet',
-  'snack','food','fruit','juice','product','store','market',
-  'novel','chapter','book','film','movie','fictional','biblical','verse','story','show','game'
-]);
-
-function mlClassify(token, surroundingWords, prevWord) {
-  if (!token || !/^[A-Z]/.test(token)) return { label: 'BENIGN', prob: 0.01 };
-  const prevLower = (prevWord || '').toLowerCase().replace(/[^a-z]/g, '');
-  if (!PII_CONTEXT_WORDS.has(prevLower)) return { label: 'BENIGN', prob: 0.01 };
-  let piiScore = 0.5, benignScore = 0;
-  const lower = surroundingWords.map(w => w.toLowerCase().replace(/[^a-z]/g, ''));
-  for (const w of lower) {
-    if (PII_CONTEXT_WORDS.has(w))    piiScore   += 1.0;
-    if (BENIGN_CONTEXT_WORDS.has(w)) benignScore += 1.5;
-  }
-  const total = piiScore + benignScore + 0.01;
-  const prob  = piiScore / total;
-  return { label: prob > 0.45 ? 'PII' : 'BENIGN', prob };
+function mlClassify(token, ctx, prev) {
+  if (!token || !/^[A-Z]/.test(token)) return {label:'BENIGN',prob:0.01};
+  const prevL = (prev||'').toLowerCase().replace(/[^a-z]/g,'');
+  if (!PII_CONTEXT_WORDS.has(prevL)) return {label:'BENIGN',prob:0.01};
+  let pii=0.5, ben=0;
+  const lower = ctx.map(w=>w.toLowerCase().replace(/[^a-z]/g,''));
+  for (const w of lower) { if(PII_CONTEXT_WORDS.has(w)) pii+=1; if(BENIGN_CONTEXT_WORDS.has(w)) ben+=1.5; }
+  const prob = pii/(pii+ben+0.01);
+  return {label:prob>0.45?'PII':'BENIGN',prob};
 }
 
 function detect(text, threshold) {
-  const matches = [], used = [];
-  function overlaps(s, e) { return used.some(([a,b]) => s < b && a < e); }
-  function addMatch(type, value, start, end, conf, source) {
+  const matches=[], used=[];
+  function overlaps(s,e) { return used.some(([a,b])=>s<b&&a<e); }
+  function add(type, value, start, end, conf, source) {
     if (!enabledTypes.has(type)) return;
-    if (overlaps(start, end)) return;
-    used.push([start, end]);
-    matches.push({ type, value, start, end, conf, source });
+    if (overlaps(start,end)) return;
+    used.push([start,end]); matches.push({type,value,start,end,conf,source});
   }
-  // Credit card (Luhn-validated)
   if (enabledTypes.has('CREDIT_CARD')) {
-    const ccRx = new RegExp(CC_RE.source, CC_RE.flags.replace('g','') + 'g');
-    let ccm;
-    while ((ccm = ccRx.exec(text)) !== null) {
-      if (luhn(ccm[0]) && !overlaps(ccm.index, ccm.index + ccm[0].length))
-        addMatch('CREDIT_CARD', ccm[0], ccm.index, ccm.index + ccm[0].length, 1.0, 'HEURISTIC');
-    }
+    const rx=new RegExp(CC_RE.source,CC_RE.flags.replace('g','')+' g'.trim());
+    let m; while((m=rx.exec(text))!==null) { if(luhn(m[0])&&!overlaps(m.index,m.index+m[0].length)) add('CREDIT_CARD',m[0],m.index,m.index+m[0].length,1.0,'HEURISTIC'); }
   }
-  // Regex patterns
-  for (const { type, re, conf } of PATTERNS) {
+  for (const {type,re,conf} of PATTERNS) {
     if (!enabledTypes.has(type)) continue;
-    const rx = new RegExp(re.source, re.flags.replace('g','') + 'g');
-    let m;
-    while ((m = rx.exec(text)) !== null) {
-      if (type === 'API_KEY') {
-        const raw = m[0];
-        if (raw.length < 20 && entropy(raw) < 3.5) continue;
-        if (!/^(?:AKIA|ABIA|ACCA|ghp_|github_pat_|ghs_|sk-|Bearer)/i.test(raw))
-          if (entropy(raw) < 3.5) continue;
-      }
-      addMatch(type, m[0], m.index, m.index + m[0].length, conf, 'HEURISTIC');
+    const rx=new RegExp(re.source,re.flags.replace('g','')+' g'.trim());
+    let m; while((m=rx.exec(text))!==null) {
+      if (type==='API_KEY') { const raw=m[0]; if(raw.length<20&&entropy(raw)<3.5) continue; if(!/^(?:AKIA|ABIA|ACCA|ghp_|github_pat_|ghs_|sk-|Bearer)/i.test(raw)) if(entropy(raw)<3.5) continue; }
+      add(type,m[0],m.index,m.index+m[0].length,conf,'HEURISTIC');
     }
   }
-  // ML layer (names / orgs)
-  const mlActive = enabledTypes.has('PERSON_NAME') || enabledTypes.has('ORGANIZATION');
-  if (mlActive) {
-    const words = text.split(/\s+/);
-    let cursor = 0;
-    for (let i = 0; i < words.length; i++) {
-      const w = words[i];
-      const clean = w.replace(/[^a-zA-Z0-9]+$/, '');
-      const start = text.indexOf(w, cursor);
-      if (start < 0) { cursor += w.length + 1; continue; }
-      const end = start + clean.length;
-      cursor = start + w.length;
-      if (!/^[A-Z][a-z]/.test(clean) || clean.length < 3) continue;
-      const ctx  = words.slice(Math.max(0,i-3), i).concat(words.slice(i+1, Math.min(words.length, i+4)));
-      const prev = i > 0 ? words[i-1] : '';
-      const { label, prob } = mlClassify(clean, ctx, prev);
-      if (label === 'PII' && prob >= threshold && !overlaps(start, end)) {
-        const ctxStr = ctx.join(' ').toLowerCase();
-        const detType = /company|corp|inc|ltd|llc|firm|vendor/.test(ctxStr) ? 'ORGANIZATION' : 'PERSON_NAME';
-        addMatch(detType, clean, start, end, prob, 'ML');
+  if (enabledTypes.has('PERSON_NAME')||enabledTypes.has('ORGANIZATION')) {
+    const words=text.split(/\s+/); let cursor=0;
+    for (let i=0;i<words.length;i++) {
+      const w=words[i], clean=w.replace(/[^a-zA-Z0-9]+$/,'');
+      const start=text.indexOf(w,cursor); if(start<0){cursor+=w.length+1;continue;}
+      const end=start+clean.length; cursor=start+w.length;
+      if (!/^[A-Z][a-z]/.test(clean)||clean.length<3) continue;
+      const ctx=words.slice(Math.max(0,i-3),i).concat(words.slice(i+1,Math.min(words.length,i+4)));
+      const {label,prob}=mlClassify(clean,ctx,i>0?words[i-1]:'');
+      if (label==='PII'&&prob>=threshold&&!overlaps(start,end)) {
+        const ctxStr=ctx.join(' ').toLowerCase();
+        add(/company|corp|inc|ltd|llc|firm|vendor/.test(ctxStr)?'ORGANIZATION':'PERSON_NAME',clean,start,end,prob,'ML');
       }
     }
   }
-  matches.sort((a,b) => a.start - b.start);
-  return matches;
+  matches.sort((a,b)=>a.start-b.start); return matches;
 }
 
 function redactText(text, matches, mode) {
-  const counters = {}, reverseMap = {};
-  let result = '', cursor = 0;
+  const counters={}, reverseMap={};
+  let result='', cursor=0;
   for (const m of matches) {
-    result += text.slice(cursor, m.start);
-    counters[m.type] = (counters[m.type] || 0) + 1;
-    const meta = TYPE_META[m.type] || TYPE_META.GENERIC_PII;
+    result+=text.slice(cursor,m.start);
+    counters[m.type]=(counters[m.type]||0)+1;
+    const meta=TYPE_META[m.type]||TYPE_META.GENERIC_PII;
     let token;
-    if (mode === 'token')      token = `[${meta.label}_${counters[m.type]}]`;
-    else if (mode === 'mask')  token = '█'.repeat(Math.max(4, m.value.length));
-    else                       token = '[REDACTED]';
-    reverseMap[token] = m.value;
-    result += token; cursor = m.end;
+    if (mode==='token')     token=`[${meta.label}_${counters[m.type]}]`;
+    else if(mode==='mask')  token='█'.repeat(Math.max(4,m.value.length));
+    else                    token='[REDACTED]';
+    reverseMap[token]=m.value; result+=token; cursor=m.end;
   }
-  result += text.slice(cursor);
-  return { result, reverseMap };
+  result+=text.slice(cursor); return {result,reverseMap};
 }
 
-function runRedact() {
-  const text      = document.getElementById('input').value;
-  const mode      = document.getElementById('mode').value;
-  const threshold = parseFloat(document.getElementById('threshold').value);
-  if (!text.trim()) { alert('Please enter some text first.'); return; }
-  const t0      = performance.now();
-  const matches = detect(text, threshold);
-  const { result, reverseMap } = redactText(text, matches, mode);
-  const elapsed = (performance.now() - t0).toFixed(1);
+// ── Rendering helpers ─────────────────────────────────────────────────────────
+function escapeHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function truncate(s,n) { return s.length<=n?s:s.slice(0,n)+'…'; }
 
-  const outEl = document.getElementById('output');
-  outEl.classList.toggle('has-results', matches.length > 0);
-  if (mode === 'token') {
-    outEl.innerHTML = escapeHtml(result).replace(/\[([A-Z_ 0-9]+)\]/g, '<mark>[$1]</mark>')
-      || '<em style="color:var(--green)">✓ Clean — no PII detected</em>';
-  } else {
-    outEl.textContent = result || '✓ Clean — no PII detected';
-  }
-
-  document.getElementById('stats').style.display = 'flex';
-  document.getElementById('s-count').textContent = matches.length;
-  document.getElementById('s-types').textContent =
-    [...new Set(matches.map(m => (TYPE_META[m.type]||{}).label || m.type))].join(', ') || '—';
-  document.getElementById('s-time').textContent  = elapsed + ' ms';
-  document.getElementById('s-layer').textContent =
-    [...new Set(matches.map(m => m.source))].join(' + ') || '—';
-
-  const findEl  = document.getElementById('findings');
-  const fHeader = document.getElementById('findings-header');
-  fHeader.style.display = matches.length ? 'block' : 'none';
-  findEl.innerHTML = '';
-  const counters2 = {};
+function renderHighlighted(text, matches) {
+  if (!matches.length) return escapeHtml(text);
+  let html='', cursor=0;
   for (const m of matches) {
-    counters2[m.type] = (counters2[m.type] || 0) + 1;
+    html += escapeHtml(text.slice(cursor, m.start));
     const meta = TYPE_META[m.type] || TYPE_META.GENERIC_PII;
-    let token;
-    if (mode === 'token')     token = `[${meta.label}_${counters2[m.type]}]`;
-    else if (mode === 'mask') token = '████';
-    else                      token = '[REDACTED]';
-    const row = document.createElement('div');
-    row.className = 'finding-row';
-    row.innerHTML = `
-      <span class="type-badge" style="color:${meta.color};background:${meta.bg}">${meta.label}</span>
-      <span class="finding-value" title="${escapeHtml(m.value)}">${escapeHtml(truncate(m.value, 32))}</span>
-      <span class="finding-token">${escapeHtml(token)}</span>
-      <div class="conf-bar" title="Confidence: ${(m.conf*100).toFixed(0)}%">
-        <div class="conf-fill" style="width:${m.conf*100}%"></div>
-      </div>`;
-    findEl.appendChild(row);
+    html += `<mark class="hl ${meta.hlClass}" title="${meta.label}">${escapeHtml(m.value)}</mark>`;
+    cursor = m.end;
+  }
+  html += escapeHtml(text.slice(cursor));
+  return html;
+}
+
+function calculateRisk(matches) {
+  if (!matches.length) return 'NONE';
+  const types = new Set(matches.map(m=>m.type));
+  if (['SSN','CREDIT_CARD','API_KEY','PASSWORD','BANK_ACCOUNT'].some(t=>types.has(t))) return 'HIGH';
+  if (['EMAIL','PHONE','DATE_OF_BIRTH','PERSON_NAME'].some(t=>types.has(t))) return 'MEDIUM';
+  return 'LOW';
+}
+
+function renderLegend(matches) {
+  const seen = new Set();
+  const el = document.getElementById('entity-legend');
+  el.innerHTML = '';
+  for (const m of matches) {
+    if (seen.has(m.type)) continue; seen.add(m.type);
+    const meta = TYPE_META[m.type] || TYPE_META.GENERIC_PII;
+    const item = document.createElement('span');
+    item.className = 'legend-item hl ' + meta.hlClass;
+    item.textContent = meta.label;
+    el.appendChild(item);
+  }
+}
+
+function renderDashboard(matches, elapsed, text) {
+  // Risk
+  const risk = calculateRisk(matches);
+  const riskEl = document.getElementById('risk-indicator');
+  riskEl.className = 'risk-indicator ' + ({HIGH:'risk-high',MEDIUM:'risk-medium',LOW:'risk-low',NONE:'risk-none'}[risk]);
+  document.getElementById('risk-icon').textContent = {HIGH:'🔴',MEDIUM:'🟡',LOW:'🟢',NONE:'✅'}[risk];
+  document.getElementById('risk-level').textContent = risk === 'NONE' ? 'CLEAN' : risk;
+  const subs = {HIGH:'Highly sensitive data detected',MEDIUM:'Sensitive data detected',LOW:'Low-sensitivity data detected',NONE:'No PII detected'};
+  document.getElementById('risk-sub').textContent = subs[risk];
+  const notes = {HIGH:`Contains ${[...new Set(matches.filter(m=>['SSN','CREDIT_CARD','API_KEY','PASSWORD','BANK_ACCOUNT'].includes(m.type)).map(m=>TYPE_META[m.type].label))].join(', ')}`,MEDIUM:'Personal identifiers present',LOW:'Minor identifiers present',NONE:'Safe to send to LLM'};
+  document.getElementById('risk-note').textContent = notes[risk];
+
+  // Entity counts
+  const counts = {};
+  for (const m of matches) counts[m.type]=(counts[m.type]||0)+1;
+  const ecEl = document.getElementById('entity-count-list');
+  if (!matches.length) { ecEl.innerHTML = '<div style="color:var(--muted);font-size:.8rem;text-align:center;padding:.5rem 0">✓ No PII detected</div>'; }
+  else {
+    ecEl.innerHTML = Object.entries(counts).sort((a,b)=>(TYPE_META[b[0]]?.sev||0)-(TYPE_META[a[0]]?.sev||0)).map(([type,count])=>{
+      const meta=TYPE_META[type]||TYPE_META.GENERIC_PII;
+      return `<div class="ec-row"><span class="ec-badge" style="color:${meta.color};background:${meta.bg}">${meta.label}</span><span class="ec-label">${CAT_LABELS[type]||type}</span><span class="ec-count">${count}</span><span class="ec-check">✓</span></div>`;
+    }).join('');
   }
 
-  const rmEl = document.getElementById('reverse-map');
-  const rmKeys = Object.keys(reverseMap);
-  if (rmKeys.length && mode === 'token') {
-    rmEl.style.display = 'block';
-    document.getElementById('rm-entries').innerHTML = rmKeys.map(k =>
-      `<div class="rm-entry">
-        <span class="rm-token">${escapeHtml(k)}</span>
-        <span class="rm-value">${escapeHtml(truncate(reverseMap[k], 42))}</span>
-      </div>`).join('');
+  // Performance
+  const engines=[...new Set(matches.map(m=>m.source))];
+  const engLabels={'HEURISTIC':'Regex','ML':'ML Classifier','HYBRID':'Hybrid'};
+  document.getElementById('perf-stats').innerHTML = `
+    <div class="perf-stat"><span class="perf-label">Characters</span><span class="perf-val">${text.length.toLocaleString()}</span></div>
+    <div class="perf-stat"><span class="perf-label">Entities found</span><span class="perf-val">${matches.length}</span></div>
+    <div class="perf-stat"><span class="perf-label">Processing time</span><span class="perf-val">${elapsed} ms</span></div>
+    <div class="perf-stat"><span class="perf-label">Detection engines</span><span class="perf-val"><div class="engine-tags">${
+      ['HEURISTIC','ML'].map(e=>`<span class="engine-tag">${engLabels[e]}</span>`).join('')
+    }</div></span></div>`;
+
+  // Entity table
+  const tbody = document.getElementById('entity-tbody');
+  if (!matches.length) {
+    document.getElementById('entity-table-card').style.display='none';
   } else {
-    rmEl.style.display = 'none';
+    document.getElementById('entity-table-card').style.display='block';
+    const counters2={};
+    tbody.innerHTML = matches.map(m=>{
+      counters2[m.type]=(counters2[m.type]||0)+1;
+      const meta=TYPE_META[m.type]||TYPE_META.GENERIC_PII;
+      const pct=Math.round(m.conf*100);
+      return `<tr class="animate-in">
+        <td><span class="entity-val">${escapeHtml(truncate(m.value,40))}</span></td>
+        <td><span class="ec-badge" style="color:${meta.color};background:${meta.bg}">${meta.label}</span></td>
+        <td><span class="engine-tag">${m.source}</span></td>
+        <td><div class="conf-bar-wrap"><div class="conf-bar"><div class="conf-fill" style="width:${pct}%"></div></div><span class="conf-pct">${pct}%</span></div></td>
+      </tr>`;
+    }).join('');
   }
+}
+
+// ── Main analysis function ────────────────────────────────────────────────────
+function runAnalysis() {
+  const text = document.getElementById('input').value;
+  const mode = document.getElementById('mode').value;
+  const threshold = parseFloat(document.getElementById('threshold').value);
+  if (!text.trim()) return;
+
+  const t0 = performance.now();
+  const matches = detect(text, threshold);
+  const {result, reverseMap} = redactText(text, matches, mode);
+  const elapsed = (performance.now()-t0).toFixed(1);
+
+  // Show results grid
+  const rg = document.getElementById('results-grid');
+  rg.style.display = 'grid';
+  rg.classList.add('animate-in');
+
+  // Left pane: highlighted
+  renderLegend(matches);
+  document.getElementById('highlighted-output').innerHTML =
+    matches.length ? renderHighlighted(text, matches) : escapeHtml(text) + '\n\n<em style="color:var(--green);font-family:var(--font)">✓ No PII detected — safe to send</em>';
+
+  // Right pane: redacted
+  const redactedEl = document.getElementById('redacted-output');
+  if (mode==='token') {
+    redactedEl.innerHTML = escapeHtml(result).replace(/\[([A-Z_ 0-9]+)\]/g,'<mark>[$1]</mark>') ||
+      '<em style="color:var(--green);font-family:var(--font)">✓ Clean — no PII detected</em>';
+  } else {
+    redactedEl.textContent = result || '✓ Clean — no PII detected';
+  }
+
+  // Dashboard
+  const dash = document.getElementById('dashboard');
+  dash.style.display = 'block';
+  dash.classList.add('animate-in');
+  renderDashboard(matches, elapsed, text);
+
+  // Scroll to results
+  setTimeout(() => rg.scrollIntoView({behavior:'smooth', block:'nearest'}), 100);
 }
 
 function clearAll() {
   document.getElementById('input').value = '';
-  const outEl = document.getElementById('output');
-  outEl.classList.remove('has-results');
-  outEl.innerHTML = '<div class="empty-state"><span class="icon">🔐</span><p>Redacted text will appear here</p><small>PII is replaced with structured tokens like [EMAIL_1], [SSN_1]…</small></div>';
-  document.getElementById('findings').innerHTML = '';
-  document.getElementById('findings-header').style.display = 'none';
-  document.getElementById('reverse-map').style.display = 'none';
-  document.getElementById('stats').style.display = 'none';
+  document.getElementById('results-grid').style.display = 'none';
+  document.getElementById('dashboard').style.display = 'none';
+  document.getElementById('entity-legend').innerHTML = '';
+  document.getElementById('highlighted-output').innerHTML = '';
+  document.getElementById('redacted-output').innerHTML = '';
+  document.getElementById('entity-table-card').style.display = 'none';
 }
 
 function loadSample(key) {
   document.getElementById('input').value = SAMPLES[key] || '';
-  runRedact();
+  runAnalysis();
+  document.getElementById('playground').scrollIntoView({behavior:'smooth'});
 }
 
-function copyOutput() {
-  navigator.clipboard.writeText(document.getElementById('output').innerText).then(() => {
-    const btn = event.target;
-    const orig = btn.textContent;
-    btn.textContent = '✓ Copied!';
-    setTimeout(() => btn.textContent = orig, 1500);
+function loadScenario(key) {
+  document.getElementById('input').value = SCENARIOS[key] || '';
+  runAnalysis();
+  document.getElementById('playground').scrollIntoView({behavior:'smooth'});
+}
+
+function tryBreak(text) {
+  document.getElementById('input').value = text;
+  runAnalysis();
+  document.getElementById('playground').scrollIntoView({behavior:'smooth'});
+}
+
+function copyRedacted(e) {
+  const text = document.getElementById('redacted-output').innerText;
+  navigator.clipboard.writeText(text).then(()=>{
+    const btn=e.target; const orig=btn.textContent;
+    btn.textContent='✓ Copied!'; setTimeout(()=>btn.textContent=orig,1500);
   });
 }
 
-function escapeHtml(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+function copyMaven(e) {
+  const snippet=`<dependency>\n  <groupId>io.github.sushegaad</groupId>\n  <artifactId>semantic-privacy-guard</artifactId>\n  <version>1.5.0</version>\n</dependency>`;
+  navigator.clipboard.writeText(snippet).then(()=>{
+    const btn=e.target; const orig=btn.textContent;
+    btn.textContent='✓ Copied!'; setTimeout(()=>btn.textContent=orig,1500);
+  });
 }
-function truncate(s, n) { return s.length <= n ? s : s.slice(0, n) + '…'; }
 
-document.getElementById('input').addEventListener('keydown', e => {
-  if (e.key === 'Enter' && e.ctrlKey) { e.preventDefault(); runRedact(); }
+document.getElementById('input').addEventListener('keydown', e=>{
+  if (e.key==='Enter'&&e.ctrlKey) { e.preventDefault(); runAnalysis(); }
 });
-window.addEventListener('DOMContentLoaded', () => { renderCatPills(); runRedact(); });
+
+window.addEventListener('DOMContentLoaded', ()=>{
+  renderCatPills();
+  // Auto-load the enterprise scenario on page load
+  loadScenario('support');
+});
 </script>
 </body>
 </html>
