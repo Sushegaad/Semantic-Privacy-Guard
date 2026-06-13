@@ -783,31 +783,148 @@ passphrase: correct horse</div>
 
 // ── Scenario sample prompts ─────────────────────────────────────────────────
 const SCENARIOS = {
-  support: `Summarize this support request.
-Customer: John Smith
-Email: john.smith@gmail.com
-Phone: 757-555-1234
-Account Number: 12345678
-Customer reports unauthorized account access.`,
+  support: `You are a customer support AI agent. Summarize the following ticket and suggest a resolution.
 
-  healthcare: `Generate a patient summary.
-Patient: Jane Doe
-DOB: 04/15/1985
-SSN: 123-45-6789
-Diagnosis: Hypertension`,
+--- TICKET #CS-209471 | Priority: HIGH | 2024-03-14 09:42 UTC ---
 
-  enterprise: `Review employee information.
-Name: Sarah Johnson
-Employee ID: EMP-88273
-Salary: $145,000
-Email: sarah.johnson@company.com`,
+Customer: Michael R. Torres
+Email: m.torres@gmail.com
+Phone: (415) 867-5309
+Account ID: ACC-8834-2291
+Billing card on file: 4532 0151 1283 0366 (Visa, expires 08/26)
+Account IP at last login: 203.0.113.42
 
-  aiprompt: `Summarize the following employee information for management:
-John Smith
-john.smith@gmail.com
-555-123-4567
-Employee ID 991827
-Salary $125,000`
+--- CONVERSATION THREAD ---
+
+[09:12] Michael Torres: Hi, I woke up to three charges I didn't make.
+$149.99, $299.00, and $49.99 hit my card last night between 2am and 4am.
+I was asleep. This is fraud.
+
+[09:14] Bot: I've located your account under m.torres@gmail.com. Pulling
+your recent transaction history now.
+
+[09:18] Agent (Priya Nair, priya.nair@support.acmeshop.com): Hi Michael,
+I can see those three charges originated from IP 185.220.101.7 — different
+from your usual location. I'll escalate to our fraud team immediately.
+Can you confirm your SSN last 4 digits for verification? Provided: 6789.
+
+[09:22] Michael Torres: Yes that's correct. My home address on file should
+be 482 Birchwood Drive, Portland OR 97201. Please cancel that card and
+send a replacement to the same address. My backup contact is (415) 234-5678.
+
+--- END TICKET ---
+
+Please summarize the issue, the PII involved, and the recommended next steps.`,
+
+  healthcare: `You are a clinical documentation assistant. Generate a structured SOAP note summary from the following patient record. Do not omit any clinical details.
+
+--- PATIENT RECORD | MRN: 00293847 ---
+
+Patient:       Jane Elizabeth Holloway
+Date of Birth: born on 04/15/1978
+SSN:           234-56-7890
+Phone:         (617) 890-1234
+Email:         jane.holloway@gmail.com
+Address:       14 Maple Street, Boston MA 02108
+Insurance:     BlueCross BlueShield, Member ID BC-7734920
+IBAN (FSA):    GB29NWBK60161331926819
+
+Referring Physician: Dr. Samuel Okafor (samuel.okafor@mgh.org)
+Attending:           Dr. Linda Chu, MD — Cardiology
+
+--- VISIT NOTES (2024-03-12) ---
+
+Chief Complaint: Persistent chest tightness and shortness of breath on exertion
+for the past 3 weeks. Patient reports increased fatigue and occasional palpitations.
+
+History: Known hypertension (dx 2019), Type 2 diabetes (dx 2021, HbA1c 7.4%).
+Non-smoker. Family history: Father — MI at age 58, Mother — T2DM.
+
+Current Medications:
+  - Metformin 1000mg twice daily
+  - Lisinopril 10mg once daily
+  - Atorvastatin 20mg nightly
+
+Allergies: Penicillin (rash), Sulfa drugs (anaphylaxis)
+
+Vitals: BP 148/92 mmHg | HR 88 bpm | SpO2 98% | Wt 74 kg | Ht 165 cm
+
+Assessment: Suspected hypertensive urgency with possible early-stage CHF.
+ECG ordered. Echocardiogram scheduled 2024-03-19. BMP and BNP drawn.
+
+Plan: Increase Lisinopril to 20mg. Restrict sodium. Follow up in 2 weeks
+or sooner if symptoms worsen. Patient counselled on warning signs.
+
+--- END RECORD ---`,
+
+  enterprise: `You are an HR analytics assistant. Prepare a confidential performance review summary for the Q1 compensation committee. Include all provided data fields.
+
+--- EMPLOYEE RECORD | CONFIDENTIAL ---
+
+Full Name:       Sarah A. Johnson
+Title:           Senior Software Engineer, Platform
+Department:      Engineering — Infrastructure
+Employee ID:     EMP-88273
+Start Date:      born on 09/15/2019 (joined: 2019-09-15)
+SSN:             345-67-8901
+Date of Birth:   born on 07/22/1988
+Personal Email:  sarah.johnson.personal@gmail.com
+Work Email:      s.johnson@acmecorp.com
+Mobile:          (312) 345-6789
+Home Address:    2291 Lakeview Ave, Chicago IL 60614
+
+--- COMPENSATION ---
+
+Current Salary:  $148,500 / year
+Bonus (2023):    $22,000 (target 15%, awarded 14.8%)
+Equity (unvested): 3,200 RSUs @ $46.20 = $147,840
+Payroll IBAN:    DE89370400440532013000
+Bank:            Deutsche Bank, routing 021000021
+
+--- PERFORMANCE (Q1 2024) ---
+
+Manager:         David Kim (d.kim@acmecorp.com, (312) 234-5678)
+Peer Review Avg: 4.6 / 5.0
+OKR Attainment:  92% (3 of 3 key results green)
+Key Achievement: Led Kubernetes migration reducing infra costs by $340K/yr
+
+Recommendation:  Promote to Staff Engineer. Salary adjustment to $168,000
+proposed. Requires VP Engineering sign-off by 2024-04-01.
+
+--- END RECORD ---
+
+Summarize performance highlights and the compensation recommendation.`,
+
+  aiprompt: `You are an AI assistant helping an engineering manager prepare a briefing for the CTO. Analyze the following data dump from our internal systems and write a 3-paragraph executive summary.
+
+--- ONCALL INCIDENT REPORT: INC-4492 (P1) | 2024-03-13 02:17 UTC ---
+
+Incident Commander: Alex Petrov (a.petrov@infra.io, (206) 345-9012)
+Affected Service:   payments-gateway v2.3.1
+Impact:             ~4,200 transactions failed; estimated revenue loss $83,000
+Root Cause:         Expired API key in production config
+
+Leaked credential found in git commit f3a9b21:
+  STRIPE_SECRET_KEY=sk-live_abcdefghijklmnopqrstuvwxyz12
+  AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE
+  DB_PASSWORD=Pr0d$ql!Pass#2024
+
+The commit was authored by Jamie Chen (jamie.chen@dev.io) and merged by
+Rachel Okonkwo (r.okonkwo@dev.io, (404) 567-8901) without security review.
+
+--- AFFECTED CUSTOMERS (sample, first 5 of 4,200) ---
+
+1. Carlos Mendes    | carlos.m@outlook.com  | card: 5425233430109903 | refund pending
+2. Yuki Tanaka      | y.tanaka@gmail.com    | card: 4539578763621486 | refund pending
+3. Fatima Al-Hassan | f.alhassan@corp.ae    | IBAN: AE070331234567890123456 | flagged
+4. David Osei       | d.osei@business.co.uk | card: 371449635398431  | disputed
+5. Mei-Ling Zhou    | meilingz@fastmail.com | SSN last 4: 4421       | identity alert
+
+Origin IP of malicious actor: 198.51.100.17 (geolocation: Eastern Europe)
+
+--- END REPORT ---
+
+Summarize the incident, business impact, and recommended remediation steps for the CTO.`
 };
 
 // ── Legacy sample texts ──────────────────────────────────────────────────────
