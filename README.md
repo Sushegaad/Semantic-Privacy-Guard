@@ -44,7 +44,6 @@ Output:  "Hi, I'm [PERSON_NAME_1]. My SSN is [SSN_1] and email is [EMAIL_1]."
 - [Performance](#performance)
 - [Building from Source](#building-from-source)
 - [Getting Help](#getting-help)
-- [Contributing](#contributing)
 - [Security](#security)
 - [License](#license)
 
@@ -734,17 +733,6 @@ Requirements: JDK 17+ and Maven 3.8+.
 - **Bug reports and feature requests** — [open an issue](https://github.com/Sushegaad/Semantic-Privacy-Guard/issues)
 - **Questions and discussion** — [GitHub Discussions](https://github.com/Sushegaad/Semantic-Privacy-Guard/discussions)
 - **Security vulnerabilities** — see [SECURITY.md](SECURITY.md) for responsible disclosure
-
----
-
-## Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md). Contributions especially welcome for:
-
-- Additional OpenNLP model integrations (dates, locations)
-- Additional training examples for the Naive Bayes corpus
-- New PII type patterns (medical codes, national IDs)
-- Performance benchmarks against real-world log datasets
 
 ---
 
