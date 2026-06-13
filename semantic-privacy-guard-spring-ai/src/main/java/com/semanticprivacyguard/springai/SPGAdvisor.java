@@ -29,7 +29,7 @@ import java.util.Objects;
  * {@link AdvisedRequest} context under key {@value #REVERSE_MAP_CONTEXT_KEY}.
  * Application code can retrieve it from the context and call
  * {@code spg.detokenize(responseText, reverseMap)} once de-tokenization
- * is available (planned for v1.5.0).</p>
+ * is available (planned for v1.6.0).</p>
  *
  * <h2>Thread safety</h2>
  * <p>{@link SemanticPrivacyGuard} is stateless; this advisor is safe to share
@@ -106,7 +106,7 @@ public final class SPGAdvisor implements CallAroundAdvisor {
      * @param advisedRequest the incoming request; must not be {@code null}
      * @param chain          the advisor chain; must not be {@code null}
      * @return the {@link AdvisedResponse} from the LLM (response is not modified
-     *         in this version — de-tokenization planned for v1.5.0)
+     *         in this version — de-tokenization planned for v1.6.0)
      */
     @Override
     public AdvisedResponse aroundCall(AdvisedRequest advisedRequest,
@@ -150,7 +150,7 @@ public final class SPGAdvisor implements CallAroundAdvisor {
         // ── 5. Forward to next advisor / LLM ─────────────────────────────────
         AdvisedResponse response = chain.nextAroundCall(sanitised);
 
-        // TODO (v1.5.0): de-tokenize response text using the stored reverse map
+        // TODO (v1.6.0): de-tokenize response text using the stored reverse map
         // once SemanticPrivacyGuard.detokenize() is available.
 
         return response;

@@ -7,7 +7,7 @@
 
   <groupId>io.github.sushegaad.examples</groupId>
   <artifactId>llm-gateway-demo</artifactId>
-  <version>1.5.0</version>
+  <version>1.6.0</version>
   <packaging>jar</packaging>
 
   <name>SPG LLM Gateway Demo</name>
@@ -25,7 +25,7 @@
     <maven.compiler.source>17</maven.compiler.source>
     <maven.compiler.target>17</maven.compiler.target>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <spg.version>1.5.0</spg.version>
+    <spg.version>1.6.0</spg.version>
     <spring-boot.version>3.3.0</spring-boot.version>
   </properties>
 

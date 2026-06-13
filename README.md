@@ -1,4 +1,4 @@
-# 🛡 Semantic Privacy Guard
+# Semantic Privacy Guard
 
 [![CI](https://github.com/Sushegaad/Semantic-Privacy-Guard/actions/workflows/ci.yml/badge.svg)](https://github.com/Sushegaad/Semantic-Privacy-Guard/actions/workflows/ci.yml)
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.sushegaad/semantic-privacy-guard?color=blue&logo=apache-maven)](https://central.sonatype.com/artifact/io.github.sushegaad/semantic-privacy-guard)
@@ -8,16 +8,14 @@
 [![Security Policy](https://img.shields.io/badge/security-policy-orange)](SECURITY.md)
 [![Live Playground](https://img.shields.io/badge/playground-live-brightgreen)](https://sushegaad.github.io/Semantic-Privacy-Guard/docs/index.html)
 
-> **Open-source privacy firewall for AI applications.**
->
-> Prevent sensitive data from reaching LLMs — without breaking prompts.
+**AI Privacy Firewall for Java.** Detect and redact sensitive data before it reaches ChatGPT, Claude, Gemini, MCP tools, RAG pipelines, or any internal AI system — entirely on-prem, with zero cloud dependencies.
 
 ```
 Input:   "Hi, I'm Alice Johnson. My SSN is 123-45-6789 and email is alice@acme.com."
 Output:  "Hi, I'm [PERSON_NAME_1]. My SSN is [SSN_1] and email is [EMAIL_1]."
 ```
 
-**[▶ Try it live in your browser →](https://sushegaad.github.io/Semantic-Privacy-Guard/docs/index.html)** — paste any text, see instant results, nothing sent to any server.
+**[▶ Try it live in your browser →](https://sushegaad.github.io/Semantic-Privacy-Guard/docs/index.html)** — no sign-up, nothing sent to any server.
 
 ![SPG Playground Demo](docs/playground-demo.gif)
 
@@ -42,6 +40,7 @@ Output:  "Hi, I'm [PERSON_NAME_1]. My SSN is [SSN_1] and email is [EMAIL_1]."
 - [Configuration](#configuration)
 - [API Reference](#api-reference)
 - [Performance](#performance)
+- [What's New in v1.6.0](#whats-new-in-v160)
 - [Building from Source](#building-from-source)
 - [Getting Help](#getting-help)
 - [Security](#security)
@@ -51,28 +50,25 @@ Output:  "Hi, I'm [PERSON_NAME_1]. My SSN is [SSN_1] and email is [EMAIL_1]."
 
 ## Quick Start
 
-### Add the dependency
+Add one dependency — no API keys, no accounts, no configuration required:
 
 **Maven**
 ```xml
 <dependency>
   <groupId>io.github.sushegaad</groupId>
   <artifactId>semantic-privacy-guard</artifactId>
-  <version>1.5.0</version>
+  <version>1.6.0</version>
 </dependency>
 ```
 
 **Gradle**
 ```groovy
-implementation 'io.github.sushegaad:semantic-privacy-guard:1.5.0'
+implementation 'io.github.sushegaad:semantic-privacy-guard:1.6.0'
 ```
 
-### Redact your first string
+Redact your first string:
 
 ```java
-import com.semanticprivacyguard.SemanticPrivacyGuard;
-import com.semanticprivacyguard.model.RedactionResult;
-
 SemanticPrivacyGuard spg = SemanticPrivacyGuard.create();
 
 RedactionResult result = spg.redact(
@@ -86,7 +82,7 @@ System.out.println(result.getMatchCount());       // → 4
 System.out.println(result.getProcessingTimeMs()); // → < 1 ms
 ```
 
-That's it. No API keys, no cloud calls, no configuration required.
+That's all you need to start intercepting PII before it reaches an LLM.
 
 ---
 
@@ -98,7 +94,6 @@ That's it. No API keys, no cloud calls, no configuration required.
 | `CREDIT_CARD` | `4532 0151 1283 0366` | Regex + Luhn checksum | 10 |
 | `API_KEY` | `AKIAIOSFODNN7EXAMPLE` | Regex + entropy filter | 9 |
 | `PASSWORD` | `password=MyS3cr3t` | Regex (keyword-prefixed) | 9 |
-| `MEDICAL_RECORD` | `MRN123456` | Naive Bayes ML | 8 |
 | `BANK_ACCOUNT` | `GB29NWBK60161331926819` | Regex (IBAN) | 8 |
 | `EMAIL` | `alice@example.com` | Regex | 6 |
 | `PHONE` | `(555) 867-5309` | Regex (NANP validated) | 6 |
@@ -106,8 +101,7 @@ That's it. No API keys, no cloud calls, no configuration required.
 | `DATE_OF_BIRTH` | `dob: 03/15/1985` | Regex (context-prefixed) | 6 |
 | `IP_ADDRESS` | `192.168.1.100` | Regex (range-validated) | 4 |
 | `ORGANIZATION` | `Barclays Bank PLC` | Naive Bayes ML + OpenNLP NER | 3 |
-| `COORDINATES` | `51.5074, -0.1278` | Regex (bounds-checked) | 3 |
-| `GENERIC_PII` | `EMP-042731` | Custom Pattern Registry | 5 |
+| `GENERIC_PII` | `EMP-042731` | Custom Pattern Registry | configurable |
 
 ---
 
@@ -115,15 +109,18 @@ That's it. No API keys, no cloud calls, no configuration required.
 
 ### The problem with naive redaction
 
-Most regex-based approaches fire on every title-cased word. SPG uses a three-layer pipeline to understand *context*, not just pattern shape:
+Most regex-based approaches flag every title-cased word. SPG uses a three-layer pipeline that understands *context*, not just shape:
 
 ```
-"I ate an apple yesterday."          →  No match   ✓  (fruit, not a name)
-"Contact Apple at (800) 275-2273."   →  [ORG_1] + [PHONE_1]  (company + phone)
-"The Gospel of John has 21 chapters" →  No match   ✓  (literary reference)
+"I ate an apple yesterday."          →  No match      ✓  (fruit, not a name)
+"Contact Apple at (800) 275-2273."   →  [ORG_1] + [PHONE_1]
+"The Gospel of John has 21 chapters" →  No match      ✓  (literary reference)
 "Dear John, your SSN is 123-45-6789" →  [PERSON_NAME_1] + [SSN_1]
-"John Michael Smith confirmed."      →  [PERSON_NAME_1]  (OpenNLP NER)
 ```
+
+### The problem with cloud PII APIs
+
+Cloud PII detection costs ~$0.001 per call. At one million prompts per day that is **$1,000/day** — and you are sending user data off-premise to perform the privacy check. SPG processes everything in-process at **$0/call** with no data leaving your network.
 
 ### SPG vs. alternatives
 
@@ -134,13 +131,10 @@ Most regex-based approaches fire on every title-cased word. SPG uses a three-lay
 | Context-aware disambiguation | ✅ | ✅ | ❌ |
 | Zero runtime dependencies | ✅ | ❌ | ✅ |
 | Spring AI native adapter | ✅ | ❌ | ❌ |
+| Spring Boot HTTP filter | ✅ | ❌ | ❌ |
 | Stream / log file API | ✅ | ❌ | ❌ |
 | Reverse map for de-tokenization | ✅ | ❌ | ❌ |
-| Language | Java | Python | Any |
-
-### Why not just use a cloud PII API?
-
-Cloud PII APIs cost ~$0.001 per call. At 1 million prompts/day that is $1,000/day — and you are sending user data off-premise to perform the privacy check. SPG processes everything in-process, at $0/call, with no data leaving your network.
+| Language | **Java** | Python | Any |
 
 ---
 
@@ -152,9 +146,9 @@ Cloud PII APIs cost ~$0.001 per call. At 1 million prompts/day that is $1,000/da
 
 **Spring AI chatbot** — Drop `SPGAdvisor` into a Spring AI `ChatClient` in three lines. The advisor automatically redacts every prompt and stores a reverse map so the LLM's response can be de-tokenized for internal use.
 
-**Compliance middleware** — The 2026 EU AI Act requires "Privacy by Design." SPG provides the interception layer between user input and any AI system, with an auditable match list and processing time for every call.
-
 **Healthcare / finance data pipelines** — Register custom patterns (medical record numbers, employee IDs, policy numbers) via the Custom Pattern Registry and redact domain-specific identifiers alongside the built-in types.
+
+**Compliance middleware** — The EU AI Act and GDPR require privacy controls on AI inputs. SPG provides an auditable interception layer between user input and any AI system, with match list and processing time for every call.
 
 ---
 
@@ -200,7 +194,7 @@ Input text
          RedactionResult  /  StreamRedactionSummary
 ```
 
-Each layer catches what the others miss. When two layers agree on the same span the match is promoted to `DetectionSource.HYBRID` with elevated confidence. For stream processing, `StreamProcessor` replaces the final step — lines are processed one at a time and written immediately, keeping heap usage constant regardless of document size.
+Each layer catches what the others miss. When two layers agree on the same span the match is promoted to `DetectionSource.HYBRID` with elevated confidence. `StreamProcessor` replaces the final step for large files — lines are processed one at a time, keeping heap usage constant regardless of document size.
 
 ---
 
@@ -240,7 +234,7 @@ RedactionResult r = spg.redact(
 // → "Task [PII_1] relates to policy [PII_2]."
 ```
 
-Custom patterns are applied after all built-in patterns, so built-in matches always win for overlapping spans. Multiple calls to `.addPattern()` accumulate — they do not replace each other.
+Custom patterns are applied after all built-in patterns. Multiple `.addPattern()` calls accumulate — they do not replace each other.
 
 ---
 
@@ -248,9 +242,7 @@ Custom patterns are applied after all built-in patterns, so built-in matches alw
 
 Redact PII directly inside structured documents. Text values are replaced in-place; keys, numbers, booleans, and markup structure are preserved exactly.
 
-#### JSON
-
-Requires `jackson-databind` on the classpath (not bundled):
+**JSON** — requires `jackson-databind` on the classpath:
 
 ```xml
 <dependency>
@@ -261,8 +253,6 @@ Requires `jackson-databind` on the classpath (not bundled):
 ```
 
 ```java
-SemanticPrivacyGuard spg = SemanticPrivacyGuard.create();
-
 StructuredRedactionOutput out = spg.redactJson("""
     {
       "name": "Alice Johnson",
@@ -273,14 +263,9 @@ StructuredRedactionOutput out = spg.redactJson("""
 
 System.out.println(out.getRedactedContent());
 // → {"name":"[PERSON_NAME_1]","email":"[EMAIL_1]","account":12345}
-
-System.out.println(out.getMatchCount());   // → 2
-System.out.println(out.getReverseMap());   // → {[PERSON_NAME_1]=Alice Johnson, [EMAIL_1]=alice@example.com}
 ```
 
-#### XML
-
-Uses JDK built-in `javax.xml` — no extra dependency required. XXE injection is hardened by disabling DOCTYPE declarations and external entity loading.
+**XML** — uses JDK built-in `javax.xml`, no extra dependency. XXE-hardened by default:
 
 ```java
 StructuredRedactionOutput out = spg.redactXml("""
@@ -291,8 +276,6 @@ StructuredRedactionOutput out = spg.redactXml("""
       <id>12345</id>
     </user>
     """);
-
-System.out.println(out.getRedactedContent());
 // → <?xml version="1.0"?><user><name>[PERSON_NAME_1]</name><email>[EMAIL_1]</email><id>12345</id></user>
 ```
 
@@ -309,7 +292,7 @@ System.out.println(out.getRedactedContent());
 
 ### Stream-Based Processing
 
-Loading a 50 MB log file into a `String` costs ~150–200 MB of heap per concurrent request. On a Lambda with 512 MB RAM and 10 concurrent calls that is an OOM event. `StreamProcessor` processes one line at a time — heap stays bounded by the longest single line, typically under 4 KB.
+Loading a 50 MB log file into a `String` costs ~150–200 MB of heap per concurrent request. `StreamProcessor` processes one line at a time — heap stays bounded by the longest single line, typically under 4 KB.
 
 ```java
 SemanticPrivacyGuard spg = SemanticPrivacyGuard.create();
@@ -317,18 +300,10 @@ SemanticPrivacyGuard spg = SemanticPrivacyGuard.create();
 // File-to-file: constant heap regardless of file size
 StreamRedactionSummary summary =
     spg.redactPath(Path.of("access.log"), Path.of("access.clean.log"));
-
-System.out.println(summary);
 // → StreamRedactionSummary[lines=84231, linesWithPII=312, matches=389, timeMs=740]
 
-// InputStream / OutputStream (e.g. in a servlet filter)
-try (InputStream  in  = request.getInputStream();
-     OutputStream out = response.getOutputStream()) {
-    spg.redactStream(in, out);
-}
-
-// Reader / Writer
-spg.redactStream(request.getReader(), response.getWriter());
+// InputStream / OutputStream (servlet filter)
+spg.redactStream(request.getInputStream(), response.getOutputStream());
 
 // Lazy Java Stream — integrates with Files.lines()
 try (Stream<String> lines = Files.lines(inputPath)) {
@@ -338,7 +313,7 @@ try (Stream<String> lines = Files.lines(inputPath)) {
 }
 ```
 
-Token counters are **document-scoped**: `[EMAIL_1]` on line 3 and `[EMAIL_2]` on line 7 — never two `[EMAIL_1]` tokens in the same document.
+Token counters are document-scoped: `[EMAIL_1]` on line 3 and `[EMAIL_2]` on line 7 — never two `[EMAIL_1]` tokens in the same document.
 
 ---
 
@@ -346,23 +321,19 @@ Token counters are **document-scoped**: `[EMAIL_1]` on line 3 and `[EMAIL_2]` on
 
 The `semantic-privacy-guard-spring-ai` adapter registers a Spring AI `CallAroundAdvisor` that automatically redacts PII from every prompt before it reaches the LLM.
 
-#### Add the dependency
+**Add the dependency:**
 
 ```xml
 <dependency>
   <groupId>io.github.sushegaad</groupId>
   <artifactId>semantic-privacy-guard-spring-ai</artifactId>
-  <version>1.5.0</version>
+  <version>1.6.0</version>
 </dependency>
 ```
 
-#### Three-line usage
+**Three-line usage:**
 
 ```java
-import com.semanticprivacyguard.SemanticPrivacyGuard;
-import com.semanticprivacyguard.springai.SPGAdvisor;
-import org.springframework.ai.chat.client.ChatClient;
-
 ChatClient client = ChatClient.builder(chatModel)
     .defaultAdvisors(new SPGAdvisor(SemanticPrivacyGuard.create()))
     .build();
@@ -375,34 +346,17 @@ String reply = client.prompt()
 // The LLM receives: "My SSN is [SSN_1], can you help?"
 ```
 
-#### Auto-configuration (Spring Boot)
-
-Drop the dependency on the classpath and Spring Boot wires everything automatically. No code changes required. Tune behaviour via `application.properties`:
+**Auto-configuration (Spring Boot)** — drop the dependency on the classpath and Spring Boot wires everything automatically. Tune via `application.properties`:
 
 ```properties
-# Enable / disable the advisor entirely (default: true)
 spg.enabled=true
-
-# Redaction mode: TOKEN (default), MASK, or BLANK
 spg.redaction-mode=TOKEN
-
-# Naive Bayes confidence threshold (default: 0.65)
 spg.ml-confidence-threshold=0.65
-
-# Minimum PII severity to redact (1–10; default: 1 = all types)
-# Use 6 to focus on email, phone, SSN, credit card and skip IP / org
 spg.minimum-severity=1
-
-# Whether to also redact the system prompt (default: false)
 spg.redact-system-prompt=false
-
-# Spring advisor chain order — lower = earlier (default: Integer.MIN_VALUE + 100)
-spg.advisor-order=-2147483548
 ```
 
-#### Accessing the reverse map
-
-The advisor stores the token-to-original-value reverse map in the advisor context under `"spg.reverseMap"` so downstream components can de-tokenize LLM responses:
+**Accessing the reverse map:**
 
 ```java
 @SuppressWarnings("unchecked")
@@ -410,35 +364,22 @@ Map<String, String> reverseMap =
     (Map<String, String>) advisedRequest.adviseContext().get(SPGAdvisor.REVERSE_MAP_CONTEXT_KEY);
 ```
 
-Full response de-tokenization via `SemanticPrivacyGuard.detokenize()` is planned for v1.6.0.
-
 <details>
 <summary>Advanced: overriding the auto-configured bean</summary>
-
-Declare your own `SemanticPrivacyGuard` or `SPGAdvisor` bean and the auto-configuration backs off automatically:
 
 ```java
 @Configuration
 public class MyPrivacyConfig {
 
-    /**
-     * Custom guard: NLP enabled, employee-ID pattern, high-severity only.
-     * Auto-configuration backs off because this bean is present.
-     */
     @Bean
     public SemanticPrivacyGuard semanticPrivacyGuard() {
-        SPGConfig config = SPGConfig.builder()
-            .redactionMode(RedactionMode.TOKEN)
+        return SemanticPrivacyGuard.create(SPGConfig.builder()
             .nlpEnabled(true)
             .minimumSeverity(6)
             .addPattern(PIIType.GENERIC_PII, "EMP-\\d{6}", 0.99, "Employee ID")
-            .build();
-        return SemanticPrivacyGuard.create(config);
+            .build());
     }
 
-    /**
-     * Custom advisor: also redact the system prompt, run first in chain.
-     */
     @Bean
     public SPGAdvisor spgAdvisor(SemanticPrivacyGuard spg) {
         return new SPGAdvisor(spg, /* redactSystemPrompt= */ true, Ordered.HIGHEST_PRECEDENCE);
@@ -452,47 +393,33 @@ public class MyPrivacyConfig {
 
 ### Spring Boot HTTP Filter
 
-The `semantic-privacy-guard-spring-boot-filter` module wraps SPG as a standard servlet `Filter`, automatically redacting PII from JSON request bodies and JSON response bodies on every HTTP call.
+The `semantic-privacy-guard-spring-boot-filter` module wraps SPG as a servlet `Filter`, redacting PII from JSON request and response bodies on every HTTP call.
 
-#### Add the dependency
+**Add the dependency:**
 
 ```xml
 <dependency>
   <groupId>io.github.sushegaad</groupId>
   <artifactId>semantic-privacy-guard-spring-boot-filter</artifactId>
-  <version>1.5.0</version>
+  <version>1.6.0</version>
 </dependency>
 ```
 
-Drop the JAR on the classpath — no code changes required. The filter auto-configures and covers all paths (`/**`) by default.
+Drop the JAR on the classpath — no code changes required. The filter auto-configures and covers all paths by default.
 
-#### Configuration
+**Configuration:**
 
 ```properties
-# application.properties
-
-# Enable / disable (default: true)
 spg.filter.enabled=true
-
-# What to redact (both default: true)
 spg.filter.redact-request-body=true
 spg.filter.redact-response-body=true
-
-# Also redact URL query parameters (default: false)
-spg.filter.redact-query-params=false
-
-# Path patterns to include / exclude (Ant-style)
 spg.filter.included-paths=/**
-spg.filter.excluded-paths=/actuator/**,/health,/metrics
-
-# Redaction mode: TOKEN (default), MASK, or BLANK
+spg.filter.excluded-paths=/actuator/**,/health
 spg.filter.redaction-mode=TOKEN
-
-# Only redact PII with severity ≥ this value (default: 1 = all)
 spg.filter.minimum-severity=1
 ```
 
-#### Manual registration
+**Manual registration:**
 
 ```java
 @Bean
@@ -509,7 +436,7 @@ public FilterRegistrationBean<SPGRequestFilter> spgFilter(
 
 ### LLM Gateway Demo
 
-The `examples/llm-gateway-demo` directory contains a self-contained Spring Boot application that demonstrates the full privacy-firewall round-trip:
+`examples/llm-gateway-demo` is a self-contained Spring Boot application demonstrating the full privacy-firewall round-trip:
 
 ```
 Incoming prompt (with PII)
@@ -520,11 +447,11 @@ Sanitised prompt ([EMAIL_1], [SSN_1] …)
         ▼ LLM API call
 Raw LLM response (tokens echoed verbatim)
         │
-        ▼ de-tokenize reverse map
+        ▼ de-tokenize via reverse map
 Final response (original values restored)
 ```
 
-#### Run it (no API key needed)
+**Run it — no API key needed:**
 
 ```bash
 cd examples/llm-gateway-demo
@@ -534,61 +461,46 @@ mvn spring-boot:run
 ```bash
 curl -s -X POST http://localhost:8080/api/chat \
   -H "Content-Type: application/json" \
-  -d '{
-    "prompt": "My name is Alice Johnson and my email is alice@corp.com. Summarise my profile."
-  }' | python3 -m json.tool
+  -d '{"prompt": "My name is Alice Johnson and email is alice@corp.com. Summarise my profile."}' \
+  | python3 -m json.tool
 ```
 
-The demo uses a built-in stub LLM by default — no account or API key required. To use a real OpenAI-compatible model, set `llm.api-key` in `application.properties`.
+The demo uses a built-in stub LLM by default. To use a real OpenAI-compatible model, set `llm.api-key` in `application.properties`.
 
 ---
 
 ### NLP Integration (Apache OpenNLP)
 
-The third detection layer uses Apache OpenNLP Named Entity Recognition — a Maximum Entropy model trained on large NLP corpora. It excels at cases the Naive Bayes layer struggles with: multi-token person names, compound organisation names, and names in varied syntactic positions.
+The third detection layer uses Apache OpenNLP Named Entity Recognition — a Maximum Entropy model trained on large NLP corpora. It excels at multi-token person names, compound organisation names, and names in varied syntactic positions.
 
-#### Enable NLP
+**Enable NLP:**
 
 ```java
 SPGConfig config = SPGConfig.builder()
     .nlpEnabled(true)
-    .nlpConfidenceThreshold(0.75)   // default 0.70
+    .nlpConfidenceThreshold(0.75)
     .build();
-
-SemanticPrivacyGuard spg = SemanticPrivacyGuard.create(config);
 ```
-
-#### NLP detection types
 
 | Detected by OpenNLP | PIIType | Notes |
 |---|---|---|
 | Person names | `PERSON_NAME` | Multi-token names, varied positions |
 | Organisation names | `ORGANIZATION` | Compound names, acronyms |
 
-NLP results flow through the same `CompositeDetector` de-duplication as heuristic and ML results. When two layers agree on the same span the match is promoted to `DetectionSource.HYBRID` with the higher confidence score.
+NLP results flow through the same `CompositeDetector` de-duplication as heuristic and ML results. Spans matched by multiple layers are promoted to `DetectionSource.HYBRID`.
 
 <details>
 <summary>NLP setup — model download and classpath configuration</summary>
 
-OpenNLP models are large binary files not bundled in the JAR. Download them from the [Apache OpenNLP model repository](https://opennlp.sourceforge.net/models-1.5/):
+OpenNLP models are not bundled in the JAR. Download from the [Apache OpenNLP model repository](https://opennlp.sourceforge.net/models-1.5/):
 
 ```
-en-ner-person.bin        (required, ~14 MB)    — person name NER
-en-ner-organization.bin  (recommended, ~16 MB) — organisation name NER
-en-token.bin             (recommended, ~1 MB)  — MaxEnt tokenizer
+en-ner-person.bin        (~14 MB)  — person name NER
+en-ner-organization.bin  (~16 MB)  — organisation name NER
+en-token.bin             (~1 MB)   — MaxEnt tokenizer
 ```
 
-Place them on the classpath:
-
-```
-src/main/resources/
-  models/
-    en-ner-person.bin
-    en-ner-organization.bin
-    en-token.bin
-```
-
-Or point to a filesystem directory:
+Place them on the classpath at `src/main/resources/models/`, or point to a directory:
 
 ```java
 SPGConfig config = SPGConfig.builder()
@@ -597,7 +509,7 @@ SPGConfig config = SPGConfig.builder()
     .build();
 ```
 
-Add the OpenNLP runtime dependency (marked `optional` in SPG — you must add it yourself):
+Add the OpenNLP runtime dependency (marked `optional` in SPG):
 
 ```xml
 <dependency>
@@ -607,7 +519,7 @@ Add the OpenNLP runtime dependency (marked `optional` in SPG — you must add it
 </dependency>
 ```
 
-**Thread safety:** `NameFinderME` is not thread-safe. `NLPDetector` uses `ThreadLocal` to give each thread its own `NameFinderME` wrapper, all sharing the same immutable `TokenNameFinderModel`. Adaptive state is cleared after every `detect()` call. The class is safe under Java 21+ virtual threads (Project Loom).
+`NLPDetector` uses `ThreadLocal` to give each thread its own `NameFinderME` instance sharing the same immutable model. Safe under Java 21+ virtual threads.
 
 </details>
 
@@ -619,12 +531,12 @@ Add the OpenNLP runtime dependency (marked `optional` in SPG — you must add it
 SPGConfig config = SPGConfig.builder()
     .redactionMode(RedactionMode.TOKEN)    // TOKEN | MASK | BLANK
     .mlConfidenceThreshold(0.70)           // Naive Bayes threshold, default 0.65
-    .nlpEnabled(true)                      // enable OpenNLP NER layer (opt-in)
+    .nlpEnabled(true)                      // enable OpenNLP NER (opt-in)
     .nlpModelsDirectory(Path.of("..."))    // null = load from classpath
     .nlpConfidenceThreshold(0.75)          // OpenNLP min probability, default 0.70
-    .enabledTypes(Set.of(PIIType.EMAIL,    // null / empty = all types
+    .enabledTypes(Set.of(PIIType.EMAIL,    // null = all types enabled
                          PIIType.SSN))
-    .minimumSeverity(6)                    // 1–10; filter low-severity types
+    .minimumSeverity(6)                    // filter types below this severity (1–10)
     .buildReverseMap(true)                 // disable for slight perf gain
     .heuristicEnabled(true)
     .mlEnabled(true)
@@ -633,12 +545,11 @@ SPGConfig config = SPGConfig.builder()
 ```
 
 <details>
-<summary>Virtual threads (Project Loom / Java 21+)</summary>
+<summary>Virtual threads (Java 21+)</summary>
 
-SPG is stateless and thread-safe by design. On Java 21+ it scales naturally across virtual threads with zero contention:
+SPG is stateless and thread-safe. On Java 21+ it scales naturally across virtual threads:
 
 ```java
-// Handle 10,000 concurrent LLM prompts with zero contention
 try (var exec = Executors.newVirtualThreadPerTaskExecutor()) {
     for (String prompt : promptBatch) {
         exec.submit(() -> {
@@ -664,15 +575,15 @@ SemanticPrivacyGuard spg = SemanticPrivacyGuard.create(config);  // custom
 
 | Method | Returns | Description |
 |---|---|---|
-| `redact(String text)` | `RedactionResult` | Full detection + replacement pass |
-| `containsPII(String text)` | `boolean` | Fast pre-flight check (~30% faster than `redact()`) |
-| `analyse(String text)` | `List<PIIMatch>` | Detection without redaction — for audit pipelines |
-| `redactJson(String json)` | `StructuredRedactionOutput` | Redacts string values inside a JSON document |
-| `redactXml(String xml)` | `StructuredRedactionOutput` | Redacts text nodes and attributes inside an XML document |
+| `redact(String)` | `RedactionResult` | Full detection + replacement pass |
+| `containsPII(String)` | `boolean` | Fast pre-flight check (~30% faster than `redact()`) |
+| `analyse(String)` | `List<PIIMatch>` | Detection without redaction — for audit pipelines |
+| `redactJson(String)` | `StructuredRedactionOutput` | Redacts string values inside a JSON document |
+| `redactXml(String)` | `StructuredRedactionOutput` | Redacts text nodes inside an XML document |
 | `redactStream(InputStream, OutputStream)` | `StreamRedactionSummary` | Stream redaction (UTF-8) |
 | `redactStream(Reader, Writer)` | `StreamRedactionSummary` | Stream redaction (character streams) |
 | `redactPath(Path, Path)` | `StreamRedactionSummary` | File-to-file redaction |
-| `streamProcessor()` | `StreamProcessor` | Access the full stream processor for `redactLines(Stream<String>)` |
+| `streamProcessor()` | `StreamProcessor` | Access stream processor for `redactLines(Stream<String>)` |
 
 ### `RedactionResult`
 
@@ -680,7 +591,7 @@ SemanticPrivacyGuard spg = SemanticPrivacyGuard.create(config);  // custom
 |---|---|
 | `getRedactedText()` | Sanitised text with PII replaced by tokens |
 | `getOriginalText()` | The unmodified input |
-| `getMatches()` | Unmodifiable `List<PIIMatch>` sorted by position |
+| `getMatches()` | `List<PIIMatch>` sorted by position |
 | `getReverseMap()` | `Map<String, String>` token → original value |
 | `getMatchCount()` | Number of PII items detected |
 | `containsPII()` | `true` if at least one item was detected |
@@ -691,20 +602,31 @@ SemanticPrivacyGuard spg = SemanticPrivacyGuard.create(config);  // custom
 
 ## Performance
 
-| Approach | Throughput | Macro F1 | False Positives |
+| Approach | Throughput | Macro F1 | Notes |
 |---|---|---|---|
-| Naive regex (2 patterns) | 580,000 sentences/s | — | ~60% of clean sentences |
-| SPG Heuristic-only | 390,000 sentences/s | 0.87 | 20% |
-| **SPG Full (Heuristic + ML)** | **206,000 sentences/s** | **0.93** | **~0% on benchmark suite** |
-| SPG Full + NLP | ~45,000 sentences/s* | — | ~0% on benchmark suite |
+| Naive regex (2 patterns) | ~580K sentences/s | — | ~60% false positive rate on clean sentences |
+| SPG Heuristic-only | ~390K sentences/s | 0.87 | Regex + Luhn + entropy, no ML |
+| **SPG Full (Heuristic + ML)** | **~206K sentences/s** | **0.93** | Default configuration |
+| SPG Full + NLP | ~45K sentences/s | — | NLP throughput is model- and JVM-warmup-dependent |
 
-\* NLP throughput depends on model size and JVM warmup. Stream processing throughput is I/O-bound rather than CPU-bound.
+Stream processing throughput is I/O-bound rather than CPU-bound.
 
-See the **[live benchmark page](https://sushegaad.github.io/Semantic-Privacy-Guard/docs/benchmarks.html)** for full precision/recall/F1 numbers, or regenerate results against your own hardware:
+See the **[live benchmark page](https://sushegaad.github.io/Semantic-Privacy-Guard/docs/benchmarks.html)** for full precision/recall/F1 numbers, or regenerate results on your hardware:
 
 ```bash
 mvn test -P benchmark
 ```
+
+---
+
+## What's New in v1.6.0
+
+- **Website overhaul** — playground redesigned as a developer product showcase with side-by-side entity highlighting, detection dashboard, real-world scenario prompts, and LLM-ready badges
+- **Detailed playground scenarios** — four realistic multi-PII prompts (customer support ticket, healthcare record, enterprise HR, P1 incident report) that exercise 6–10 PII types each
+- **Version consistency** — all modules (`spring-ai`, `spring-boot-filter`, `llm-gateway-demo`) aligned to 1.6.0 in lockstep
+- **Benchmark harness documented** — `BenchmarkTest` and `SyntheticDataset` fully documented and runnable via `mvn test -P benchmark`
+
+**Previous releases:** [v1.5.0](https://github.com/Sushegaad/Semantic-Privacy-Guard/releases/tag/v1.5.0) · [v1.4.0](https://github.com/Sushegaad/Semantic-Privacy-Guard/releases/tag/v1.4.0)
 
 ---
 
@@ -714,7 +636,7 @@ mvn test -P benchmark
 git clone https://github.com/Sushegaad/Semantic-Privacy-Guard.git
 cd Semantic-Privacy-Guard
 
-# Compile + test + coverage check (must be ≥ 80%)
+# Compile + test + coverage check (≥ 80% required)
 mvn verify
 
 # Run benchmarks and regenerate docs/benchmark-results.json
@@ -740,7 +662,7 @@ Requirements: JDK 17+ and Maven 3.8+.
 
 See [SECURITY.md](SECURITY.md) for the CVE response process and responsible disclosure policy.
 
-The base library has zero runtime dependencies, eliminating supply-chain attack vectors. OpenNLP is an optional dependency and is only loaded when explicitly configured. All regex patterns are validated against catastrophic backtracking (ReDoS).
+The base library has zero runtime dependencies, eliminating supply-chain attack vectors. OpenNLP is an optional dependency loaded only when explicitly configured. All regex patterns are validated against catastrophic backtracking (ReDoS).
 
 ---
 
