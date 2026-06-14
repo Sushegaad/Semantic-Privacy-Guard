@@ -279,8 +279,10 @@
 
     /* ── Pipeline section ────────────────────────────────────────────────────── */
     .pipeline-section { padding: 4rem 0; background: var(--bg); border-bottom: 1px solid var(--border); }
-    .pipeline { display: flex; gap: 1rem; align-items: stretch; flex-wrap: wrap; justify-content: center; margin-top: 2rem; }
-    .pipe-step { flex: 1; min-width: 140px; max-width: 175px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; transition: box-shadow .2s, transform .2s; }
+
+    /* Desktop: single horizontal row */
+    .pipeline { display: flex; gap: 1rem; align-items: stretch; flex-wrap: nowrap; justify-content: center; margin-top: 2rem; }
+    .pipe-step { flex: 1; min-width: 0; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; transition: box-shadow .2s, transform .2s; }
     .pipe-step:hover { transform: translateY(-3px); box-shadow: var(--shadow); }
     .pipe-icon { font-size: 1.1rem; margin-bottom: .4rem; display: block; }
     .pipe-layer { font-size: .58rem; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin-bottom: .22rem; }
@@ -291,7 +293,39 @@
     .pipe-step.b-teal   { border-top: 3px solid var(--teal); }
     .pipe-step.b-purple { border-top: 3px solid var(--purple); }
     .pipe-step.b-amber  { border-top: 3px solid #d97706; }
-    @media (max-width: 760px) { .pipe-step { max-width: 100%; min-width: 0; } }
+
+    /* Tablet: 3-column grid (2 rows of 3) */
+    @media (max-width: 860px) {
+      .pipeline { display: grid; grid-template-columns: repeat(3, 1fr); }
+      .pipe-step { flex: none; }
+    }
+
+    /* Mobile: vertical stack — icon left, text right via CSS Grid */
+    @media (max-width: 520px) {
+      .pipeline { display: flex; flex-direction: column; gap: .45rem; }
+      .pipe-step {
+        display: grid;
+        grid-template-columns: 2.25rem 1fr;
+        grid-template-rows: auto auto auto;
+        column-gap: .75rem;
+        row-gap: .05rem;
+        align-items: start;
+        padding: .85rem 1rem;
+        border-top: 1px solid var(--border);
+      }
+      /* Switch accent from border-top to border-left on mobile */
+      .pipe-step.b-blue   { border-top: 1px solid var(--border); border-left: 3px solid var(--accent); }
+      .pipe-step.b-green  { border-top: 1px solid var(--border); border-left: 3px solid var(--green); }
+      .pipe-step.b-teal   { border-top: 1px solid var(--border); border-left: 3px solid var(--teal); }
+      .pipe-step.b-purple { border-top: 1px solid var(--border); border-left: 3px solid var(--purple); }
+      .pipe-step.b-amber  { border-top: 1px solid var(--border); border-left: 3px solid #d97706; }
+      /* Icon spans all 3 rows in column 1 */
+      .pipe-icon { grid-column: 1; grid-row: 1 / 4; font-size: 1.5rem; margin-bottom: 0; align-self: center; }
+      .pipe-layer { grid-column: 2; grid-row: 1; margin-bottom: 0; }
+      .pipe-name  { grid-column: 2; grid-row: 2; }
+      .pipe-desc  { grid-column: 2; grid-row: 3; margin-top: .2rem; }
+      .pipe-step:hover { transform: none; }
+    }
 
     /* ── Get Started / CTA ───────────────────────────────────────────────────── */
     .cta-section { padding: 4.5rem 0; background: var(--surface); border-bottom: 1px solid var(--border); }
